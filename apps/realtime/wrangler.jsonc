@@ -21,10 +21,13 @@
   "vars": { "ALLOWED_ORIGINS": "http://localhost:5173" },
 
   "env": {
-    // Origins use the Cloudflare Pages project "sannidhi" until the domain is chosen
-    // (spec 00, open decision 1). Update them if Pages assigns a different subdomain.
+    // Origins are the web Worker (apps/web/wrangler.jsonc) on this account's workers.dev
+    // subdomain until the domain is chosen (spec 00, open decision 1). If the subdomain is
+    // renamed in the dashboard, update both entries and redeploy.
     "staging": {
-      "vars": { "ALLOWED_ORIGINS": "https://staging.sannidhi.pages.dev" },
+      "vars": {
+        "ALLOWED_ORIGINS": "https://sannidhi-web-staging.adityathakur-mca18-du-4c6.workers.dev",
+      },
       "durable_objects": {
         "bindings": [
           { "name": "ROOM", "class_name": "RoomDO" },
@@ -34,7 +37,9 @@
     },
     // Production never allows the staging origin, so staging can't reach production (spec 01).
     "production": {
-      "vars": { "ALLOWED_ORIGINS": "https://sannidhi.pages.dev" },
+      "vars": {
+        "ALLOWED_ORIGINS": "https://sannidhi-web-production.adityathakur-mca18-du-4c6.workers.dev",
+      },
       "durable_objects": {
         "bindings": [
           { "name": "ROOM", "class_name": "RoomDO" },

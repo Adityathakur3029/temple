@@ -1,0 +1,13 @@
+# Hand-written docs and Claude tooling keep their own layout.
+*.md
+.claude/
+
+# Generated or third-party
+node_modules/
+dist/
+.wrangler/
+coverage/
+playwright-report/
+test-results/
+package-lock.json
+apps/realtime/worker-configuration.d.ts

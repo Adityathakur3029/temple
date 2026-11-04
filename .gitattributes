@@ -1,0 +1,12 @@
+# LF everywhere so Prettier and diffs match on Windows and Linux.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.webp binary
+*.glb binary
+*.ktx2 binary
+*.m4a binary
+*.wav binary
+*.woff2 binary
+*.blend binary

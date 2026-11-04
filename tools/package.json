@@ -1,0 +1,10 @@
+{
+  "name": "@sannidhi/tools",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Repository checks and deploy helpers. Run from the repo root with npm scripts.",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  }
+}

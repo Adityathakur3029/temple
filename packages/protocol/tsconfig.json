@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Pure ES only: this package runs in the browser and in the Worker, so no DOM or Node types.
+    "lib": ["ES2023"],
+    "types": []
+  },
+  "include": ["src"]
+}

@@ -1,0 +1,4 @@
+# Cloudflare Pages headers (spec 01 § System overview). Hashed build output never changes,
+# so browsers keep it for a year. index.html keeps the default short caching.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

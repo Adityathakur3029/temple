@@ -1,0 +1,9 @@
+{
+  "boot.title": "Sannidhi",
+  "boot.opening": "Opening the temple doors",
+  "boot.error": "Couldn't reach the temple. Check your connection and try again.",
+  "boot.retry": "Try again",
+  "unsupported.title": "This device can't show the temple",
+  "lang.hi": "हिन्दी",
+  "lang.en": "English"
+}

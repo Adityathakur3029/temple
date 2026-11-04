@@ -1,0 +1,2 @@
+# Not served to visitors: Vite's build manifest is only read by `npm run check`.
+.vite

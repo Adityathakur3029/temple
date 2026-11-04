@@ -132,7 +132,7 @@ export function measureWeb(dist: string): BudgetResult[] {
 
 /** Built files that no budget line counts yet, so nothing ships unmeasured without notice. */
 export function uncountedFiles(dist: string): string[] {
-  const counted = /^(index\.html|_headers|\.vite\/.*|.*\.(js|css|wasm|woff2?))$/;
+  const counted = /^(index\.html|_headers|\.assetsignore|\.vite\/.*|.*\.(js|css|wasm|woff2?))$/;
   return walk(dist)
     .filter((f) => statSync(f).isFile())
     .map((f) => relative(dist, f).replace(/\\/g, "/"))

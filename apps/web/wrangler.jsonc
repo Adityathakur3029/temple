@@ -1,0 +1,18 @@
+// The web app is a Worker with static assets only: no code runs, Cloudflare serves
+// apps/web/dist directly (spec 01). Deploy with `npm run deploy:web -- --env staging|production`
+// through the `release` skill; that script builds dist first.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "sannidhi-web",
+  "compatibility_date": "2026-10-15",
+  // dist/_headers sets immutable caching for hashed files; dist/.assetsignore keeps the
+  // Vite build manifest out of the upload.
+  "assets": { "directory": "./dist" },
+
+  // Served at sannidhi-web-<env>.<account>.workers.dev until the domain is chosen
+  // (spec 00, open decision 1). The realtime Worker's ALLOWED_ORIGINS must match.
+  "env": {
+    "staging": {},
+    "production": {},
+  },
+}

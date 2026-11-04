@@ -9,7 +9,7 @@ How the pieces fit together, where they run, and how the repository is laid out.
 ```
                  ┌──────────────────────────── Cloudflare ────────────────────────────┐
  Visitor's       │                                                                     │
- browser  ──────►│  Pages: sannidhi app (HTML, JS, CSS, fonts, small images)           │
+ browser  ──────►│  Static assets Worker: sannidhi-web (HTML, JS, CSS, fonts, images)  │
  (Three.js,      │                                                                     │
   Web Audio)     │  R2 + asset Worker: /v/<release>/… models, KTX2 textures, audio     │
    │  ▲          │    cache-control: public, max-age=31536000, immutable                │
@@ -23,7 +23,7 @@ How the pieces fit together, where they run, and how the repository is laid out.
                  └─────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Static app (Cloudflare Pages).** HTML, the JS bundle, CSS, fonts and small images. The HTML is never cached long; hashed JS and CSS files are.
+- **Static app (a Worker with static assets, `sannidhi-web`).** HTML, the JS bundle, CSS, fonts and small images. It runs no code: Cloudflare serves `apps/web/dist` directly, configured by `apps/web/wrangler.jsonc`. The HTML is never cached long; hashed JS and CSS files are immutable (`_headers`).
 - **Assets (R2 behind a small asset Worker).** Models, textures and audio under an immutable versioned path. A release never overwrites an existing version folder. The asset Worker sets the cache and CORS headers (spec 11) and counts requests per asset. It is built when the first assets ship.
 - **Realtime Worker + Durable Objects.** One Durable Object per hall instance (`RoomDO`) holds presence and ritual state. One `DirectoryDO` aggregates counts for the room list and the temple-wide "today" counters. See [05 Server](05-server.md).
 - **No database** in v1. Presence is in memory with WebSocket attachments. Lamps and counters live in Durable Object storage.
@@ -38,7 +38,7 @@ How the pieces fit together, where they run, and how the repository is laid out.
 | Asset compression | glTF-Transform, meshopt, KTX2 (Basis) | Small downloads, GPU-friendly textures |
 | Audio | Web Audio API | Mixing, spatial bells, synced aarti playback |
 | Realtime | Cloudflare Workers + Durable Objects with the WebSocket Hibernation API | One stateful object per room; idle rooms cost almost nothing |
-| Hosting | Cloudflare Pages + R2 | Edge-cached static files and assets, close to Indian users |
+| Hosting | Workers static assets + R2 | Edge-cached static files and assets, close to Indian users. Cloudflare is folding Pages into Workers, so the web app is a static-assets Worker |
 | Tests | Vitest, `@cloudflare/vitest-pool-workers`, Playwright | Unit, Durable Object and browser tests |
 | i18n | Small in-house string loader (JSON per locale) | No heavy framework needed for ~150 strings |
 
@@ -64,7 +64,8 @@ The client has no UI framework. The HUD is plain DOM plus CSS, which keeps the i
 │  │  │  ├─ ui/                 HUD, dialogs, onboarding
 │  │  │  ├─ i18n/               en.json, hi.json, loader
 │  │  │  └─ platform/           tab ownership, idle sleep, storage helpers
-│  │  └─ public/                favicon, manifest.webmanifest, fonts
+│  │  ├─ public/                _headers, .assetsignore, manifest.webmanifest, fonts
+│  │  └─ wrangler.jsonc         static-assets Worker (no code)
 │  └─ realtime/
 │     ├─ src/
 │     │  ├─ worker.ts           routes: /api/rooms, /ws, /api/beacon
@@ -94,8 +95,8 @@ The client has no UI framework. The HUD is plain DOM plus CSS, which keeps the i
 | Env | Web | Realtime | Assets | Notes |
 |---|---|---|---|---|
 | local | `vite` on `http://localhost:5173` | `wrangler dev` on `http://localhost:8787` | served from `apps/web/public` or local R2 | Origin `http://localhost:5173` allowed |
-| staging | Pages preview / `staging.<domain>` | Worker env `staging` | R2 bucket `sannidhi-assets-staging` | Real Cloudflare, test data |
-| production | `<domain>` | Worker env `production` | R2 bucket `sannidhi-assets` | Deploys only through the `release` skill |
+| staging | `sannidhi-web-staging.<account>.workers.dev` / `staging.<domain>` | Worker env `staging` | R2 bucket `sannidhi-assets-staging` | Real Cloudflare, test data |
+| production | `<domain>` (until then `sannidhi-web-production.<account>.workers.dev`) | Worker env `production` | R2 bucket `sannidhi-assets` | Deploys only through the `release` skill |
 
 Configuration the client needs (realtime URL, asset origin, analytics token, UPI details) comes from Vite env variables at build time. Secrets are never shipped to the client. The server has no secrets in v1 apart from Cloudflare's own bindings.
 

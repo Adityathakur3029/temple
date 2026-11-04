@@ -1,6 +1,6 @@
 ---
 name: release
-description: Deploy Sannidhi to staging or production (versioned assets to R2, realtime Worker, web app to Cloudflare Pages) and smoke-test it. Run only when the user explicitly asks to deploy or release.
+description: Deploy Sannidhi to staging or production (versioned assets to R2, realtime Worker, web app as a static-assets Worker) and smoke-test it. Run only when the user explicitly asks to deploy or release.
 disable-model-invocation: true
 ---
 
@@ -29,4 +29,4 @@ Deploys are outward-facing, so confirm the target (`staging` or `production`) wi
 - If the release touched aarti: the next aarti time shows correctly in IST.
 
 ## 5. Report
-- Tell the user what was deployed (commit, asset version, protocol version), the smoke-test results, and how to roll back: redeploy the previous Pages build and Worker version. Assets don't need rolling back because versions are immutable.
+- Tell the user what was deployed (commit, asset version, protocol version), the smoke-test results, and how to roll back: `npx wrangler rollback --config apps/realtime/wrangler.jsonc --env <target>`, and the same with `apps/web/wrangler.jsonc` (`wrangler versions list` shows earlier versions). Assets don't need rolling back because versions are immutable.

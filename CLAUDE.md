@@ -27,7 +27,7 @@ Sannidhi (सन्निधि, "sacred presence") is a browser-based 3D temple
 ## Stack and layout (planned; created in milestone M0)
 
 ```
-apps/web/            Vite + TypeScript + Three.js client (static, Cloudflare Pages)
+apps/web/            Vite + TypeScript + Three.js client (static, Workers static assets)
 apps/realtime/       Cloudflare Worker + Durable Objects (rooms, presence, rituals)
 packages/protocol/   Shared message types, validators, constants (no runtime deps)
 assets-src/          Source models/audio (not shipped); see spec 11

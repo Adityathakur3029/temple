@@ -10,7 +10,7 @@ This note records which **general patterns** we adopt, what we deliberately do d
 
 | Pattern | Our version |
 |---|---|
-| Static web app + edge workers for realtime | Cloudflare Pages + Worker + Durable Objects (spec 01, 05) |
+| Static web app + edge workers for realtime | Workers static assets + Worker + Durable Objects (spec 01, 05) |
 | Rooms that split into parallel copies when full | 20 halls × 8 instances × 50 (spec 04) |
 | Room list endpoint before connecting | `GET /api/rooms` (spec 04) |
 | Server-authoritative positions, seats and queues | RoomDO rules (spec 05) |

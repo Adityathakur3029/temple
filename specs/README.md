@@ -41,6 +41,7 @@ These documents define what Sannidhi is and how it works. They are the source of
 | 2026-11-03 | Stack: Vite + TS + Three.js; Cloudflare Worker + Durable Objects; Pages; R2 | Default |
 | 2026-11-04 | Assets are served from R2 through a small asset Worker, not an R2 custom domain (spec 01) | Decided by owner |
 | 2026-11-04 | Node 22+ (Node 20 is end of life; wrangler 4 needs 22) | Decided by owner |
+| 2026-11-04 | The web app is a Worker with static assets, not Cloudflare Pages (Cloudflare is folding Pages into Workers; spec 01) | Decided by owner |
 | 2026-11-03 | 20 halls × up to 8 instances × 50 visitors | Default |
 | 2026-11-03 | Aarti at 06:00 and 19:00 IST | Default, check with advisor |
 | 2026-11-03 | Half pradakshina at the somasutra (jaladhari) by default | Default, check with advisor |

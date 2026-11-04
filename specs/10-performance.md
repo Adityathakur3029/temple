@@ -12,8 +12,12 @@ Most visitors use mid-range or budget Android phones on 4G with prepaid data. Th
 | Mid | 4–6 GB RAM, Mali-G57 / Adreno 610–619 class | 0.85–1.0 | 30 fps steady, 60 where possible |
 | High | Recent flagships, laptops, desktops | 1.0 (DPR capped at 2) | 60 fps |
 
-- **Tier choice:** start from `navigator.deviceMemory`, the WebGL renderer string and `hardwareConcurrency`.
-- **Adjustment:** after 10 s, measure the average frame time. Drop a tier if it's under target, and suggest Lite mode (spec 07) on Low.
+- **Tier choice:** start from `navigator.deviceMemory`, the WebGL renderer string and `hardwareConcurrency`, taking the lowest tier any of them suggests:
+  - GPU: the classes in the table above. Software renderers (SwiftShader, llvmpipe) count as Low. An unknown GPU counts as Mid on a phone and High elsewhere.
+  - Memory: 2 GB or less is Low; 4 GB or less is at most Mid.
+  - Cores: 2 or fewer is Low; 4 or fewer is at most Mid.
+- **Render scale** multiplies the device pixel ratio after capping it at 2.
+- **Adjustment:** after 10 s, measure the average frame time. Drop a tier if it's under target (below 90% of the target frame rate), then measure again. Suggest Lite mode (spec 07) on Low.
 - **Override:** the visitor can choose a tier in Settings.
 
 ## Download budgets
@@ -55,7 +59,7 @@ The temple is interactive after P0. Later priorities load in the background and 
 | Triangles on screen | ≤ 150k | ≤ 300k | ≤ 800k |
 | GPU texture memory | ≤ 120 MB | ≤ 200 MB | ≤ 400 MB |
 | JS heap | ≤ 120 MB | ≤ 150 MB | ≤ 250 MB |
-| Real-time lights | 2 | 4 | 4 |
+| Real-time point lights (on top of the sun or moon and the sky's ambient light) | 2 | 4 | 4 |
 | Shadows | Blob shadows | Blob shadows | One directional shadow map |
 | Post-processing | None | None | Optional subtle bloom |
 
@@ -92,7 +96,7 @@ The compact delta tuples in spec 04, change-only sending and `LITE_TICK_HZ` are 
 - **Idle:**
   - After `IDLE_SLEEP_MS` without input while **seated, in the mala view, or during aarti**: calm mode. Render at 15 fps with the camera still, keeping presence.
   - Otherwise, after `IDLE_SLEEP_MS` without input: rest. Stop rendering, close the socket and show "Resting. Tap to return."
-- **View restore:** `sessionStorage` `sannidhi:view-v1` (camera, hall, instance, mala bead) is restored within `VIEW_CHECKPOINT_MS` after a reload.
+- **View restore:** `sessionStorage` `sannidhi:view-v1` (camera, the visitor's position, facing and mat, hall, instance, mala bead) is restored within `VIEW_CHECKPOINT_MS` after a reload. It is written every 2 s and when the page is hidden. A stored position that isn't walkable is ignored.
 
 ## Memory hygiene
 
@@ -105,7 +109,7 @@ The compact delta tuples in spec 04, change-only sending and `LITE_TICK_HZ` are 
   - Compressed sizes are measured as gzip level 9, with 1 KB counted as 1,000 bytes (stricter than 1,024). Already-compressed files (WOFF2, KTX2, `.m4a`) count at their file size.
   - CSS linked by the entry counts with the HTML. `.wasm` decoders count towards the total before interactive.
   - Lines that need the asset manifest report "not measured" until it exists. The checker lists any built file that no line counts.
-- **Perf overlay:** `?perf=1` shows fps, frame time, draw calls, triangles, textures, geometries and JS heap.
+- **Perf overlay:** `?perf=1` shows fps, frame time, draw calls, triangles, textures, geometries, JS heap, the tier and the pixel ratio.
 - **CI perf run:** Playwright on the High tier with a 4× CPU throttle and an emulated 4G profile, recording time to interactive and the frame-time distribution while walking gate → mandapa.
 - **Device matrix (manual, each milestone from M1):**
   - one Low Android (3 GB);
@@ -125,3 +129,4 @@ The compact delta tuples in spec 04, change-only sending and `LITE_TICK_HZ` are 
 
 1. **Instance capacity of 50.** Raise it if Mid-tier measurements allow (spec 04).
 2. **Bloom on High.** Include it, or keep every tier identical apart from resolution?
+3. **Restored position and the server (M2).** See [05 § Open decisions](05-server.md#open-decisions).

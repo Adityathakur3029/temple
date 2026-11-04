@@ -31,11 +31,11 @@ All keys are prefixed `sannidhi:`. All storage access is wrapped in try/catch, a
 | Key | Storage | Contents |
 |---|---|---|
 | `lang-v1` | local | `"hi"` or `"en"` |
-| `settings-v1` | local | Lite mode, joystick, reduced motion, lyrics |
+| `settings-v1` | local | Lite mode, picture quality (automatic or a chosen tier), reduced motion, whether the Lite suggestion was shown; later joystick and lyrics |
 | `audio-v1` | local | Master on/off, channel volumes |
 | `onboarding-v1` | local | Which hints were completed |
 | `japa-v1` | local | Current bead, malas today (local count) |
-| `view-v1` | session | Camera, hall, instance for restore within 30 min |
+| `view-v1` | session | Camera, the visitor's position, facing and mat, hall, instance and mala bead, for restore within 30 min |
 | `resume-v1` | session | Resume token |
 | `render-owner-v1` | local | Which tab renders (tab coordination) |
 

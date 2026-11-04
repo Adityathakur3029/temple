@@ -1,5 +1,5 @@
 /**
- * M0 smoke test: boot screen, language, unsupported device, the lazy-loaded scene,
+ * Smoke test: boot screen, language, unsupported device, the lazy-loaded temple scene,
  * and the realtime Worker reachable from the app origin.
  */
 import type { Page } from "@playwright/test";
@@ -22,9 +22,10 @@ const NO_WEBGL2 = (): void => {
   });
 };
 
-test("the placeholder scene replaces the boot screen", async ({ page }) => {
+test("the temple scene replaces the boot screen", async ({ page }) => {
+  test.setTimeout(90_000);
   await page.goto("/");
-  await expect(page.locator("body")).toHaveAttribute("data-screen", "temple", { timeout: 20_000 });
+  await expect(page.locator("body")).toHaveAttribute("data-screen", "temple", { timeout: 60_000 });
 
   const canvas = page.locator("canvas.scene");
   await expect(canvas).toBeVisible();
@@ -36,7 +37,7 @@ test("the placeholder scene replaces the boot screen", async ({ page }) => {
 test("the boot screen shows in English by default, with a CSS-only retry link after 15 s", async ({
   page,
 }) => {
-  await page.route("**/src/scene/**", () => {
+  await page.route(/\/src\/scene\//, () => {
     // Never answer, so the boot screen stays up.
   });
   await page.goto("/");
@@ -60,7 +61,8 @@ test.describe("Hindi", () => {
   test.use({ locale: "hi-IN" });
 
   test("paints in Hindi, tab title included, even if no module loads", async ({ page }) => {
-    await page.route("**/src/main.ts", (route) => route.abort());
+    // A regex, so a hot-reloaded "/src/main.ts?t=…" is blocked too.
+    await page.route(/\/src\/main\.ts(\?.*)?$/, (route) => route.abort());
     await page.goto("/");
     await expect(page.locator("html")).toHaveAttribute("lang", "hi");
     await expect(page).toHaveTitle("सन्निधि");
@@ -119,6 +121,7 @@ test("the realtime Worker answers the app origin over HTTP and WebSocket", async
 });
 
 test("a hidden tab runs no animation frames (spec 10)", async ({ page }) => {
+  test.setTimeout(90_000);
   await page.addInitScript(() => {
     const w = window as Window & { __frames?: number };
     w.__frames = 0;
@@ -130,11 +133,11 @@ test("a hidden tab runs no animation frames (spec 10)", async ({ page }) => {
       });
   });
   await page.goto("/");
-  await expect(page.locator("body")).toHaveAttribute("data-screen", "temple", { timeout: 20_000 });
+  await expect(page.locator("body")).toHaveAttribute("data-screen", "temple", { timeout: 60_000 });
   const frames = (): Promise<number> =>
     page.evaluate(() => (window as Window & { __frames?: number }).__frames ?? 0);
 
-  await expect.poll(frames).toBeGreaterThan(5);
+  await expect.poll(frames, { timeout: 20_000 }).toBeGreaterThan(5);
 
   // Hide the page the way switching tabs does.
   await page.evaluate(() => {

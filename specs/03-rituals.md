@@ -155,7 +155,7 @@ General rules for all rituals:
 ## Darshan view (दर्शन)
 
 - **Purpose:** look upon the deity.
-- **Input:** HUD "Darshan" (eye icon), or key `D`.
+- **Input:** HUD "Darshan" (eye icon), or key `V` (see [07](07-ui-and-language.md#keyboard)).
 - **Behaviour:** the camera frames the linga through the sanctum door. This is local only, with no network message. It is the default view while seated. Any look input returns to the orbit camera (when standing).
 
 ## Aarti (आरती)

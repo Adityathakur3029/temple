@@ -26,7 +26,7 @@ Triangle counts are per instance. Texture sizes are given as Full / Lite.
 | Rocks, ferns, moss kit | ≤ 2k each | Shared 1K / 512 | Instanced |
 | Sky and far mountains | Shader + 1 panorama | 4096×1024 / 2048×512 | Snow peaks, no recognisable real mountain |
 | Footwear rack, today board, lanterns | ≤ 3k each | Props atlas | The today board text is rendered in code, not baked |
-| UI icon set | SVG | — | Original: shikhara, diya, bell, mala, joined hands, eye. **No deity faces** |
+| UI icon set | SVG | — | Original: shikhara, diya, bell, mala, joined hands, eye, settings (sliders). **No deity faces** |
 | App icon, favicon, social image | PNG/SVG | — | Shikhara silhouette at dawn, or a diya. No deity image |
 | Fonts | — | — | Noto Sans, Noto Sans Devanagari, Tiro Devanagari Hindi (OFL); subset WOFF2 |
 | Audio | — | — | See the list in spec 06; formats and loudness per spec 06 |

@@ -9,11 +9,20 @@ export function currentLang(doc: Document = document): Lang {
   return doc.documentElement.lang === "hi" ? "hi" : "en";
 }
 
+const listeners = new Set<(lang: Lang) => void>();
+
+/** Called after every language switch, so in-temple UI can redraw its strings. */
+export function onLangChange(fn: (lang: Lang) => void): () => void {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+
 /** Switch language: `<html lang>` drives which boot strings CSS shows (spec 07 § Language). */
 export function setLang(lang: Lang, doc: Document = document): void {
   doc.documentElement.lang = lang;
   writeLocal(LANG_KEY, lang);
   syncLangUi(doc);
+  for (const fn of listeners) fn(lang);
 }
 
 /** Pressed state on the toggle buttons and the document title, for the current language. */

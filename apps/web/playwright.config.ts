@@ -12,6 +12,10 @@ const GL_ARGS = ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"];
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
+  // SwiftShader renders on the CPU, and mobile runs with a 4x CPU throttle: parallel workers
+  // starve each other until frames take seconds and random tests time out. One worker is
+  // about as fast in total and steady.
+  workers: 1,
   forbidOnly: CI,
   retries: CI ? 1 : 0,
   reporter: CI ? [["list"], ["html", { open: "never" }]] : "list",

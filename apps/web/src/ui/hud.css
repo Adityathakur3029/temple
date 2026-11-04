@@ -1,0 +1,268 @@
+/* Temple HUD (spec 07 § HUD): soft translucent deodar-green panels, brass only for the active state. */
+.hud {
+  --hud-bg: rgba(19, 32, 25, 0.82);
+  --hud-fg: #f3efe6;
+  --hud-line: rgba(243, 239, 230, 0.3);
+  --hud-brass: #d9ad55;
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  color: var(--hud-fg);
+}
+body:not([data-screen="temple"]) .hud,
+body:not([data-screen="temple"]) .rest {
+  display: none;
+}
+.hud button {
+  pointer-events: auto;
+}
+.hud-btn,
+.rest button,
+.sheet button,
+.hud-notice button {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0 18px;
+  border: 1px solid var(--hud-line);
+  border-radius: 999px;
+  background: var(--hud-bg);
+  color: var(--hud-fg);
+  font: inherit;
+  line-height: 1.2;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.hud-btn svg {
+  width: 22px;
+  height: 22px;
+  flex: none;
+}
+.hud-icon {
+  padding: 0;
+}
+.hud-btn[aria-pressed="true"] {
+  border: 2px solid var(--hud-brass);
+  padding: 0 17px;
+  color: #f8e6bb;
+}
+.hud button:focus-visible,
+.rest button:focus-visible,
+.sheet :focus-visible {
+  outline: 2px solid var(--hud-brass);
+  outline-offset: 2px;
+}
+.hud-top {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  display: flex;
+  gap: 8px;
+}
+.hud-bottom {
+  position: absolute;
+  right: 0;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 0 max(12px, env(safe-area-inset-right)) 0 max(12px, env(safe-area-inset-left));
+}
+.hud-dock {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.hud-context {
+  min-height: 56px;
+  padding: 0 28px;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+.hud-notice {
+  position: absolute;
+  top: max(72px, calc(env(safe-area-inset-top) + 60px));
+  left: 50%;
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 12px;
+  width: max-content;
+  max-width: min(calc(100vw - 32px), 440px);
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: var(--hud-bg);
+  transform: translateX(-50%);
+  pointer-events: auto;
+  text-align: center;
+}
+.hud-notice p {
+  flex: 1 1 100%;
+  margin: 0;
+  line-height: 1.45;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+[hidden] {
+  display: none !important;
+}
+
+/* Rest overlay (spec 07 § Screens). */
+.rest {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  border: 0;
+  background: rgba(12, 19, 15, 0.84);
+  color: #f3efe6;
+  font: inherit;
+  font-size: 1.1rem;
+  text-align: center;
+}
+.rest p {
+  margin: 0;
+  max-width: 32ch;
+  line-height: 1.5;
+}
+.rest-idle {
+  cursor: pointer;
+}
+
+/* Settings sheet, in the page's own light or dark theme. */
+.sheet {
+  box-sizing: border-box;
+  width: min(calc(100vw - 24px), 460px);
+  max-height: min(calc(100vh - 24px), 720px);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--bg);
+  color: var(--fg);
+  overflow: auto;
+}
+.sheet::backdrop {
+  background: rgba(10, 15, 12, 0.5);
+}
+.sheet form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 16px 20px 24px;
+}
+.sheet header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sheet h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+.sheet h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.sheet button,
+.sheet .choice {
+  border-color: var(--line);
+  background: var(--panel);
+  color: var(--fg);
+}
+.sheet button[aria-pressed="true"] {
+  border: 2px solid var(--accent);
+  padding: 0 17px;
+  font-weight: 600;
+}
+.sheet .row,
+.sheet .choice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  cursor: pointer;
+}
+.sheet .choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sheet .choice {
+  box-sizing: border-box;
+  gap: 8px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+.sheet input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.sheet .note {
+  margin: 4px 0 0 32px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+.sheet .seg {
+  display: flex;
+  gap: 8px;
+}
+.sheet dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 16px;
+  margin: 0;
+}
+.sheet dt {
+  font-weight: 600;
+}
+.sheet dd {
+  margin: 0;
+  color: var(--muted);
+}
+
+/* ?perf=1 overlay (spec 10 § Measurement). */
+.perf {
+  position: fixed;
+  top: max(8px, env(safe-area-inset-top));
+  left: max(8px, env(safe-area-inset-left));
+  z-index: 4;
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.66);
+  color: #d8f0e0;
+  font:
+    11px/1.35 ui-monospace,
+    Menlo,
+    Consolas,
+    monospace;
+  white-space: pre;
+  pointer-events: none;
+}

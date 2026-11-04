@@ -82,9 +82,11 @@ interface Lamp { slot: number; litAt: number; expiresAt: number; mine?: true }
 interface TodayCounters { date: string; diyas: number; malas: number; parikramas: number; visits: number }
 ```
 
-Positions are rounded to 0.01 m and yaw to 0.01 rad by the sender.
+Positions are rounded to 0.01 m and yaw to 0.01 rad by the sender. Coordinates and yaw follow [spec 02](02-temple-world.md#purpose): yaw 0 faces east (`+z`) and yaw π/2 faces north (`+x`). Walkable areas and sacred zones live in `world.ts`.
 
 The order of `POSES` is part of the wire format, because `poseIndex` in `StateTuple` indexes it. Only append to it. Reordering or removing a pose is a breaking change.
+
+The same holds for two lists in `world.ts`: `mat` (in `StateTuple`, `sit` and `sit.ok`) indexes `MATS`, and `spot` (in `diya.turn`) indexes `DIYA_SPOT_POSITIONS`. Their order is fixed in [spec 02 § Greybox details](02-temple-world.md#greybox-details); changing it is a breaking change.
 
 ## Client → server messages
 

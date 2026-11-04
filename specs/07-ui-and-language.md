@@ -55,7 +55,7 @@ Store completion in `localStorage` `sannidhi:onboarding-v1`.
 | `2` | Open or close the japa mala |
 | `3` | Namaste |
 | `E` | Context action (ring bell, light diya, sit …) |
-| `D` | Darshan view |
+| `V` | Darshan view (not `D`, which walks right) |
 | `P` | Parikrama (when near the start) |
 | `M` | Sound on/off |
 | `Space` / `↓` | Next bead (in the mala view) |
@@ -65,7 +65,7 @@ Shortcuts are listed in Settings → Controls.
 
 ## Lite mode
 
-- **Suggested automatically** (once, dismissible) when any of these is true:
+- **Suggested automatically** (once, dismissible, as a notice with "Use Lite mode" and "Not now") when any of these is true:
   - `navigator.connection.saveData` is true;
   - `effectiveType` is `2g` or `3g`;
   - `navigator.deviceMemory` ≤ 2;
@@ -101,7 +101,7 @@ Shortcuts are listed in Settings → Controls.
 
 ## Starter string table
 
-The keys are the canonical names in the locale files. Hindi strings need native review (status: draft).
+The keys are the canonical names in the locale files. Hindi strings need native review (status: draft). A test checks that `en.json` and `hi.json` match this table exactly, so a new string is added here first. Hindi announcements avoid verb forms that change with the visitor's gender.
 
 | Key | English | Hindi (draft) |
 |---|---|---|
@@ -162,6 +162,31 @@ The keys are the canonical names in the locale files. Hindi strings need native 
 | `support.copy_upi` | Copy UPI ID | UPI आईडी कॉपी करें |
 | `exit.thanks` | Thank you for visiting | पधारने के लिए धन्यवाद |
 | `exit.return` | Return to the temple | मंदिर में लौटें |
+| `hud.dock` | Actions | कार्य |
+| `settings.title` | Settings | सेटिंग्स |
+| `settings.close` | Close | बंद करें |
+| `settings.language` | Language | भाषा |
+| `settings.lite` | Lite mode | लाइट मोड |
+| `settings.lite_note` | Uses less data and battery, with fewer trees and simpler light. | इसमें डेटा और बैटरी कम लगती है; पेड़ कम और रोशनी सादी रहती है। |
+| `settings.quality` | Picture quality | दृश्य गुणवत्ता |
+| `settings.quality_auto` | Automatic | अपने-आप |
+| `settings.quality_low` | Low | कम |
+| `settings.quality_mid` | Medium | मध्यम |
+| `settings.quality_high` | High | उच्च |
+| `settings.motion` | Reduce motion | एनिमेशन कम करें |
+| `settings.controls` | Controls | नियंत्रण |
+| `controls.walk` | Walk | चलें |
+| `controls.drag` | Drag or scroll | खींचें या स्क्रॉल करें |
+| `controls.look` | Look around and zoom | चारों ओर देखें और ज़ूम करें |
+| `controls.context` | Action at this spot (sit, stand up) | इस जगह का कार्य (बैठें, उठें) |
+| `controls.darshan` | Darshan view | दर्शन दृश्य |
+| `controls.close` | Close the open sheet or view | खुला पैनल या दृश्य बंद करें |
+| `lite.suggest` | This device may run more smoothly in Lite mode. | लाइट मोड में यह डिवाइस बेहतर चल सकता है। |
+| `lite.use` | Use Lite mode | लाइट मोड चालू करें |
+| `lite.dismiss` | Not now | अभी नहीं |
+| `a11y.seated` | You are on a mat, facing the sanctum. | आप आसन पर हैं, मुख गर्भगृह की ओर है। |
+| `a11y.stood` | You left the mat. | आपने आसन छोड़ दिया। |
+| `a11y.darshan` | Darshan view: the linga, through the sanctum door. | दर्शन दृश्य: गर्भगृह के द्वार से शिवलिंग। |
 
 ## Accessibility
 

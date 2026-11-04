@@ -74,8 +74,7 @@ Rule: if losing it on hibernation would change what a visitor sees, it is in an 
 - `dt` is the time since the last accepted position (server clock).
 - Accept the new position if all of these hold:
   - the distance is ≤ `SPEED_LIMIT_MPS × dt + 0.5 m`;
-  - the point is inside the walkable area;
-  - the point is outside every sacred and blocked zone (`world.ts`);
+  - the whole step, the straight segment from the last accepted position to the new one, stays inside the walkable area and outside every sacred and blocked zone (`segmentBlocked` in `world.ts`). Checking only the end point would let one long step hop over a thin zone such as the somasutra or the Nandi axis;
   - the pose is a valid transition (for example `sit` only with a mat).
 - Otherwise reply `correct {x, z}` with the last valid position and keep that.
 - Update the pradakshina checkpoint state from accepted positions (spec 03).
@@ -165,3 +164,4 @@ There's no free text, so the remaining risks are connection floods, message spam
 
 1. **Instance fill strategy.** Fill-first (default, so people see each other) or balanced? Revisit with real traffic.
 2. **Rate-limit values** after the first load test and soft launch.
+3. **Restored position after a reload.** View restore (spec 10) puts a reloading visitor back where they were, but a new socket joins at the spawn. Should the server accept the first `pos` after a welcome if it is walkable, or keep the restored place only on a valid resume? The second needs the position in the resume record (§ State).

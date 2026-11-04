@@ -83,7 +83,7 @@ Where Hindu practice varies by region or tradition, this document picks a defaul
 | Half pradakshina turning back at the somasutra | On | 02, 03 |
 | Aarti times 06:00 and 19:00 IST | On | 03, 04 |
 | Aarti performer: pujari figure vs lamp-only | Lamp-only until decided | 03 |
-| Water offering at the threshold (not on the linga) | On | 03 |
+| Water offering at the threshold (not on the linga) | On. In the greybox the jal spot (1.9, 3.4) has no straight line of sight to the linga through the 1.5 m door, so the visitor pours facing the stone beside it. Widen the door, move the spot, or accept? | 03 |
 | Tripundra on the linga | Off | this spec |
 | Tilak on avatars after aarti | Off | 02 |
 | Prasad item | Mishri + elaichi dana | this spec |
@@ -91,6 +91,9 @@ Where Hindu practice varies by region or tradition, this document picks a defaul
 | Dandavat pranam variant | Not in v1 | 03 |
 | Aarti lyrics text | Hidden until verified | 06 |
 | Temple mark (boot screen, favicon, future app icon): kalasha, amalaka, tower proportions, doorway | Stylised M0 mark in `apps/web/src/ui/shikhara.svg`; no sacred symbols on it | this spec, 11 |
+| Greybox stand-ins for the sacred forms until the human-made assets (M5) | Linga: a plain dark stone form on its pitha, spout to the north. Nandi: plain stone blocks that only suggest the seated form and its facing, with no face. The Ganesha murti: an unadorned stone mass | 02, 11 |
+| Shawl colours | 8 muted wool colours (madder, rust, mustard, olive, teal, indigo, plum, charcoal); no saffron, which reads as a renunciate's robe. Rust is close to geru and madder to monastic maroon: review both at dusk and under lamp light | 02 |
+| Darshan from off the axis | The darshan camera moves towards the axis so the linga shows through the door; the avatar stays where it is. For anyone within about 9 m of the linga (the front mats, the antarala) the viewpoint is inside the Nandi-axis strip. Only the camera is there, never an avatar | 02 |
 
 ## Acceptance criteria
 
@@ -103,7 +106,19 @@ Where Hindu practice varies by region or tradition, this document picks a defaul
 
 | Date | Milestone | Advisor | Result / notes |
 |---|---|---|---|
-| — | — | — | — |
+| 2026-11-04 | M1: greybox layout and sacred zones | Pending (advisor not yet chosen, open decision 1) | Ready for review. Automated pre-check by the `cultural-reviewer` agent; see the M1 review list below |
+
+### M1 review list
+
+For the advisor's walk-through of the greybox (`npm run dev`, or staging). Add `?ist=19:05` (any IST time) to the URL to see dawn, dusk or night.
+
+1. The layout in spec 02: the shrine faces east, with Nandi on the axis facing the sanctum, the mandapa with mats either side of a clear aisle, the courtyard, the deepa stand, the kund, the gate path, the Ganesha shrine and the gate.
+2. The sacred zones: nobody can enter the garbhagriha (avatar or camera), stand on the Nandi axis, step into the kund water, or cross the somasutra in half-pradakshina mode.
+3. The route to the threshold goes along the sides of the mandapa, never the aisle.
+4. Seated visitors sit cross-legged facing the sanctum, with no sole towards it.
+5. The darshan view, from a mat and from elsewhere.
+6. The greybox stand-ins for the linga, Nandi and the Ganesha murti (check-with-advisor list above).
+7. Footwear is left outside the gate; avatars are barefoot inside.
 
 ## Open decisions
 

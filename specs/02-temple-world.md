@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The physical temple: layout, sacred zones, light, camera, controls and the visitor's avatar. Coordinates are in metres. `+x` is north, `+z` is east, and `+y` is up. The shrine faces east, and the linga sits at the origin.
+The physical temple: layout, sacred zones, light, camera, controls and the visitor's avatar. Coordinates are in metres. `+x` is north, `+z` is east, and `+y` is up. The shrine faces east, and the linga sits at the origin. Yaw is in radians about `+y`: yaw 0 faces east (`+z`) and yaw π/2 faces north (`+x`), so yaw θ faces (x, z) = (sin θ, cos θ).
 
 ## Setting
 
@@ -14,7 +14,7 @@ A fictional small stone temple on a forested Himalayan ridge at about 2,000 m. D
 |---|---|---|
 | Garbhagriha (sanctum) with Shiva linga on a yoni pitha | (0, 0) | Inner 5 × 5 m, door facing +z. **Not walkable.** |
 | Shikhara | over (0, 0) | ~16 m tall; the landmark visible from the gate |
-| Jaladhari / somasutra outlet | north wall (2.6, 0) → channel to (10.5, 0) | Visible stone spout and channel on the north side |
+| Jaladhari / somasutra outlet | north wall (2.6, 0) → channel to the forest edge (14.7, 0) | Visible stone spout, and a channel running north across the pradakshina path |
 | Antarala and threshold | z 2.6 … 5 | The jal-offering spot is at the threshold, beside the door (see 03) |
 | Mandapa (open hall) | x −7 … 7, z 5 … 19 | 12 pillars, raised plinth, two blocks of mats either side of a clear central aisle |
 | Nandi on a platform, facing −z | (0, 22) | The **Nandi axis** x −1.2 … 1.2, z 0 … 22 is a no-stand, no-walk zone |
@@ -39,7 +39,7 @@ These are defined in `packages/protocol/src/world.ts` and enforced by both clien
 1. **Garbhagriha interior:** never enterable. The camera can't pass through the door either.
 2. **Nandi axis:** the strip between Nandi and the sanctum door. Avatars walk around it, never across it, so the route to the threshold goes along the sides of the mandapa.
 3. **Kund water:** the water and below the second step.
-4. **Somasutra channel:** in half-pradakshina mode the channel is a blocking line on the path (see below).
+4. **Somasutra channel:** in half-pradakshina mode the channel is a blocking line from the shrine wall to the forest edge, so it can't be crossed on the path or walked around beside it (see below). In full mode only the bridge slab crosses it.
 5. **Outside the boundary:** the forest edge is a soft wall about 3 m beyond the path.
 
 ## Pradakshina path
@@ -47,7 +47,30 @@ These are defined in `packages/protocol/src/world.ts` and enforced by both clien
 - A visitor walks the loop **clockwise, keeping the shrine on their right**: from the east side (in front of Nandi) to the south, then west, then north.
 - **Mode `half-somasutra` (default):** the visitor walks clockwise up to the somasutra channel on the north side, does not cross it, and returns the same way to the east side. This follows the common North Indian practice for Shiva temples of not crossing the jaladhari. It is marked **check with advisor** in [08](08-cultural-guidelines.md).
 - **Mode `full`:** a full clockwise loop, with the channel covered by a small bridge slab. This exists in case the advisor prefers it.
-- **Checkpoints** for counting (server-side, see 03): `E` (0, 24), `S` (−10.5, 8), `W` (0, −8), `N` (10.5, 4) just before the channel.
+- **Checkpoints** for counting (server-side, see 03): `E` (0, 24), `S` (−10.5, 8), `W` (0, −8), `N` (10.5, −4) just before the channel, coming from `W`.
+
+## Greybox details
+
+The M1 greybox fixes these details in `world.ts`. Like the layout table, final art MAY move them by up to 2 m without a spec change.
+
+| Item | Value |
+|---|---|
+| Walkable area | The compound inside the forest edge (x −14.7 … 14.7, z −12.2 … 30); a 1 m surround of the kund (x 11 … 21, z 27 … 37); the gate path, 3.6 m wide, along (0, 57.2) → (0.5, 54) → (−1.5, 49) → (1.5, 43) → (−1, 37) → (0, 30); the space in front of the Ganesha shrine; and the area just inside the gate (x −2.6 … 2.6, z 54.4 … 58.3) |
+| Raised plinth | The mandapa, antarala and sanctum share a 0.45 m plinth. The only way up is the steps along the mandapa's east side (z 19 … 20). Its other edges are blocked |
+| Sanctum door | 1.5 m wide, centred on the axis in the east wall (z 2.6) |
+| Antarala | x −2.6 … 2.6, z 2.6 … 5. Walkable only beside the axis (x 1.2 … 2.6 and −2.6 … −1.2) |
+| Pillars | 0.5 m square, at x ±6.5 (z 5.6, 10, 14.4, 18.6) and x ±2.9 (z 5.6, 18.6) |
+| Mats | Two blocks of 20 either side of the aisle: columns at x ±2.4, ±3.4, ±4.4, ±5.4 and rows at z 8.2, 9.6, 11, 12.4, 13.8. Mats 0–19 are the north block (+x) and 20–39 the south block, row by row from the front, inner column first. A seated visitor faces the linga |
+| Jal spot | (1.9, 3.4), at the threshold on the north side of the door |
+| Diya spots | 1.6 m north, east, south and west of the deepa stand's centre, each facing the stand |
+| Path bells | `path-1` (−0.8, 55), `path-2` (0.7, 51.5), `path-3` (−2.2, 48), `path-4` (2, 44.5), `path-5` (−0.5, 41), `path-6` (0.4, 37.5), `path-7` (−1.8, 34), `path-8` (1.1, 30.5). The gate bell hangs in the torana at (0, 58) |
+| Spawn | (0, 56.5), facing the temple (−z) |
+| Kund steps | Each step is 0.6 m wide, so the water zone starts 1.2 m in from the rim: x 13.2 … 18.8, z 29.2 … 34.8 |
+| Somasutra | A 0.7 m blocking strip along z = 0 from the north wall (x 2.6) to the forest edge (x 14.7). In `full` mode the bridge covers it at x 9.3 … 11.7 |
+| Diya spots order | Spot 0 is north of the stand, then east, south and west |
+| Other obstacles | Nandi's platform (x −1 … 1, z 21 … 23); the deepa stand (radius 0.8 m); the aarti plate stand (radius 0.3 m); the Ganesha shrine (x −6.3 … −4.3, z 50.9 … 53.1); the today board (x 2.8 … 3.2, z 55.2 … 56.8); the two gate pillars (radius 0.3 m at x ±2); and the plinth edges, 0.4 m strips outside the mandapa's north, south and west sides (from z 4.6) and the antarala's sides |
+
+The server checks each step, the segment from a visitor's last accepted position to the new one, against these shapes ([05 § Movement rule](05-server.md#movement-rule-pos)). Every shape includes its edges, and where a walkable area meets a blocked one, the shared edge is blocked. The client keeps a 0.25 m body radius (`BODY_RADIUS`) clear of them, so a client that follows its own collision is never corrected.
 
 ## Light and time
 
@@ -60,7 +83,8 @@ These are defined in `packages/protocol/src/world.ts` and enforced by both clien
   | Day | 06:30–17:30 | Sun over the ridge |
   | Dusk | 17:30–18:30 | Warm sky, lamps being lit |
 
-  Transitions blend over 10 minutes. Seasonal sunrise/sunset tables are a later option.
+  Each transition blends over the 10 minutes after the phase starts. Seasonal sunrise/sunset tables are a later option.
+- **Preview:** `?ist=HH:MM` in the page URL shows the scene at that IST time, for review. It changes only the visitor's own view.
 - **Lamps:** the deepa stand, sanctum lamps and lanterns use emissive materials and glow sprites. At most **4 real-time point lights** are active (sanctum, deepa stand, mandapa, gate). Lit diyas don't each get a light.
 - **Shadows:** a single directional light with a small shadow map on High tier only. Baked ambient occlusion in textures on all tiers.
 - **Weather:** clear by default. Seasonal snow (Dec–Feb) and monsoon mist (Jul–Sep) are a stretch goal (see Open decisions).
@@ -68,7 +92,7 @@ These are defined in `packages/protocol/src/world.ts` and enforced by both clien
 ## Camera
 
 - **Default:** third-person orbit behind the avatar. Distance 2.5–12 m (pinch or scroll), pitch −10° to +35°, eased follow.
-- **Darshan view:** one tap frames the linga through the sanctum door from the mandapa. It is the default when seated on a mat, and the visitor can still look around a little (±25° yaw).
+- **Darshan view:** one tap frames the linga through the sanctum door from the mandapa. It is the default when seated on a mat, and the visitor can still look around a little (±25° yaw). The camera always looks from inside the mandapa. If the visitor is elsewhere, or too far to the side to see through the door, the camera takes the nearest place in the mandapa from which the linga is visible through the door.
 - **Constraints:** the camera never enters the garbhagriha or clips through Nandi or pillars. It pulls in towards the avatar when blocked.
 - **Reduced motion:** with `prefers-reduced-motion`, camera transitions cut instead of fly.
 
@@ -79,7 +103,7 @@ These are defined in `packages/protocol/src/world.ts` and enforced by both clien
 | Touch | Tap the ground to walk there; or a left-thumb joystick (setting) | Drag | Pinch | HUD buttons; tap a bell or the lamp stand when near |
 | Desktop | Click the ground; WASD / arrows | Drag | Scroll | HUD buttons and keys (see [07](07-ui-and-language.md#keyboard)) |
 
-- **Walking speed** is 1.3 m/s, with no running. Tap-to-walk path-finds on the walkable navmesh around sacred zones.
+- **Walking speed** is 1.3 m/s, with no running. Tap-to-walk path-finds around obstacles and sacred zones on a 0.25 m navigation grid built from `world.ts`. A tap on a place nobody can stand walks to the nearest place they can.
 - **Context actions** appear as a single button when the avatar is near a ritual spot: "Ring bell", "Light a diya", "Offer water", "Sit", "Take aarti".
 
 ## Avatar

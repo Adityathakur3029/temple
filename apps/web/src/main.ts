@@ -12,7 +12,7 @@ function show(screen: Screen): void {
 }
 
 async function openTemple(): Promise<void> {
-  const scene = await import("./scene/placeholder").catch((err: unknown) => {
+  const scene = await import("./scene/temple").catch((err: unknown) => {
     console.error("Scene bundle failed to load", err);
     return null;
   });
@@ -21,7 +21,7 @@ async function openTemple(): Promise<void> {
     return;
   }
   try {
-    scene.startPlaceholderScene(document.body);
+    await scene.startTemple(document.body);
   } catch (err) {
     console.error("Renderer failed to start", err);
     show("unsupported");

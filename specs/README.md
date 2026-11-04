@@ -45,6 +45,10 @@ These documents define what Sannidhi is and how it works. They are the source of
 | 2026-11-03 | 20 halls × up to 8 instances × 50 visitors | Default |
 | 2026-11-03 | Aarti at 06:00 and 19:00 IST | Default, check with advisor |
 | 2026-11-03 | Half pradakshina at the somasutra (jaladhari) by default | Default, check with advisor |
+| 2026-11-04 | Start M2 before M1's last two exit checks (the Low-phone walk at ≥ 30 fps, and the advisor's sign-off in spec 08). Both stay open and are still required | Decided by owner |
+| 2026-11-04 | A reload keeps the visitor's place: through the resume record within 60 s, and after that by accepting the first walkable position (spec 05, open decision 3) | Default |
+| 2026-11-04 | `PROTOCOL_VERSION` stays 1 while adding close code `4004`, changing `StateTuple.mat` to mean "the mat held", and adding constants. No client speaking v1 has shipped; v1 is frozen from the first public release | Default |
+| 2026-11-04 | No binary deltas: Workers negotiates permessage-deflate, and 50 bots measure 2.0 KB/s per visitor on the wire (budget 3) (spec 04, open decision 1) | Measured |
 
 ## Open decisions (collected)
 

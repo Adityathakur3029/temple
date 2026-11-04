@@ -241,6 +241,9 @@ export interface Greybox {
   /** Raycast target for tap-to-walk: the floors and everything solid. */
   ground: Mesh;
   mats: InstancedMesh;
+  /** One instance per bell, in BELL_IDS order; their matrices swing when rung (scene/bells.ts). */
+  bells: InstancedMesh;
+  bellHang: Record<BellId, { x: number; y: number; z: number; scale: number }>;
   trees: InstancedMesh;
   /** How many trees were placed; Lite shows the nearest 120 of them (spec 11). */
   treesAvailable: number;
@@ -742,6 +745,8 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
     group,
     ground,
     mats,
+    bells,
+    bellHang,
     trees,
     treesAvailable,
     footwear,

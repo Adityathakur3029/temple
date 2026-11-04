@@ -123,6 +123,129 @@ body:not([data-screen="temple"]) .rest {
   display: none !important;
 }
 
+/* Hall chip, top left: "Hall 3" opens the hall list, "27 here" opens Who's here. */
+.hud-hall {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  left: max(12px, env(safe-area-inset-left));
+  display: flex;
+  gap: 4px;
+}
+.hud-hall .hud-btn {
+  padding: 0 14px;
+}
+.hud-hall .hud-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* The gesture cooldown (spec 03 § Namaste): a ring that fills over 1.5 s. */
+.hud-gesture {
+  position: relative;
+}
+.hud-gesture.cooling::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  border: 2px solid var(--hud-brass);
+  opacity: 0;
+  animation: hud-cooldown 1.5s linear;
+  pointer-events: none;
+}
+@keyframes hud-cooldown {
+  from {
+    opacity: 0.9;
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    opacity: 0.9;
+    clip-path: inset(0 0 0 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* No sweep: the full ring shows for the cooldown, then fades. */
+  .hud-gesture.cooling::after {
+    clip-path: none;
+    animation: hud-cooldown-still 1.5s steps(1, end);
+  }
+}
+@keyframes hud-cooldown-still {
+  from {
+    opacity: 0.9;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* A visitor's name above their head after a tap. */
+.name-tag {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--hud-bg);
+  color: var(--hud-fg);
+  font-size: 0.95rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Hall list and Who's here sheets. */
+.sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.hall-list,
+.who-list,
+.today {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.hall-row {
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 18px;
+  border-radius: 14px !important;
+  text-align: start;
+}
+.hall-row[aria-current="true"] {
+  border: 2px solid var(--accent) !important;
+  padding: 7px 17px;
+  font-weight: 600;
+}
+.hall-row:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.hall-count,
+.hall-current {
+  color: var(--muted);
+}
+.who-count {
+  margin: 0;
+  font-weight: 600;
+}
+.who-list li,
+.today li {
+  line-height: 1.5;
+}
+.sheet .sheet-body .note {
+  margin: 0;
+}
+
 /* Rest overlay (spec 07 § Screens). */
 .rest {
   position: fixed;

@@ -68,6 +68,7 @@ The temple is interactive after P0. Later priorities load in the background and 
 - **Remote avatars:**
   - Near (≤ 8 m, at most 8 avatars): a regular `SkinnedMesh` at LOD0.
   - Everyone else: one `InstancedMesh` per LOD with **vertex animation textures**, baked from the same clips, so all far avatars cost about one draw call per LOD.
+  - **Until M5 (greybox avatars):** every avatar is one rigidly skinned mesh with vertex colours, so one draw call each (about 50 for a full instance). The near 8 use the finer geometry and animate every frame. The others use a coarser geometry (about 60% of the segments) and animate at 10 Hz. Blob shadows for everyone are one instanced mesh.
 - **Trees, rocks, ferns:** `InstancedMesh` with 3 LODs and impostor billboards for the farthest.
 - **Diya flames (108):** one instanced emissive mesh plus additive sprites. No per-lamp lights.
 - **Materials:** shared trim sheets for stone and wood. `ORM`-packed textures (occlusion, roughness, metalness).
@@ -83,7 +84,10 @@ The temple is interactive after P0. Later priorities load in the background and 
 | Upstream | ≤ 1 KB/s | ≤ 0.5 KB/s |
 | One-hour repeat visit, total including assets | ≤ 15 MB | ≤ 8 MB |
 
-The compact delta tuples in spec 04, change-only sending and `LITE_TICK_HZ` are what make these numbers possible. If measurements exceed them, design the binary delta (spec 04).
+The compact delta tuples in spec 04, change-only sending, permessage-deflate and `LITE_TICK_HZ` are what make these numbers possible. If measurements exceed them, design the binary delta (spec 04).
+
+- **Measured in M2** on local `wrangler dev`: the 10-minute instance load test, 50 bots with 47 in one instance and 35 walking all the time. Each bot received 2.0 KB/s on the wire (7.9 KB/s of JSON before compression), with a busiest second of 2.5 KB/s, and sent 0.35 KB/s. The p95 broadcast flush was 1 ms, and 90 of 90 reconnects kept their visitor id. `npm run bots -- --check instance` checks the average, the peak and upstream on the wire.
+- **Lite upstream:** a Lite client sends `pos` at most about 7 times a second (about 0.45 KB/s), and draws others `LITE_INTERP_DELAY_MS` behind.
 
 ## Background, tabs and idle
 

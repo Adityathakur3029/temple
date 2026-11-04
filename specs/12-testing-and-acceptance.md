@@ -42,12 +42,22 @@ How we know Sannidhi works: the test layers, what each covers, the CI gates, and
 
 Each scenario runs in Chromium on desktop and in mobile emulation (Pixel-class viewport, touch, 4× CPU throttle). WebKit and Firefox run nightly.
 
+Test hooks, all in dev builds only:
+- `?hall=hall-NN` joins that hall, so multi-visitor tests don't share visitors or held mats.
+- `window.__sannidhi.setTimeScale(n)` fast-forwards walking. Above 1 the page goes offline, because the server's speed check would correct every step. Back at 1 it resumes where it is.
+- Network drops (scenario 9) go through Playwright's `routeWebSocket`, which can cut and restore the socket.
+
 ## Load and soak tests (`tools/bots`)
 
 A Node script using the `ws` package. Bots speak the real protocol from `packages/protocol`.
 
 - **Behaviours** (mixable by percentage): `wanderer`, `sitter`, `japa`, `diya-seeker`, `jal-seeker`, `bell-ringer`, `parikrama`, `reconnector`.
-- **Options:** `--url`, `--hall`, `--n`, `--mix`, `--duration`, `--lite`.
+- **Options:** `--url`, `--hall`, `--n`, `--mix`, `--duration`, `--lite`, plus:
+  - `--origin`: an allowed app origin, sent as the `Origin` header;
+  - `--ramp`: the seconds over which the bots join;
+  - `--check instance`: exit with an error unless the instance load test below passes.
+- **Built so far:** `wanderer`, `bell-ringer` and `reconnector` (M2). The others arrive with their rituals in M3.
+- Against local dev, the report adds the server's flush times from `/api/dev/stats` (spec 05).
 - **Report:**
   - connect time p50/p95;
   - delta interval p50/p95;

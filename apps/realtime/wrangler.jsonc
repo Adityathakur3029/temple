@@ -17,8 +17,15 @@
   // Append-only. Never edit or remove a migration once it has been deployed.
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RoomDO", "DirectoryDO"] }],
 
-  // Comma-separated app origins allowed to call /api/* and open /ws (spec 05 § Routes).
-  "vars": { "ALLOWED_ORIGINS": "http://localhost:5173" },
+  // ALLOWED_ORIGINS: comma-separated app origins allowed to call /api/* and open /ws (spec 05 § Routes).
+  // PER_IP_SOCKET_CAP: sockets per IP per instance, "0" for no cap (spec 05 § Abuse protection).
+  // DEV_STATS: "1" serves /api/dev/stats for load tests (spec 12). Local only.
+  // Vars are not inherited, so each environment lists all three.
+  "vars": {
+    "ALLOWED_ORIGINS": "http://localhost:5173",
+    "PER_IP_SOCKET_CAP": "0",
+    "DEV_STATS": "1",
+  },
 
   "env": {
     // Origins are the web Worker (apps/web/wrangler.jsonc) on this account's workers.dev
@@ -27,6 +34,9 @@
     "staging": {
       "vars": {
         "ALLOWED_ORIGINS": "https://sannidhi-web-staging.adityathakur-mca18-du-4c6.workers.dev",
+        // No cap on staging, so a load test can run 50 bots from one machine.
+        "PER_IP_SOCKET_CAP": "0",
+        "DEV_STATS": "0",
       },
       "durable_objects": {
         "bindings": [
@@ -39,6 +49,8 @@
     "production": {
       "vars": {
         "ALLOWED_ORIGINS": "https://sannidhi-web-production.adityathakur-mca18-du-4c6.workers.dev",
+        "PER_IP_SOCKET_CAP": "15",
+        "DEV_STATS": "0",
       },
       "durable_objects": {
         "bindings": [

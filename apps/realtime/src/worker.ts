@@ -1,6 +1,14 @@
-import { CLOSE_CODES, PROTOCOL_VERSION, isHallId } from "@sannidhi/protocol";
+import {
+  CLOSE_CODES,
+  PROTOCOL_VERSION,
+  isHallId,
+  parseResumeToken,
+  type RoomsResponse,
+} from "@sannidhi/protocol";
+import type { DirectoryDO, PickResult } from "./directory";
 import { isAllowedOrigin } from "./origin";
-import { roomName, staticRooms } from "./rooms";
+import { ROOM_HEADER, parseRoomName } from "./room";
+import { ROOMS_CACHE_MS, roomName, roomsCache } from "./rooms";
 
 export { DirectoryDO } from "./directory";
 export { RoomDO } from "./room";
@@ -16,13 +24,23 @@ export default {
         return handleRooms(request, env);
       case "/ws":
         return handleWebSocket(request, url, env);
+      case "/api/dev/stats":
+        // Load-test numbers (spec 12), only where wrangler.jsonc sets DEV_STATS (local dev).
+        if (env.DEV_STATS === "1") return handleStats(url, env);
+        return new Response("Not found", { status: 404 });
       default:
         return new Response("Not found", { status: 404 });
     }
   },
 } satisfies ExportedHandler<Env>;
 
-function handleRooms(request: Request, env: Env): Response {
+function directory(env: Env): DurableObjectStub<DirectoryDO> {
+  return env.DIRECTORY.get(env.DIRECTORY.idFromName("directory"), {
+    locationHint: LOCATION_HINT,
+  });
+}
+
+async function handleRooms(request: Request, env: Env): Promise<Response> {
   const origin = request.headers.get("Origin");
   const headers = new Headers({ "cache-control": "no-store", vary: "Origin" });
   if (isAllowedOrigin(origin, env.ALLOWED_ORIGINS) && origin !== null) {
@@ -39,12 +57,19 @@ function handleRooms(request: Request, env: Env): Response {
     return new Response("Method not allowed", { status: 405, headers });
   }
 
+  const now = Date.now();
+  let body = roomsCache.body;
+  if (body === null || now - roomsCache.at > ROOMS_CACHE_MS) {
+    const rooms: RoomsResponse = await directory(env).rooms();
+    body = JSON.stringify(rooms);
+    roomsCache.at = now;
+    roomsCache.body = body;
+  }
   headers.set("content-type", "application/json; charset=utf-8");
-  const body = request.method === "HEAD" ? null : JSON.stringify(staticRooms(Date.now()));
-  return new Response(body, { status: 200, headers });
+  return new Response(request.method === "HEAD" ? null : body, { status: 200, headers });
 }
 
-function handleWebSocket(request: Request, url: URL, env: Env): Response | Promise<Response> {
+async function handleWebSocket(request: Request, url: URL, env: Env): Promise<Response> {
   if (request.method !== "GET" || request.headers.get("Upgrade")?.toLowerCase() !== "websocket") {
     return new Response("Expected a WebSocket upgrade", { status: 426 });
   }
@@ -59,12 +84,42 @@ function handleWebSocket(request: Request, url: URL, env: Env): Response | Promi
     return new Response("Unknown hall", { status: 400 });
   }
 
-  // M0: every hall uses instance 1. In M2 the DirectoryDO picks the instance and
-  // a resume token can name one (spec 05 § Routes).
-  const stub = env.ROOM.get(env.ROOM.idFromName(roomName(hall, 1)), {
-    locationHint: LOCATION_HINT,
-  });
-  return stub.fetch(request);
+  // A resume token names its instance; otherwise the DirectoryDO picks one (spec 05 § Routes).
+  let instance: number;
+  const token = url.searchParams.get("resume");
+  if (token !== null) {
+    const parsed = parseResumeToken(token);
+    if (!parsed || parsed.hall !== hall) return closedSocket(CLOSE_CODES.RESUME_INVALID, "resume");
+    instance = parsed.instance;
+  } else {
+    let picked: PickResult;
+    try {
+      picked = await directory(env).pick(hall);
+    } catch {
+      // The client resumes with back-off, as for any unexpected close (spec 04).
+      return closedSocket(CLOSE_CODES.SERVER_ERROR, "directory");
+    }
+    if ("full" in picked) return closedSocket(CLOSE_CODES.HALL_FULL, "hall full");
+    instance = picked.instance;
+  }
+
+  const name = roomName(hall, instance);
+  const headers = new Headers(request.headers);
+  // Always set here, so a client can't name a room by sending the header itself.
+  headers.set(ROOM_HEADER, name);
+  const stub = env.ROOM.get(env.ROOM.idFromName(name), { locationHint: LOCATION_HINT });
+  try {
+    return await stub.fetch(new Request(request.url, { method: "GET", headers }));
+  } catch {
+    return closedSocket(CLOSE_CODES.SERVER_ERROR, "room");
+  }
+}
+
+async function handleStats(url: URL, env: Env): Promise<Response> {
+  const named = parseRoomName(url.searchParams.get("room"));
+  if (!named) return new Response("room=hall-01#1", { status: 400 });
+  const stub = env.ROOM.get(env.ROOM.idFromName(roomName(named.hall, named.instance)));
+  return Response.json(await stub.stats());
 }
 
 /** Accept the upgrade only to close it with a protocol close code the client can act on (spec 04). */

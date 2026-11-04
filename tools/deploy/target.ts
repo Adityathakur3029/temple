@@ -11,3 +11,14 @@ export function parseTarget(argv: readonly string[]): Target {
   }
   return value;
 }
+
+/**
+ * The realtime Worker each web build talks to (spec 01 § Environments), passed to Vite as
+ * VITE_REALTIME_URL. These are the workers.dev hosts until the domain is chosen (spec 00, open
+ * decision 1); the realtime Worker's ALLOWED_ORIGINS name the matching web hosts. Staging never
+ * points at production.
+ */
+export const REALTIME_URLS: Readonly<Record<Target, string>> = {
+  staging: "https://sannidhi-realtime-staging.adityathakur-mca18-du-4c6.workers.dev",
+  production: "https://sannidhi-realtime-production.adityathakur-mca18-du-4c6.workers.dev",
+};

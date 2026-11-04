@@ -100,6 +100,8 @@ The client has no UI framework. The HUD is plain DOM plus CSS, which keeps the i
 
 Configuration the client needs (realtime URL, asset origin, analytics token, UPI details) comes from Vite env variables at build time. Secrets are never shipped to the client. The server has no secrets in v1 apart from Cloudflare's own bindings.
 
+- **Realtime URL:** `VITE_REALTIME_URL`. Local dev defaults to `http://localhost:8787`. `npm run deploy:web` sets it from `REALTIME_URLS` in `tools/deploy/target.ts`, so a staging build always talks to the staging realtime Worker.
+
 ## Boot sequence
 
 1. `index.html` shows a static boot screen with no JS dependency. A CSS-only retry link appears after 15 s.

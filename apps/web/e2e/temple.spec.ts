@@ -82,13 +82,15 @@ test("walks with the keyboard and with a tap on the path", async ({ page }) => {
   // Mostly forward: W follows the camera, which starts slightly off the axis.
   expect(Math.abs(after.x - before.x)).toBeLessThan((before.z - after.z) / 2);
 
-  const target = await page.evaluate(() => window.__sannidhi?.screenPoint(0.2, 0.03, 51));
+  // Right of the path, so no hanging bell is between the camera and the tap: a tap on a bell
+  // in reach rings it instead of walking (spec 03 § Ring a bell).
+  const target = await page.evaluate(() => window.__sannidhi?.screenPoint(1.0, 0.03, 52.5));
   await page.evaluate(() => window.__sannidhi?.setTimeScale(8));
   await page.mouse.click(target?.x ?? 0, target?.y ?? 0);
   await expect.poll(async () => (await state(page)).walking, { timeout: 5000 }).toBe(true);
   await expect.poll(async () => (await state(page)).walking, { timeout: 60_000 }).toBe(false);
   const end = await state(page);
-  expect(Math.hypot(end.x - 0.2, end.z - 51)).toBeLessThan(1.5);
+  expect(Math.hypot(end.x - 1.0, end.z - 52.5)).toBeLessThan(1.5);
 });
 
 test("no tap or key puts the visitor in the garbhagriha or on the Nandi axis (spec 12 scenario 3)", async ({

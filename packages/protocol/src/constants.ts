@@ -20,6 +20,8 @@ export const LITE_TICK_HZ = 4;
 export const POS_MAX_HZ = 10;
 /** Remote avatars render this far behind server time. */
 export const INTERP_DELAY_MS = 150;
+/** The same for Lite clients, whose deltas come every 250 ms. */
+export const LITE_INTERP_DELAY_MS = 350;
 /** Larger client frames are dropped and count as a strike. */
 export const MAX_CLIENT_MESSAGE_BYTES = 1024;
 
@@ -27,6 +29,12 @@ export const MAX_CLIENT_MESSAGE_BYTES = 1024;
 export const WALK_SPEED_MPS = 1.3;
 /** Server tolerance before it sends `correct`. */
 export const SPEED_LIMIT_MPS = 2.2;
+/** The longest gap the speed check allows for, so standing still never earns a long jump. */
+export const MOVE_MAX_DT_MS = 2000;
+/** A visitor this close to the mat they hold may sit; the server then places them on it. */
+export const SEAT_REACH_M = 0.3;
+/** Shawl colours: `Visitor.shawl` is 0 … SHAWL_COUNT − 1. */
+export const SHAWL_COUNT = 8;
 
 export const GESTURE_COOLDOWN_MS = 1500;
 /** The client shows the bell button inside this distance; the server allows +1 m. */
@@ -94,9 +102,12 @@ export const CLOSE_CODES = {
   GOING_AWAY: 1001,
   INSTANCE_FULL: 4001,
   VERSION_MISMATCH: 4002,
+  HALL_FULL: 4004,
   ORIGIN_NOT_ALLOWED: 4003,
   TOO_MANY_STRIKES: 4008,
   RESUME_INVALID: 4010,
   IDLE_TIMEOUT: 4011,
+  /** The standard WebSocket code for a server error; clients resume with back-off. */
+  SERVER_ERROR: 1011,
 } as const;
 export type CloseCode = (typeof CLOSE_CODES)[keyof typeof CLOSE_CODES];

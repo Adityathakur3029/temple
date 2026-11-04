@@ -11,7 +11,7 @@
  * direction of yaw θ is (x, z) = (sin θ, cos θ). See `yawTowards`.
  */
 import { PRADAKSHINA_MODE, type PradakshinaMode } from "./constants";
-import type { BellId } from "./messages";
+import { POSES, type BellId } from "./messages";
 
 // ---------------------------------------------------------------------------
 // Shapes
@@ -507,6 +507,29 @@ export function segmentBlocked(
     if (!WALKABLE.some((s) => inShape(s, x, z))) return "outside";
   }
   return null;
+}
+
+/**
+ * Whether a visitor is seated: pose `sit`, or `japa` on a mat, exactly on the mat they hold.
+ * Shared, so every client draws someone as seated only where the server would seat them.
+ */
+export function isSeatedAt(poseIndex: number, mat: number, x: number, z: number): boolean {
+  const m = mat >= 0 ? MATS[mat] : undefined;
+  if (!m || (poseIndex !== SIT_POSE && poseIndex !== JAPA_POSE)) return false;
+  return Math.hypot(x - m.x, z - m.z) <= 0.01;
+}
+const SIT_POSE = POSES.indexOf("sit");
+const JAPA_POSE = POSES.indexOf("japa");
+
+/** Within this distance of the Ganesha murti, a bow faces it rather than the sanctum (spec 03). */
+export const GANESHA_BOW_M = 6;
+
+/**
+ * What a bow at `p` faces: the Ganesha murti when within GANESHA_BOW_M of it, else the linga
+ * (spec 03 § Pranam). Shared, so every client turns a bowing avatar the same way.
+ */
+export function bowTarget(p: Point): Point {
+  return distance(p, GANESHA) <= GANESHA_BOW_M ? GANESHA : LINGA;
 }
 
 /** The server's "in the mandapa" test for sitting (spec 03). */

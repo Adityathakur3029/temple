@@ -1,16 +1,8 @@
-import {
-  HALL_IDS,
-  INSTANCE_CAPACITY,
-  INSTANCES_PER_HALL,
-  PROTOCOL_VERSION,
-  istDate,
-  type HallId,
-  type RoomsResponse,
-} from "@sannidhi/protocol";
+import { INSTANCES_PER_HALL, type HallId } from "@sannidhi/protocol";
 
 /**
  * Durable Object name for a hall instance, e.g. "hall-03#2". Instances are numbered
- * 1 … INSTANCES_PER_HALL. The range check matters once resume tokens (client input) name
+ * 1 … INSTANCES_PER_HALL. The range check matters because resume tokens (client input) name
  * an instance: an unchecked number would let anyone create arbitrary objects.
  */
 export function roomName(hall: HallId, instance: number): string {
@@ -20,22 +12,17 @@ export function roomName(hall: HallId, instance: number): string {
   return `${hall}#${instance}`;
 }
 
+/** The room list is kept this long, to protect the single DirectoryDO from bursts (spec 05). */
+export const ROOMS_CACHE_MS = 3000;
+
 /**
- * M0: a static room list with every hall empty. In M2 this is built by the DirectoryDO
- * from reported instance counts and cached for 3 s (spec 05 § Routes).
+ * Per isolate. The Cache API does nothing on workers.dev hosts, where staging runs, so the list
+ * is held in memory instead, and each isolate asks the DirectoryDO at most every 3 s. (It lives
+ * here because the Worker's main module may only export handlers and Durable Object classes.)
  */
-export function staticRooms(now: number): RoomsResponse {
-  return {
-    v: PROTOCOL_VERSION,
-    serverTime: now,
-    halls: HALL_IDS.map((id, i) => ({
-      id,
-      number: i + 1,
-      count: 0,
-      capacity: INSTANCE_CAPACITY * INSTANCES_PER_HALL,
-      instances: 0,
-      checkedAt: now,
-    })),
-    today: { date: istDate(now), diyas: 0, malas: 0, parikramas: 0, visits: 0 },
-  };
+export const roomsCache: { at: number; body: string | null } = { at: 0, body: null };
+
+/** For tests: forget the cached room list. */
+export function clearRoomsCache(): void {
+  roomsCache.body = null;
 }

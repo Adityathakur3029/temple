@@ -48,6 +48,11 @@ export class Walker {
     return this.path.length > 0;
   }
 
+  /** Still turning to face a direction given by face(). */
+  get turning(): boolean {
+    return this.faceYaw !== null;
+  }
+
   /** Follow waypoints (from NavGrid.findPath). `onArrive` runs only if the walk completes. */
   follow(points: readonly Point[], onArrive: (() => void) | null = null): void {
     this.path = points.slice();

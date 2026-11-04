@@ -94,6 +94,8 @@ Where Hindu practice varies by region or tradition, this document picks a defaul
 | Greybox stand-ins for the sacred forms until the human-made assets (M5) | Linga: a plain dark stone form on its pitha, spout to the north. Nandi: plain stone blocks that only suggest the seated form and its facing, with no face. The Ganesha murti: an unadorned stone mass | 02, 11 |
 | Shawl colours | 8 muted wool colours (madder, rust, mustard, olive, teal, indigo, plum, charcoal); no saffron, which reads as a renunciate's robe. Rust is close to geru and madder to monastic maroon: review both at dusk and under lamp light | 02 |
 | Darshan from off the axis | The darshan camera moves towards the axis so the linga shows through the door; the avatar stays where it is. For anyone within about 9 m of the linga (the front mats, the antarala) the viewpoint is inside the Nandi-axis strip. Only the camera is there, never an avatar | 02 |
+| Visitor names (M2) | The curated list in `packages/protocol/src/names.ts`. Reviewed by the cultural reviewer. Open points: `megh` (also the name of a community), `deodar` (devadaru), `bhojpatra` (used for writing yantras) and `walnut` (a Herath offering in Kashmir). Spec 05 gives `megh`, `deodar` and `bhojpatra` as examples, so dropping one changes spec 05 too | 05 |
+| Where Bow is offered (M2) | The courtyard, the mandapa, and within 6 m of the Ganesha shrine (spec 03). Not yet at the antarala beside the axis, where many devotees bow at the threshold, nor behind the shrine during pradakshina. Offer either? | 03 |
 
 ## Acceptance criteria
 

@@ -10,7 +10,7 @@ All types and constants here MUST exist in `packages/protocol` with the same nam
 
 - There are `HALL_COUNT` halls, with ids `hall-01` … `hall-20`, shown as "Hall 1" / "कक्ष 1".
 - Each hall has up to `INSTANCES_PER_HALL` instances, numbered 1 … `INSTANCES_PER_HALL`. Each instance is one Durable Object holding up to `INSTANCE_CAPACITY` visitors.
-- **Instance choice** (server-side): send the visitor to the lowest-numbered instance with at least 2 free places, so visitors are grouped together rather than spread thin. Open the next instance only when all open ones are full. The RoomDO has the final say. If it is full when the socket arrives, it closes with `4001` and the client asks again.
+- **Instance choice** (server-side): send the visitor to the lowest-numbered instance with at least 2 free places, so visitors are grouped together rather than spread thin. Open the next instance only when all open ones are full. The RoomDO has the final say. If it is full when the socket arrives, it closes with `4001` and the client asks again. If every instance of the hall is full, the Worker closes the socket with `4004` and the client suggests another hall.
 - The visitor never picks an instance. They may pick a **hall** from the hall list.
 
 ## Room list: `GET /api/rooms`
@@ -51,7 +51,9 @@ wss://<realtime-host>/ws?hall=hall-03&v=1[&resume=<token>][&lite=1]
 | `resume` | Optional resume token from a previous `welcome`, valid for `RESUME_WINDOW_MS` |
 | `lite` | Optional. The server sends deltas at `LITE_TICK_HZ` instead of `TICK_HZ` |
 
-The Worker checks `Origin` against the allow-list (spec 05) and closes with `4003` if it doesn't match. It routes to the instance encoded in a valid resume token, or to the chosen instance.
+The Worker checks `Origin` against the allow-list (spec 05) and closes with `4003` if it doesn't match. It routes to the instance encoded in a valid resume token, or to the chosen instance. A token that is malformed or names another hall gets `4010`.
+
+Refusals after the upgrade starts are close codes on an accepted socket, never HTTP errors, because a browser can't read the status of a failed WebSocket handshake. (An unknown `hall` is still a plain `400`: the app never sends one.)
 
 Text frames carry JSON. Every message is an object with a `t` (type) field. The literal text frames `ping`/`pong` are used for heartbeat (see below) and are not JSON.
 
@@ -74,7 +76,7 @@ interface Visitor {                          // profile, sent once on join
 }
 
 // Compact per-visitor state used in snapshots and deltas:
-// [id, x, z, yaw, poseIndex, mat]   mat = -1 when not seated
+// [id, x, z, yaw, poseIndex, mat]   mat = the mat the visitor holds (walking to it or seated), -1 when none
 type StateTuple = [VisitorId, number, number, number, number, number];
 
 interface Lamp { slot: number; litAt: number; expiresAt: number; mine?: true }
@@ -104,10 +106,12 @@ The same holds for two lists in `world.ts`: `mat` (in `StateTuple`, `sit` and `s
 | `jal.done` | `req` | Finished pouring/offering | 1 per 1 s |
 | `jal.cancel` | — | Leave the jal queue or spot | 1 per 1 s |
 | `japa.mala` | — | Completed one mala of 108 | 1 per `JAPA_MALA_MIN_MS` |
-| `time` | `c` (client ms) | Clock-sync sample | 1 per 2 s |
+| `time` | `c` (client ms) | Clock-sync sample | 1 per 2 s (bucket burst 5) |
 | `leave` | — | Leaving on purpose; frees mat and queues immediately | once |
 
 `req` is a client-chosen integer, echoed in the reply. Every message not in this table, or failing validation, counts as a strike.
+
+Rate limits are token buckets per visitor and message type (`RATE_LIMITS` in `packages/protocol/src/limits.ts`). "1 per *T*" is a bucket of one token that refills after *T*. Clients keep a small margin above each limit, because network jitter can bunch messages together.
 
 ## Server → client messages
 
@@ -125,7 +129,7 @@ The same holds for two lists in `world.ts`: `mat` (in `StateTuple`, `sit` and `s
 | `diya.no` | `req, why: "has-lamp"\|"stand-full"\|"busy"\|"not-near", nextFreeAt?` | Request refused |
 | `jal.queue` / `jal.turn` / `jal.no` | `pos` / `req, until` / `req, why: "cooldown" \| "busy" \| "not-near"` | Same pattern as the diya |
 | `pradakshina.done` | `n` | You completed round `n` this visit |
-| `counters` | `today: TodayCounters` | On join and every `COUNTERS_PUSH_MS` |
+| `counters` | `today: TodayCounters` | Every `COUNTERS_PUSH_MS` (on join, `welcome.snapshot.today` carries them) |
 | `time` | `c, s` | Reply to a clock-sync sample (`s` = server ms) |
 | `error` | `code: "rate_limited" \| "bad_message", msg?` | Non-fatal problem |
 
@@ -148,14 +152,18 @@ Privacy: no message ever contains an IP address, user agent, device data, or per
 
 | Code | Name (`CLOSE_CODES`) | Meaning | Client behaviour |
 |---|---|---|---|
-| 1000 | `NORMAL` | Normal close (leave) | Nothing |
+| 1000 | `NORMAL` | Normal close (leave, or a socket replaced by a resume) | Nothing if the client started the close; otherwise reconnect with back-off |
 | 1001 | `GOING_AWAY` | Server going away (deploy, eviction) | Reconnect with resume token |
-| 4001 | `INSTANCE_FULL` | Instance full | Reconnect immediately (server picks another instance) |
+| 4001 | `INSTANCE_FULL` | Instance full | Reconnect after random(0, `RECONNECT_JITTER_MS`) (server picks another instance) |
 | 4002 | `VERSION_MISMATCH` | Protocol version mismatch | Stop. Show "A new version is ready — refresh" |
+| 4004 | `HALL_FULL` | Every instance of the hall is full | Stop. Show "This hall is full" and open the hall list |
 | 4003 | `ORIGIN_NOT_ALLOWED` | Origin not allowed | Stop. Show a generic error |
 | 4008 | `TOO_MANY_STRIKES` | Too many strikes | Wait 60 s before reconnecting |
 | 4010 | `RESUME_INVALID` | Resume token invalid or expired | Reconnect without the token |
 | 4011 | `IDLE_TIMEOUT` | Idle timeout (no traffic) | Reconnect only on visitor activity |
+| 1011 | `SERVER_ERROR` | The server met an error | Reconnect with the resume token, with back-off |
+
+Any other code (1001, 1006 …) means: reconnect with the resume token, with back-off. So an old client treats a new code as a dropped network, and adding a close code is an additive change.
 
 ## Connection lifecycle
 
@@ -165,16 +173,17 @@ Privacy: no message ever contains an IP address, user agent, device data, or per
    - Apply the snapshot.
    - Send 3 `time` samples 500 ms apart.
 3. **Steady state:**
-   - Send `pos` only on change, at most `POS_MAX_HZ`.
-   - Interpolate remote avatars `INTERP_DELAY_MS` behind server time.
+   - Send `pos` only on change, at most `POS_MAX_HZ` (Lite clients about 7 Hz, spec 10).
+   - Interpolate remote avatars `INTERP_DELAY_MS` behind server time (`LITE_INTERP_DELAY_MS` on Lite). A walker whose next sample is late is carried on along their last step for at most 150 ms, then held.
 4. **Heartbeat:**
    - If the client has sent nothing for `HEARTBEAT_MS`, it sends the text frame `ping`. The server's auto-response replies `pong` without waking the Durable Object.
    - The server closes sockets with no traffic (including pings) for `SERVER_IDLE_TIMEOUT_MS` (`4011`).
-5. **Resume:** on reconnect within the window with a valid token, the server restores the same `VisitorId`, name, mat and queue places. Expired tokens get `4010`.
+   - A ping with no frame back for 10 s means the socket is dead even if the browser hasn't noticed (a half-open connection). The client closes it and resumes with back-off. After the `online` event an open socket is checked the same way.
+5. **Resume:** on reconnect within the window with a valid token, the server restores the same `VisitorId`, name, place (position, facing and pose), mat and queue places. Expired tokens get `4010`. A token whose socket the server still thinks is open (a phone moving from Wi-Fi to mobile data) takes that socket over.
 6. **Reconnect back-off:**
    - Delay = min(`RECONNECT_MAX_MS`, `RECONNECT_BASE_MS` × 2^attempt) + random(0, `RECONNECT_JITTER_MS`).
    - Reset after 30 s connected.
-   - Also reconnect promptly on the `online` event and when the tab becomes visible.
+   - The `online` event and the tab becoming visible may cut a wait short, once per wait. Visitor activity (taps, keys) never does; it only reopens a socket that was paused or closed with `4011`.
 7. **Leave:** send `leave` and close with 1000.
 
 ## Clock sync
@@ -211,9 +220,13 @@ Design and document it here before implementing. Don't base it on any other prod
 | `LITE_TICK_HZ` | 4 | For `lite=1` clients |
 | `POS_MAX_HZ` | 10 | Client `pos` send rate cap |
 | `INTERP_DELAY_MS` | 150 | Remote avatar render delay |
+| `LITE_INTERP_DELAY_MS` | 350 | The same for `lite=1` clients, whose deltas come every 250 ms |
 | `MAX_CLIENT_MESSAGE_BYTES` | 1024 | Larger frames are dropped and strike |
 | `WALK_SPEED_MPS` | 1.3 | Client walking speed |
 | `SPEED_LIMIT_MPS` | 2.2 | Server tolerance before `correct` |
+| `MOVE_MAX_DT_MS` | 2000 | The longest gap the speed check allows for, so standing still never earns a long jump |
+| `SEAT_REACH_M` | 0.3 | `sit` pose only this close to the held mat |
+| `SHAWL_COUNT` | 8 | `Visitor.shawl` is 0 … 7 |
 | `GESTURE_COOLDOWN_MS` | 1500 | |
 | `BELL_REACH_M` | 2.0 | Client shows the button inside this distance; the server allows +1 m |
 | `BELL_COOLDOWN_MS` | 3000 | Per visitor |
@@ -253,5 +266,5 @@ Design and document it here before implementing. Don't base it on any other prod
 
 ## Open decisions
 
-1. **Compression.** Use WebSocket permessage-deflate if Cloudflare Workers negotiates it for our setup. Measure in M2 before designing binary deltas.
+1. ~~**Compression.**~~ Measured in M2: Workers negotiates permessage-deflate (browsers and the `ws` bots offer it). In the 10-minute instance load test (50 bots, 47 in one instance, 35 walking all the time), a bot received 7.9 KB/s of JSON but 2.0 KB/s on the wire, with a busiest second of 2.5 KB/s, all inside spec 10. No binary deltas for now. This was measured on local `wrangler dev`; check it again on staging.
 2. **Interest management.** Not needed at 50 per instance. Revisit if capacity grows.

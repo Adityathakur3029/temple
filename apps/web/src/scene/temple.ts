@@ -1,8 +1,9 @@
 /**
- * The solo temple (M1, spec 13): the greybox world, the visitor's avatar, orbit and darshan
- * cameras, tap-to-walk and keyboard walking, day and night on IST, device tiers and Lite mode,
- * one rendering tab, idle and calm modes, and view restore.
- * Networking (M2) plugs in where the comments say "M2".
+ * The temple: the greybox world, the visitor's avatar, orbit and darshan cameras, tap-to-walk and
+ * keyboard walking, day and night on IST, device tiers and Lite mode, one rendering tab, idle and
+ * calm modes and view restore (M1), and presence (M2): other visitors, namaste, pranam, bells,
+ * mats, the hall list and "Who's here".
+ * Without a connection the temple keeps working alone, as in M1.
  */
 import {
   CanvasTexture,
@@ -19,17 +20,41 @@ import {
   type Material,
 } from "three";
 import {
+  BELL_COOLDOWN_MS,
+  BELL_IDS,
+  BELL_REACH_M,
+  BELLS,
+  COURTYARD,
+  GANESHA,
+  GANESHA_BOW_M,
+  INSTANCE_CAPACITY,
+  INTERP_DELAY_MS,
+  LITE_INTERP_DELAY_MS,
   MATS,
   PRADAKSHINA_MODE,
+  SEAT_REACH_M,
   SPAWN,
   blockedAt,
+  bowTarget,
   distance,
   inMandapa,
+  inShape,
+  isHallId,
   istTimeOnDay,
+  nameLabel,
   phaseBlend,
+  yawTowards,
+  type BellId,
   type Point,
+  type Pose,
+  type StateTuple,
+  type Visitor,
 } from "@sannidhi/protocol";
-import { Hud } from "../ui/hud";
+import { currentLang } from "../i18n/lang";
+import { realtimeBase, socketBase } from "../net/config";
+import type { NetStatus } from "../net/connection";
+import { Session } from "../net/session";
+import { Hud, type Gesture } from "../ui/hud";
 import { decide, FrameSampler, readLiteSignals, suggestLiteAtStart } from "../platform/adapt";
 import { CALM_FPS, IdleMonitor } from "../platform/idle";
 import { SettingsStore } from "../platform/settings";
@@ -37,8 +62,10 @@ import { localStore, sessionStore } from "../platform/storage";
 import { openChannel, RENDER_OWNER_KEY, RenderOwner } from "../platform/tabs";
 import { chooseTier, pixelRatio, readDeviceInfo, type Tier } from "../platform/tier";
 import { loadView, saveView } from "../platform/view";
-import { Avatar } from "./avatar";
+import { Avatar, disposeAvatarCache, prebuildAvatarGeometries } from "./avatar";
+import { BellSwings } from "./bells";
 import { CameraRig, clampOrbit, type CameraPose } from "./camera";
+import { Crowd } from "./crowd";
 import { PLINTH, groundY } from "./ground";
 import { buildGreybox, MAX_TREES } from "./greybox";
 import { Input } from "./input";
@@ -59,6 +86,10 @@ const HEAD_STANDING = 1.45;
 const HEAD_SEATED = 0.85;
 const MAT_TOP = 0.025;
 const SPAWN_CAMERA_OFFSET = 0.16;
+/** A hidden tab keeps its socket this long, so a quick app switch doesn't drop presence (spec 10). */
+export const HIDDEN_KEEP_MS = 120_000;
+/** A tapped visitor's name shows this long (spec 02 § Avatar). */
+const NAME_TAG_MS = 3000;
 
 /** Point lights at full strength; at most 4, and 2 on the Low tier (spec 02, spec 10). */
 const LIGHTS = {
@@ -73,11 +104,13 @@ export interface TempleHandle {
 
 interface DebugApi {
   state(): Record<string, unknown>;
+  net(): Record<string, unknown>;
   walkTo(x: number, z: number): boolean;
   screenPoint(x: number, y: number, z: number): { x: number; y: number };
   setTimeScale(n: number): void;
   setClock(ms: number | null): void;
   setIdleTimeout(ms: number): void;
+  sitOn(mat: number): void;
 }
 
 declare global {
@@ -111,6 +144,27 @@ function blobTexture(): CanvasTexture | null {
   g.fillStyle = grad;
   g.fillRect(0, 0, 64, 64);
   return new CanvasTexture(canvas);
+}
+
+/** The nearest bell within the client's reach, or null (spec 03 § Ring a bell). */
+function bellInReach(p: Point): BellId | null {
+  let best: BellId | null = null;
+  let bestD = BELL_REACH_M;
+  for (const id of BELL_IDS) {
+    const d = distance(p, BELLS[id]);
+    if (d <= bestD) {
+      best = id;
+      bestD = d;
+    }
+  }
+  return best;
+}
+
+/** Where a bow is offered: the courtyard, the mandapa, and before the Ganesha shrine (spec 03). */
+function canBowAt(p: Point): boolean {
+  return (
+    inShape(COURTYARD, p.x, p.z) || inMandapa(p.x, p.z) || distance(p, GANESHA) <= GANESHA_BOW_M
+  );
 }
 
 export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
@@ -152,9 +206,10 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
   const greybox = buildGreybox({
     mode: PRADAKSHINA_MODE,
     trees: settings.get().lite ? LITE_TREES : MAX_TREES,
-    footwearPairs: 1, // M2: one pair for each visitor present
+    footwearPairs: 1, // one pair for each visitor present, updated with presence
   });
   scene.add(greybox.group);
+  const swings = new BellSwings(greybox.bells, greybox.bellHang);
 
   const lights = {
     sanctum: new PointLight(LIGHTS.sanctum.color, 0, LIGHTS.sanctum.distance, 2),
@@ -168,25 +223,30 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
   scene.add(lights.sanctum, lights.mandapa);
 
   // --- The visitor ---------------------------------------------------------------------------
-  const avatar = new Avatar({ shawl: 0, body: 0 }); // M2: assigned by the server
+  let avatar = new Avatar({ shawl: 0, body: 0 }); // replaced by the server's look on welcome
   scene.add(avatar.root);
-  const blob = new Mesh(
-    new CircleGeometry(0.42, 20),
-    new MeshBasicMaterial({
-      map: blobTexture(),
-      transparent: true,
-      depthWrite: false,
-      color: 0xffffff,
-    }),
-  );
+  const blobMaterial = new MeshBasicMaterial({
+    map: blobTexture(),
+    transparent: true,
+    depthWrite: false,
+    color: 0xffffff,
+  });
+  const blob = new Mesh(new CircleGeometry(0.42, 20), blobMaterial);
   blob.rotation.x = -Math.PI / 2;
   scene.add(blob);
 
   const walker = new Walker(SPAWN);
   // Slightly off the axis, so the gate bell doesn't hide the shikhara from the first view.
   const rig = new CameraRig({ yaw: SPAWN.yaw + SPAWN_CAMERA_OFFSET });
-  /** The mat the visitor sits on, or −1. M2: the server confirms with sit.ok. */
+  /** The mat the visitor sits on, or −1. Online, only after the server's `sit.ok`. */
   let mat = -1;
+  /** The visitor sits on a mat the server hasn't confirmed yet (after a reconnect). */
+  let matPending = false;
+  /** A mat the server holds for the visitor while they walk to it (after "Sit"), or −1. */
+  let pendingMat = -1;
+  /** Dev and tests: time runs faster, so the server's speed check would correct every step. */
+  let fastForward = false;
+  let lastBellAt = Number.NEGATIVE_INFINITY;
 
   const restored = loadView(sessionStore, Date.now());
   if (restored) {
@@ -206,6 +266,45 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
   let nav: NavGrid | null = null;
   const getNav = (): NavGrid => (nav ??= new NavGrid(PRADAKSHINA_MODE, { deferred: true }));
 
+  // --- Other visitors ------------------------------------------------------------------------
+  const floorY = (x: number, z: number, sitBlend: number): number =>
+    groundY(x, z) + MAT_TOP * sitBlend;
+  /** Dev and tests: the last events received, with arrival times. */
+  const recentEvents: { kind: string; from: string; at: number }[] = [];
+  // Created now, connected at the end of start-up (spec 10 § Loading priority: P0). Handlers
+  // only run after start(), when everything they use exists.
+  const base = realtimeBase();
+  const session = new Session({
+    base,
+    wsBase: socketBase(base),
+    store: sessionStore,
+    lite: () => settings.get().lite,
+    handlers: {
+      welcome: (_w, mine) => onWelcome(mine),
+      status: (st) => onStatus(st),
+      event: (e) => {
+        if (import.meta.env.DEV) {
+          recentEvents.push({ kind: e.kind, from: e.from, at: Date.now() });
+          if (recentEvents.length > 20) recentEvents.shift();
+        }
+        if (e.kind === "namaste" || e.kind === "pranam" || e.kind === "bell") {
+          crowd.play(e.from, e.kind, performance.now(), interpDelay());
+          hud.noteRemote(e.kind);
+          if (e.kind === "bell" && e.bell) swings.ring(e.bell);
+        }
+      },
+      correct: (x, z) => {
+        // The server keeps the last place it accepted; go back there.
+        stand();
+        walker.place({ x, z, yaw: walker.yaw });
+      },
+      counters: () => presenceChanged(),
+    },
+  });
+  const crowd = new Crowd(session.presence, blobMaterial, floorY);
+  scene.add(crowd.group);
+  session.presence.onChange = () => presenceChanged();
+
   // --- HUD, tabs, idle, input ----------------------------------------------------------------
   let looping = false;
   let lastLookAt = -Infinity;
@@ -214,7 +313,16 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
   const hud = new Hud(host, settings, {
     context: () => doContext(),
     darshan: () => toggleDarshan(),
+    gesture: (g) => doGesture(g),
     sheet: () => updateLoop(),
+    hallsOpened: () => {
+      hud.setRooms(session.rooms);
+      void session.refreshRooms().then((r) => hud.setRooms(r ?? session.rooms));
+    },
+    chooseHall: (hall) => {
+      stand();
+      session.switchHall(hall);
+    },
     resume: () => {
       owner.claim();
       idle.poke();
@@ -262,6 +370,7 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     action: (a) => {
       if (a === "context") doContext();
       else if (a === "darshan") toggleDarshan();
+      else if (a === "namaste" || a === "pranam") hud.tryGesture(a);
       else if (!hud.sheetOpen && rig.mode === "darshan") {
         rig.setMode("orbit", reducedMotion());
         hud.setDarshan(false);
@@ -269,44 +378,146 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     },
     activity: () => {
       if (idle.activity !== "rest") idle.poke();
+      // A socket the server closed for silence (4011) reopens on activity, unless the visitor
+      // is away (resting, another tab, fast-forward in tests).
+      updatePresence();
     },
   });
 
   // --- Actions -------------------------------------------------------------------------------
   function stand(): void {
+    if (pendingMat >= 0) {
+      // Walking somewhere else: let the held mat go.
+      pendingMat = -1;
+      session.stand();
+    }
     if (mat < 0) return;
     mat = -1;
+    session.stand();
     avatar.setSeated(false);
     rig.setMode("orbit", reducedMotion());
     hud.setDarshan(false);
     hud.announce("a11y.stood");
   }
 
+  function seat(i: number): void {
+    const m = MATS[i];
+    if (!m) return;
+    mat = i;
+    // Exactly on the mat: a path ends on the nearest grid point, a few cm off, and the server
+    // seats visitors only on their mat (spec 05 § Movement rule).
+    walker.place({ x: m.x, z: m.z, yaw: walker.yaw });
+    walker.face(m.yaw);
+    avatar.setSeated(true);
+    rig.setMode("darshan", reducedMotion());
+    hud.setDarshan(true);
+    hud.announce("a11y.seated");
+  }
+
+  /** A tapped mat: walk to it, then ask for it (spec 03 § Sit on a mat). Alone, it is free. */
   function sitOn(i: number): void {
     const m = MATS[i];
     if (!m) return;
-    // M2: send `sit {req, mat}` and wait for `sit.ok`; solo, every mat is free.
     walkTo(m.x, m.z, () => {
-      mat = i;
-      walker.face(m.yaw);
-      avatar.setSeated(true);
-      rig.setMode("darshan", reducedMotion());
-      hud.setDarshan(true);
-      hud.announce("a11y.seated");
+      if (!session.online) {
+        seat(i);
+        return;
+      }
+      void session.sit(i).then((granted) => {
+        // Still where the mat is? (The visitor may have walked on meanwhile.)
+        if (distance(walker, m) > SEAT_REACH_M || mat >= 0) return;
+        // Refused while connected: someone has it. A dropped connection is not "taken".
+        if (granted === null) {
+          if (session.online) hud.announce("mat.taken");
+        } else seat(i);
+      });
     });
   }
 
-  function nearestMat(p: Point): number {
-    let best = 0;
+  /** "Sit": the server holds the nearest free mat, then the visitor walks to it and sits. */
+  function sitNearest(): void {
+    if (!session.online) {
+      const i = nearestFreeMat(walker);
+      if (i >= 0) sitOn(i);
+      return;
+    }
+    void session.sit().then((granted) => {
+      const m = granted === null ? undefined : MATS[granted];
+      if (granted === null || !m) {
+        if (session.online) hud.announce("mat.taken");
+        return;
+      }
+      const going = walkTo(m.x, m.z, () => {
+        if (pendingMat !== granted) return;
+        pendingMat = -1;
+        seat(granted);
+      });
+      if (going) pendingMat = granted;
+      else session.stand();
+    });
+  }
+
+  /** The nearest mat nobody else holds. */
+  function nearestFreeMat(p: Point): number {
+    const held = session.presence.heldMats();
+    let best = -1;
     MATS.forEach((m, i) => {
-      if (distance(m, p) < distance(MATS[best] ?? m, p)) best = i;
+      if (held.has(i)) return;
+      const b = MATS[best];
+      if (!b || distance(m, p) < distance(b, p)) best = i;
     });
     return best;
   }
 
+  function contextAction(): "stand" | "bell" | "sit" | null {
+    if (mat >= 0) return "stand";
+    if (bellInReach(walker)) return "bell";
+    if (inMandapa(walker.x, walker.z)) return "sit";
+    return null;
+  }
+
   function doContext(): void {
-    if (mat >= 0) stand();
-    else if (inMandapa(walker.x, walker.z)) sitOn(nearestMat(walker));
+    const action = contextAction();
+    if (action === "stand") stand();
+    else if (action === "bell") {
+      const bell = bellInReach(walker);
+      if (bell) ringBell(bell);
+    } else if (action === "sit") {
+      sitNearest();
+    }
+  }
+
+  function ringBell(bell: BellId): void {
+    const now = performance.now();
+    if (now - lastBellAt < BELL_COOLDOWN_MS + 100) return;
+    lastBellAt = now;
+    walker.stop();
+    walker.face(yawTowards(walker, BELLS[bell]));
+    avatar.play("bell");
+    swings.ring(bell);
+    session.bell(bell);
+    hud.announce("a11y.bell");
+  }
+
+  /** A bow waiting for the avatar to finish turning towards the shrine. */
+  let bowAfterTurn = false;
+
+  function doGesture(g: Gesture): void {
+    if (g === "pranam") {
+      if (mat >= 0 || !canBowAt(walker)) return;
+      walker.stop();
+      // Face the nearest shrine first; the bow starts once the turn is done (spec 03 § Pranam).
+      walker.face(yawTowards(walker, bowTarget(walker)));
+      bowAfterTurn = true;
+      return;
+    }
+    playGesture(g);
+  }
+
+  function playGesture(g: Gesture): void {
+    avatar.play(g);
+    session.gesture(g);
+    hud.announce(g === "namaste" ? "a11y.namaste" : "a11y.pranam");
   }
 
   function toggleDarshan(): void {
@@ -328,12 +539,44 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     return true;
   }
 
+  /** The visitor's pose on the wire (spec 04 `Pose`). */
+  function currentPose(): Pose {
+    if (mat >= 0 && avatar.sitBlend > 0.98 && !matPending) return "sit";
+    if (avatar.playing === "pranam") return "pranam";
+    return walker.speed > 0.05 ? "walk" : "stand";
+  }
+
+  let nameTag: { id: string; until: number; label: string } | null = null;
+  /** The canvas rectangle, refreshed on resize, so the name label needs no layout read per frame. */
+  let canvasRect = canvas.getBoundingClientRect();
   const raycaster = new Raycaster();
   const ndc = new Vector2();
   function tap(clientX: number, clientY: number): void {
     const r = canvas.getBoundingClientRect();
+    // A person first: their name shows for a moment.
+    const who = crowd.pick(clientX, clientY, camera, r);
+    if (who) {
+      const visitor = session.presence.remotes.get(who)?.visitor;
+      if (visitor) {
+        nameTag = {
+          id: who,
+          until: performance.now() + NAME_TAG_MS,
+          label: nameLabel(visitor.name, currentLang()),
+        };
+      }
+      return;
+    }
     ndc.set(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
     raycaster.setFromCamera(ndc, camera);
+    const onBell = raycaster.intersectObject(greybox.bells, false)[0];
+    const bell = onBell?.instanceId !== undefined ? BELL_IDS[onBell.instanceId] : undefined;
+    if (bell && distance(walker, BELLS[bell]) <= BELL_REACH_M) {
+      ringBell(bell);
+      return;
+    }
+    // A bell out of reach: walk towards it; if no path ends right under it, walk where the tap
+    // meets the ground, as on any other tap.
+    if (bell && walkTo(BELLS[bell].x, BELLS[bell].z, () => ringBell(bell))) return;
     const onMat = raycaster.intersectObject(greybox.mats, false)[0];
     if (onMat?.instanceId !== undefined) {
       if (onMat.instanceId !== mat) sitOn(onMat.instanceId);
@@ -341,6 +584,72 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     }
     const hit = raycaster.intersectObject(greybox.ground, false)[0];
     if (hit) walkTo(hit.point.x, hit.point.z);
+  }
+
+  // --- Presence ------------------------------------------------------------------------------
+
+  function setLook(v: Visitor): void {
+    if (v.shawl === lookOf.shawl && v.body === lookOf.body) return;
+    const next = new Avatar({ shawl: v.shawl, body: v.body });
+    next.sitBlend = avatar.sitBlend;
+    next.setSeated(mat >= 0);
+    scene.remove(avatar.root);
+    avatar.dispose();
+    avatar = next;
+    lookOf.shawl = v.shawl;
+    lookOf.body = v.body;
+    scene.add(avatar.root);
+    applyQuality();
+  }
+  const lookOf = { shawl: 0, body: 0 };
+
+  function presenceChanged(): void {
+    const s = session;
+    crowd.sync();
+    const others = [...s.presence.remotes.values()].map((r) => r.visitor);
+    greybox.footwear.count = Math.min(INSTANCE_CAPACITY, 1 + others.length);
+    const hall = s.hall;
+    hud.setHall(
+      hall && s.online ? { id: hall, number: Number(hall.slice(5)) } : null,
+      others.length + 1,
+    );
+    hud.setWho({ me: s.you, others, today: s.today });
+  }
+
+  function onWelcome(mine: StateTuple | undefined): void {
+    const s = session;
+    if (s.you) setLook(s.you);
+    presenceChanged();
+    // Still seated from before (a reload, or a resume that didn't hold the mat)? Tell the server
+    // where the visitor is, standing, then ask for the mat again; sit only once it agrees.
+    const held = mine?.[5] ?? -1;
+    // The server still holds a mat the visitor has left (a `stand` lost with the connection).
+    if (held >= 0 && mat < 0 && pendingMat < 0) s.stand();
+    if (mat >= 0 && held !== mat) {
+      const wanted = mat;
+      matPending = true;
+      s.sendPoseNow(walker.x, walker.z, walker.yaw, "stand");
+      void s.sit(wanted).then((granted) => {
+        if (mat !== wanted) return;
+        matPending = false;
+        if (granted === null) {
+          stand();
+          // Refused while connected means someone else has it; offline, say nothing.
+          if (s.online) hud.announce("mat.taken");
+        } else {
+          s.sendPoseNow(walker.x, walker.z, walker.yaw, "sit");
+        }
+      });
+    }
+    checkpoint();
+  }
+
+  function onStatus(status: NetStatus): void {
+    hud.setConnection(status);
+    if (status === "hall-full") hud.openHalls();
+    // Alone until the next welcome, except during a short reconnect.
+    if (status !== "online" && status !== "reconnecting") session.presence.clear();
+    presenceChanged();
   }
 
   // --- Quality: tier, Lite, shadows, lights --------------------------------------------------
@@ -368,7 +677,9 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
         for (const m of Array.isArray(mats) ? mats : mats ? [mats] : []) m.needsUpdate = true;
       });
     }
+    avatar.mesh.castShadow = shadows;
     blob.visible = !shadows;
+    crowd.blobShadows = !shadows;
     if (tier === "low") lights.gate.removeFromParent();
     else if (!lights.gate.parent) scene.add(lights.gate);
     // Shaders recompile after a change; don't let that hitch count against the new tier.
@@ -396,7 +707,10 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
 
   settings.subscribe((_s, changed) => {
     if (changed.has("lite") || changed.has("tier")) applyQuality();
+    // The delta rate is chosen when the socket opens (`lite=1`), so reopen it.
+    if (changed.has("lite")) session.reconnect();
   });
+  const interpDelay = (): number => (settings.get().lite ? LITE_INTERP_DELAY_MS : INTERP_DELAY_MS);
 
   // --- Frame loop ------------------------------------------------------------------------------
   let last = performance.now();
@@ -406,6 +720,7 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
   let pose: CameraPose | null = null;
   // Reused every frame (spec 10 § Frame loop hygiene).
   const head = new Vector3();
+  const tagAt = new Vector3();
   const moveInput: MoveInput = { x: 0, z: 0 };
   const perf = params.has("perf") ? new PerfOverlay(host, renderer, () => tier) : null;
 
@@ -428,8 +743,8 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
       moveInput.z = fz * ax.forward + fx * ax.right;
       move = moveInput;
     }
-    // Stay put while sitting down or standing up.
-    walker.hold = !avatar.standing;
+    // Stay put while sitting down, standing up or bowing.
+    walker.hold = !avatar.standing || avatar.playing === "pranam";
     walker.update(dt, mat < 0 && avatar.standing ? move : null);
     if (
       walker.walkingPath &&
@@ -440,7 +755,7 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
       rig.follow(walker.yaw, dt);
     }
 
-    const floor = groundY(walker.x, walker.z) + MAT_TOP * avatar.sitBlend;
+    const floor = floorY(walker.x, walker.z, avatar.sitBlend);
     avatar.root.position.set(walker.x, floor, walker.z);
     avatar.root.rotation.y = walker.yaw;
     avatar.update(dt, walker.speed, walker.travelled);
@@ -461,6 +776,15 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     avatar.root.visible = camera.position.distanceTo(head) > 0.7;
     sky.follow(camera.position, avatar.root.position);
 
+    session.sendPose(walker.x, walker.z, walker.yaw, currentPose());
+    crowd.update(dt, session.serverNow(), camera.position, now, interpDelay());
+    if (bowAfterTurn && !walker.turning) {
+      bowAfterTurn = false;
+      playGesture("pranam");
+    }
+    swings.update(dt, reducedMotion());
+    updateNameTag(now);
+
     if (now - lastSky > SKY_UPDATE_MS) {
       lastSky = now;
       const blend = phaseBlend(clock.now());
@@ -471,8 +795,27 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
       }
     }
 
-    hud.setContext(mat >= 0 ? "stand" : inMandapa(walker.x, walker.z) ? "sit" : null);
+    hud.setContext(contextAction());
+    hud.setPranamAvailable(mat < 0 && !bowAfterTurn && canBowAt(walker));
     if (now - lastCheckpoint > CHECKPOINT_MS) checkpoint(now);
+  }
+
+  function updateNameTag(now: number): void {
+    const tag = nameTag;
+    const r = tag && now < tag.until ? session.presence.remotes.get(tag.id) : undefined;
+    const at = r && tag ? crowd.headOf(tag.id, tagAt) : null;
+    if (!r || !at) {
+      if (tag) hud.showName(null);
+      nameTag = null;
+      return;
+    }
+    at.project(camera);
+    const rect = canvasRect;
+    hud.showName(
+      tag?.label ?? "",
+      rect.left + ((at.x + 1) / 2) * rect.width,
+      rect.top + ((1 - at.y) / 2) * rect.height,
+    );
   }
 
   /** The last phase blend applied; the sky is only rewritten when it changes. */
@@ -492,6 +835,8 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
       at: Date.now(),
       camera: { mode: rig.mode, ...rig.orbit },
       me: { x: walker.x, z: walker.z, yaw: walker.yaw, mat },
+      ...(session.hall ? { hall: session.hall } : {}),
+      ...(session.instance ? { instance: session.instance } : {}),
     });
   }
 
@@ -514,11 +859,31 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     perf?.frame(frameMs);
   }
 
+  // --- Presence follows the frame loop (spec 10 § Background, tabs and idle) -----------------
+  let hiddenTimer: number | null = null;
+  function updatePresence(): void {
+    const away = !owner.isOwner || idle.activity === "rest" || fastForward;
+    if (away) {
+      // Resting, or another tab is the visitor's: their place is held for the resume window.
+      session.pause();
+    } else if (document.hidden) {
+      hiddenTimer ??= window.setTimeout(() => {
+        hiddenTimer = null;
+        if (document.hidden) session.pause();
+      }, HIDDEN_KEEP_MS);
+    } else {
+      if (hiddenTimer !== null) window.clearTimeout(hiddenTimer);
+      hiddenTimer = null;
+      session.wake();
+    }
+  }
+
   function updateLoop(): void {
     const visible = !document.hidden;
     const run = visible && owner.isOwner && idle.activity !== "rest";
     hud.setRest(!owner.isOwner ? "other-tab" : idle.activity === "rest" ? "idle" : null);
     input.enabled = run && !hud.sheetOpen;
+    updatePresence();
     if (run === looping) return;
     looping = run;
     last = lastSim = performance.now();
@@ -531,6 +896,7 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     const w = window.innerWidth;
     const h = window.innerHeight;
     renderer.setSize(w, h, false);
+    canvasRect = canvas.getBoundingClientRect();
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     if (!looping && !document.hidden) renderer.render(scene, camera);
@@ -540,21 +906,33 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
   const onVisibility = (): void => {
     if (!document.hidden && !owner.isOwner) onFocus();
     updateLoop();
+    if (!document.hidden) session.reconnectNow();
   };
-  const onPageHide = (): void => checkpoint();
+  const onPageHide = (): void => {
+    checkpoint();
+    session.conn.noteUnload();
+  };
+  const onOnline = (): void => session.reconnectNow();
 
   host.prepend(canvas);
   applyQuality();
   window.addEventListener("resize", resize);
   document.addEventListener("visibilitychange", onVisibility);
   window.addEventListener("pagehide", onPageHide);
+  window.addEventListener("online", onOnline);
 
   // Compile every shader while the boot screen is still up, then draw the first frame.
   simulate(0, performance.now());
+  prebuildAvatarGeometries();
   await renderer.compileAsync(scene, camera);
   renderer.render(scene, camera);
   if (document.visibilityState === "visible") owner.claim();
+
   updateLoop();
+  // Rest or another tab may have taken over during start-up.
+  const forcedHall = import.meta.env.DEV ? params.get("hall") : null;
+  void session.start(isHallId(forcedHall) ? forcedHall : null).then(() => updatePresence());
+
   // Build the navigation grid in ~8 ms slices after the first frame, so input never freezes.
   const buildNav = (): void => {
     if (!getNav().buildSome(8)) navTimer = window.setTimeout(buildNav, 0);
@@ -576,6 +954,7 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
         standing: avatar.standing,
         sitBlend: avatar.sitBlend,
         walking: walker.walkingPath,
+        gesture: avatar.playing,
         /** What the visitor's position is blocked by; always null unless something is wrong. */
         blocked: blockedAt(walker.x, walker.z),
         inMandapa: inMandapa(walker.x, walker.z),
@@ -591,7 +970,32 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
         tier,
         lite: settings.get().lite,
         lights: scene.children.filter((o) => o instanceof PointLight).length,
+        drawCalls: renderer.info.render.calls,
       }),
+      net: () => {
+        const ss = session;
+        const remotes = [...ss.presence.remotes.values()].map((r) => {
+          const lastSample = r.samples[r.samples.length - 1];
+          return {
+            id: r.visitor.id,
+            name: r.visitor.name,
+            x: lastSample?.x,
+            z: lastSample?.z,
+            pose: lastSample?.pose,
+            mat: lastSample?.mat,
+          };
+        });
+        return {
+          status: ss.conn.status,
+          hall: ss.hall,
+          instance: ss.instance,
+          you: ss.you,
+          remotes,
+          footwear: greybox.footwear.count,
+          gestures: crowdGestures(),
+          events: recentEvents.slice(),
+        };
+      },
       walkTo: (x, z) => walkTo(x, z),
       screenPoint: (x, y, z) => {
         const v = new Vector3(x, y, z).project(camera);
@@ -600,6 +1004,9 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
       },
       setTimeScale: (n) => {
         timeScale = n;
+        // Faster than walking pace is offline; back at 1 the visitor resumes where they are.
+        fastForward = n !== 1;
+        updatePresence();
       },
       setClock: (ms) => {
         clock.override = ms;
@@ -608,19 +1015,34 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
       setIdleTimeout: (ms) => {
         idle.timeoutMs = ms;
       },
+      sitOn: (i) => sitOn(i),
     };
+  }
+
+  /** For tests: which remote avatars are playing a gesture now. */
+  function crowdGestures(): Record<string, string> {
+    const out: Record<string, string> = {};
+    for (const id of session.presence.remotes.keys()) {
+      const g = (crowd as unknown as { members: Map<string, { avatar: Avatar }> }).members.get(id)
+        ?.avatar.playing;
+      if (g) out[id] = g;
+    }
+    return out;
   }
 
   return {
     dispose() {
       renderer.setAnimationLoop(null);
       checkpoint();
+      session.dispose();
       window.clearInterval(idleTimer);
       window.clearTimeout(navTimer);
+      if (hiddenTimer !== null) window.clearTimeout(hiddenTimer);
       window.removeEventListener("resize", resize);
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("focus", onFocus);
       window.removeEventListener("pagehide", onPageHide);
+      window.removeEventListener("online", onOnline);
       document.removeEventListener("visibilitychange", onVisibility);
       input.dispose();
       owner.dispose();
@@ -628,9 +1050,11 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
       greybox.dispose();
       sky.dispose();
       avatar.dispose();
+      crowd.dispose();
+      disposeAvatarCache();
       blob.geometry.dispose();
-      blob.material.map?.dispose();
-      blob.material.dispose();
+      blobMaterial.map?.dispose();
+      blobMaterial.dispose();
       perf?.dispose();
       renderer.dispose();
       renderer.forceContextLoss();

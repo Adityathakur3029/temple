@@ -99,25 +99,30 @@ test("the realtime Worker answers the app origin over HTTP and WebSocket", async
   await page.goto("/");
   const result = await page.evaluate(async (realtime) => {
     const rooms = (await (await fetch(`${realtime}/api/rooms`)).json()) as { halls: unknown[] };
-    const ws = new WebSocket(`${realtime.replace(/^http/, "ws")}/ws?hall=hall-01&v=1`);
+    const ws = new WebSocket(`${realtime.replace(/^http/, "ws")}/ws?hall=hall-20&v=1`);
     const replies: string[] = [];
     await new Promise<void>((resolve, reject) => {
       ws.onerror = () => reject(new Error("WebSocket error"));
-      ws.onopen = () => {
-        ws.send("ping");
-        ws.send('{"t":"gesture","g":"namaste"}');
-      };
       ws.onmessage = (e) => {
         replies.push(String(e.data));
-        if (replies.length === 2) resolve();
+        // After the welcome, the heartbeat: the runtime answers ping with pong.
+        if (replies.length === 1) ws.send("ping");
+        if (replies.includes("pong")) resolve();
       };
     });
+    ws.send('{"t":"leave"}');
     ws.close(1000);
-    return { halls: rooms.halls.length, replies };
+    const welcome = JSON.parse(replies[0] ?? "{}") as { t?: string; hall?: string };
+    return {
+      halls: rooms.halls.length,
+      welcome: { t: welcome.t, hall: welcome.hall },
+      pong: replies.includes("pong"),
+    };
   }, REALTIME);
 
   expect(result.halls).toBe(20);
-  expect(result.replies).toEqual(["pong", '{"t":"gesture","g":"namaste"}']);
+  expect(result.welcome).toEqual({ t: "welcome", hall: "hall-20" });
+  expect(result.pong).toBe(true);
 });
 
 test("a hidden tab runs no animation frames (spec 10)", async ({ page }) => {

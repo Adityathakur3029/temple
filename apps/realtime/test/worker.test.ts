@@ -1,50 +1,18 @@
-import { exports } from "cloudflare:workers";
+import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import {
   CLOSE_CODES,
   HALL_COUNT,
   INSTANCE_CAPACITY,
   INSTANCES_PER_HALL,
-  MAX_CLIENT_MESSAGE_BYTES,
   PROTOCOL_VERSION,
   type RoomsResponse,
 } from "@sannidhi/protocol";
-
-const APP_ORIGIN = "http://localhost:5173";
-const BASE = "http://realtime.test";
-
-function fetchWorker(path: string, init?: RequestInit): Promise<Response> {
-  return exports.default.fetch(new Request(`${BASE}${path}`, init));
-}
-
-async function openSocket(
-  query = `hall=hall-03&v=${PROTOCOL_VERSION}`,
-  origin: string | null = APP_ORIGIN,
-): Promise<WebSocket> {
-  const headers: Record<string, string> = { Upgrade: "websocket" };
-  if (origin !== null) headers.Origin = origin;
-  const res = await fetchWorker(`/ws?${query}`, { headers });
-  expect(res.status).toBe(101);
-  const ws = res.webSocket;
-  if (!ws) throw new Error("No WebSocket on the response");
-  ws.accept();
-  return ws;
-}
-
-function nextMessage(ws: WebSocket): Promise<string> {
-  return new Promise((resolve) => {
-    ws.addEventListener("message", (e) => resolve(String(e.data)), { once: true });
-  });
-}
-
-function nextClose(ws: WebSocket): Promise<CloseEvent> {
-  return new Promise((resolve) => {
-    ws.addEventListener("close", resolve, { once: true });
-  });
-}
+import { clearRoomsCache } from "../src/rooms";
+import { APP_ORIGIN, TestClient, fetchWorker, wait } from "./client";
 
 describe("GET /api/rooms", () => {
-  it("returns 20 empty halls in the spec 04 shape", async () => {
+  it("returns 20 halls in the spec 04 shape", async () => {
     const res = await fetchWorker("/api/rooms", { headers: { Origin: APP_ORIGIN } });
     expect(res.status).toBe(200);
     expect(res.headers.get("cache-control")).toBe("no-store");
@@ -57,18 +25,26 @@ describe("GET /api/rooms", () => {
     expect(body.halls[0]).toMatchObject({
       id: "hall-01",
       number: 1,
-      count: 0,
       capacity: INSTANCE_CAPACITY * INSTANCES_PER_HALL,
-      instances: 0,
     });
     expect(body.halls[19]?.id).toBe("hall-20");
     expect(body.today).toEqual({
       date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) as unknown,
-      diyas: 0,
-      malas: 0,
-      parikramas: 0,
-      visits: 0,
+      diyas: expect.any(Number) as unknown,
+      malas: expect.any(Number) as unknown,
+      parikramas: expect.any(Number) as unknown,
+      visits: expect.any(Number) as unknown,
     });
+  });
+
+  it("counts the visitors in a hall, once their room has reported", async () => {
+    const { c } = await TestClient.join({ hall: "hall-20" });
+    await wait(2300); // the room reports joins after a 2 s debounce
+    clearRoomsCache();
+    const body = await (await fetchWorker("/api/rooms")).json<RoomsResponse>();
+    expect(body.halls[19]).toMatchObject({ id: "hall-20", count: 1, instances: 1 });
+    expect(body.today.visits).toBeGreaterThanOrEqual(0);
+    await c.close();
   });
 
   it("allows CORS only for the configured app origin", async () => {
@@ -92,43 +68,47 @@ describe("GET /api/rooms", () => {
 });
 
 describe("GET /ws", () => {
-  it("echoes text frames", async () => {
-    const ws = await openSocket();
-    const reply = nextMessage(ws);
-    ws.send('{"t":"bell","bell":"gate"}');
-    expect(await reply).toBe('{"t":"bell","bell":"gate"}');
-    ws.close(CLOSE_CODES.NORMAL);
+  it("welcomes a visitor", async () => {
+    const { c, welcome } = await TestClient.join({ hall: "hall-01" });
+    expect(welcome.t).toBe("welcome");
+    await c.close();
   });
 
   it("answers the heartbeat ping with pong", async () => {
-    const ws = await openSocket();
-    const reply = nextMessage(ws);
-    ws.send("ping");
-    expect(await reply).toBe("pong");
-    ws.close(CLOSE_CODES.NORMAL);
-  });
-
-  it("drops frames over MAX_CLIENT_MESSAGE_BYTES", async () => {
-    const ws = await openSocket();
-    const reply = nextMessage(ws);
-    ws.send("x".repeat(MAX_CLIENT_MESSAGE_BYTES + 1));
-    ws.send("small");
-    expect(await reply).toBe("small");
-    ws.close(CLOSE_CODES.NORMAL);
+    const { c } = await TestClient.join({ hall: "hall-01" });
+    const before = c.frames.length;
+    c.send("ping");
+    await wait(200);
+    expect(c.frames.slice(before)).toContain("pong");
+    await c.close();
   });
 
   it("closes with 4003 for an origin that isn't allowed", async () => {
     for (const origin of ["https://example.com", null]) {
-      const ws = await openSocket(`hall=hall-01&v=${PROTOCOL_VERSION}`, origin);
-      expect((await nextClose(ws)).code).toBe(CLOSE_CODES.ORIGIN_NOT_ALLOWED);
+      const headers: Record<string, string> = { Upgrade: "websocket" };
+      if (origin) headers.Origin = origin;
+      const res = await fetchWorker(`/ws?hall=hall-01&v=${PROTOCOL_VERSION}`, { headers });
+      const ws = res.webSocket;
+      if (!ws) throw new Error("no socket");
+      const closed = new Promise<CloseEvent>((r) => ws.addEventListener("close", r));
+      ws.accept();
+      expect((await closed).code).toBe(CLOSE_CODES.ORIGIN_NOT_ALLOWED);
     }
   });
 
   it("closes with 4002 for a protocol version mismatch", async () => {
     for (const v of [String(PROTOCOL_VERSION + 1), "0", ""]) {
-      const ws = await openSocket(`hall=hall-01&v=${v}`);
-      expect((await nextClose(ws)).code).toBe(CLOSE_CODES.VERSION_MISMATCH);
+      const c = await TestClient.open({ hall: "hall-01", v });
+      expect((await c.closed).code).toBe(CLOSE_CODES.VERSION_MISMATCH);
     }
+  });
+
+  it("closes with 4004 when every instance of the hall is full", async () => {
+    const d = env.DIRECTORY.get(env.DIRECTORY.idFromName("directory"));
+    for (let i = 1; i <= INSTANCES_PER_HALL; i++) await d.report("hall-14", i, INSTANCE_CAPACITY);
+    const c = await TestClient.open({ hall: "hall-14" });
+    expect((await c.closed).code).toBe(CLOSE_CODES.HALL_FULL);
+    for (let i = 1; i <= INSTANCES_PER_HALL; i++) await d.report("hall-14", i, 0);
   });
 
   it("rejects an unknown hall before upgrading", async () => {
@@ -142,37 +122,34 @@ describe("GET /ws", () => {
     const res = await fetchWorker(`/ws?hall=hall-01&v=${PROTOCOL_VERSION}`);
     expect(res.status).toBe(426);
   });
-});
-
-it("returns 404 for anything else", async () => {
-  expect((await fetchWorker("/")).status).toBe(404);
-  expect((await fetchWorker("/api/beacon", { method: "POST" })).status).toBe(404);
-});
-
-describe("GET /ws edge cases", () => {
-  it("closes with 4002 when v is missing", async () => {
-    const ws = await openSocket("hall=hall-01");
-    expect((await nextClose(ws)).code).toBe(CLOSE_CODES.VERSION_MISMATCH);
-  });
 
   it("checks the origin before the version", async () => {
-    const ws = await openSocket("hall=hall-01&v=99", "https://example.com");
-    expect((await nextClose(ws)).code).toBe(CLOSE_CODES.ORIGIN_NOT_ALLOWED);
-  });
-
-  it("drops binary frames", async () => {
-    const ws = await openSocket();
-    const reply = nextMessage(ws);
-    ws.send(new Uint8Array([1, 2, 3]));
-    ws.send("after");
-    expect(await reply).toBe("after");
-    ws.close(CLOSE_CODES.NORMAL);
+    const res = await fetchWorker("/ws?hall=hall-01&v=99", {
+      headers: { Upgrade: "websocket", Origin: "https://example.com" },
+    });
+    const ws = res.webSocket;
+    if (!ws) throw new Error("no socket");
+    const closed = new Promise<CloseEvent>((r) => ws.addEventListener("close", r));
+    ws.accept();
+    expect((await closed).code).toBe(CLOSE_CODES.ORIGIN_NOT_ALLOWED);
   });
 
   it("completes a close the client starts, with the client's code", async () => {
-    const ws = await openSocket();
-    const closed = nextClose(ws);
-    ws.close(CLOSE_CODES.NORMAL, "leave");
-    expect((await closed).code).toBe(CLOSE_CODES.NORMAL);
+    const { c } = await TestClient.join({ hall: "hall-01" });
+    expect((await c.close(CLOSE_CODES.NORMAL)).code).toBe(CLOSE_CODES.NORMAL);
+  });
+});
+
+describe("other routes", () => {
+  it("returns 404 for anything else", async () => {
+    expect((await fetchWorker("/")).status).toBe(404);
+    expect((await fetchWorker("/api/beacon", { method: "POST" })).status).toBe(404);
+  });
+
+  it("serves load-test stats locally (DEV_STATS)", async () => {
+    const res = await fetchWorker("/api/dev/stats?room=hall-01%231");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ sockets: expect.any(Number) as unknown });
+    expect((await fetchWorker("/api/dev/stats?room=nope")).status).toBe(400);
   });
 });

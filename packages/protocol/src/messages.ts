@@ -71,7 +71,8 @@ export interface Visitor {
 
 /**
  * Compact per-visitor state for snapshots and deltas:
- * [id, x, z, yaw, poseIndex, mat]. `mat` is -1 when not seated.
+ * [id, x, z, yaw, poseIndex, mat]. `mat` is the mat the visitor holds (walking to it or
+ * seated), -1 when none.
  * Positions are rounded to 0.01 m and yaw to 0.01 rad by the sender.
  */
 export type StateTuple = [

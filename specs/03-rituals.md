@@ -33,6 +33,7 @@ General rules for all rituals:
 - **Server rule:** cooldown `GESTURE_COOLDOWN_MS`.
 - **Animation:** standing bow with joined palms raised to the forehead, 2.5 s. Full prostration (dandavat) is **not** included in v1.
 - **Sound:** none.
+- **Facing:** the bow starts once the avatar has finished turning. Other clients start it when the bowing avatar, drawn behind server time, has caught up, and turn that avatar towards the same shrine (`bowTarget` in `world.ts`), whatever its stream says.
 - **Acceptance:** the avatar faces the sanctum (or the Ganesha murti when within 6 m of it) before bowing.
 
 ## Ring a bell (घंटी)
@@ -146,6 +147,9 @@ General rules for all rituals:
 - **Where:** `MAT_COUNT` (40) mats in two blocks either side of the mandapa aisle.
 - **Input:** "Sit" (context button in the mandapa, or HUD). The server picks the nearest free mat. Tapping a specific free mat requests that one.
 - **Network:** `sit {req, mat?}` → `sit.ok {req, mat}` or `sit.no {req}`. `stand` frees the mat. Leaving or disconnecting frees it after the resume window.
+  - The client asks from inside the mandapa: "Sit" asks for the nearest free mat, and a tapped mat is asked for when the visitor arrives at it.
+  - `sit.ok` holds the mat for the visitor. The avatar walks to it and sends `pos` with pose `sit`. The server then places the avatar on the mat, facing the sanctum.
+  - Others see the mat as taken from `sit.ok` on (the `mat` field of the visitor's state).
 - **Server rule:** one visitor per mat. The visitor must be in the mandapa. Mats are released on disconnect after `RESUME_WINDOW_MS`.
 - **Animation:** sit cross-legged (sukhasana), hands in the lap, facing the sanctum. The camera eases to the darshan view.
 - **Acceptance:**

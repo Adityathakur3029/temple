@@ -113,7 +113,7 @@ The keys are the canonical names in the locale files. Hindi strings need native 
 | `lang.hi` | हिन्दी | हिन्दी |
 | `lang.en` | English | English |
 | `hud.hall` | Hall {n} | कक्ष {n} |
-| `hud.here` | {count} here | {count} लोग यहाँ |
+| `hud.here` | {count} here | {count} उपस्थित |
 | `action.namaste` | Namaste | नमस्ते |
 | `action.pranam` | Bow | प्रणाम |
 | `action.bell` | Ring bell | घंटी बजाएँ |
@@ -147,7 +147,7 @@ The keys are the canonical names in the locale files. Hindi strings need native 
 | `sound.on` | Turn sound on | ध्वनि चालू करें |
 | `sound.off` | Turn sound off | ध्वनि बंद करें |
 | `hall.full` | This hall is full. Please choose another. | यह कक्ष भरा हुआ है। कृपया दूसरा चुनें। |
-| `conn.reconnecting` | Reconnecting… | फिर से जुड़ रहे हैं… |
+| `conn.reconnecting` | Reconnecting… | फिर से जुड़ने की कोशिश हो रही है… |
 | `conn.refresh` | A new version is ready. Refresh to continue. | नया संस्करण उपलब्ध है। जारी रखने के लिए रीफ़्रेश करें। |
 | `rest.other_tab` | Resting in another tab | दूसरे टैब में विश्राम |
 | `rest.continue` | Continue here | यहीं जारी रखें |
@@ -178,7 +178,7 @@ The keys are the canonical names in the locale files. Hindi strings need native 
 | `controls.walk` | Walk | चलें |
 | `controls.drag` | Drag or scroll | खींचें या स्क्रॉल करें |
 | `controls.look` | Look around and zoom | चारों ओर देखें और ज़ूम करें |
-| `controls.context` | Action at this spot (sit, stand up) | इस जगह का कार्य (बैठें, उठें) |
+| `controls.context` | Action at this spot (ring bell, sit, stand up) | इस जगह का कार्य (घंटी बजाएँ, बैठें, उठें) |
 | `controls.darshan` | Darshan view | दर्शन दृश्य |
 | `controls.close` | Close the open sheet or view | खुला पैनल या दृश्य बंद करें |
 | `lite.suggest` | This device may run more smoothly in Lite mode. | लाइट मोड में यह डिवाइस बेहतर चल सकता है। |
@@ -187,6 +187,30 @@ The keys are the canonical names in the locale files. Hindi strings need native 
 | `a11y.seated` | You are on a mat, facing the sanctum. | आप आसन पर हैं, मुख गर्भगृह की ओर है। |
 | `a11y.stood` | You left the mat. | आपने आसन छोड़ दिया। |
 | `a11y.darshan` | Darshan view: the linga, through the sanctum door. | दर्शन दृश्य: गर्भगृह के द्वार से शिवलिंग। |
+| `action.namaste_label` | Namaste — greet everyone | नमस्ते — सबका अभिवादन करें |
+| `halls.title` | Halls | कक्ष |
+| `halls.note` | Counts update every few seconds | गिनती हर कुछ सेकंड में अपडेट होती है |
+| `halls.current` | You are here | आप यहाँ हैं |
+| `halls.full` | Full | भरा हुआ |
+| `halls.choose` | Choose another hall | दूसरा कक्ष चुनें |
+| `who.title` | Who's here | यहाँ कौन-कौन है |
+| `who.hint` | Tap a person to see their name | नाम देखने के लिए किसी व्यक्ति पर टैप करें |
+| `who.you` | {name} (you) | {name} (आप) |
+| `who.alone` | No one else is here just now. | अभी यहाँ और कोई नहीं है। |
+| `today.visits` | {n} visits | {n} आगमन |
+| `mat.taken` | This mat is taken. Please choose another. | यह आसन किसी और के पास है। कृपया दूसरा चुनें। |
+| `conn.offline` | Couldn't reach the other visitors. You can still walk in the temple. | अन्य दर्शनार्थियों से संपर्क नहीं हो पाया। फिर भी मंदिर में चलना-फिरना जारी रखें। |
+| `conn.waiting` | Reconnecting in a minute… | एक मिनट में फिर से जुड़ने की कोशिश होगी… |
+| `conn.refresh_now` | Refresh | रीफ़्रेश करें |
+| `a11y.namaste` | You greeted everyone. | आपने सबका अभिवादन किया। |
+| `a11y.pranam` | You bowed. | आपने प्रणाम किया। |
+| `a11y.bell` | You rang the bell. | आपने घंटी बजाई। |
+| `a11y.others_namaste_one` | Someone greeted everyone. | किसी ने सबका अभिवादन किया। |
+| `a11y.others_namaste` | {n} people greeted everyone. | {n} लोगों ने सबका अभिवादन किया। |
+| `a11y.others_pranam_one` | Someone bowed. | किसी ने प्रणाम किया। |
+| `a11y.others_pranam` | {n} people bowed. | {n} लोगों ने प्रणाम किया। |
+| `a11y.others_bell_one` | A bell rang. | एक घंटी बजी। |
+| `a11y.others_bell` | Bells rang {n} times. | {n} बार घंटी बजी। |
 
 ## Accessibility
 

@@ -39,7 +39,14 @@ Where Hindu practice varies by region or tradition, this document picks a defaul
   - The tripundra (three ash lines) on the linga is **check with advisor**.
 - **Nandi:** seated and calm, facing the sanctum, with a traditional form and no exaggerated or cartoon proportions. Never animated.
 - **Ganesha:** a small traditional seated murti in an open shrine near the gate. Never animated, never stylised as a mascot.
-- **Human-made:** all three (linga, Nandi, Ganesha) are human-made, never AI-generated, and reviewed by the advisor before shipping. See spec 11.
+- **Human-made:** all three (linga, Nandi, Ganesha) are made by people, never AI-generated. The final versions are made for Sannidhi and reviewed by the advisor (M5). See spec 11.
+- **Downloaded stand-ins:** until the final versions exist, a model of the linga, Nandi or Ganesha downloaded from the internet MAY stand in, on four conditions (decided by the owner, 2026-11-05):
+  - a person made it, and its licence allows our use (spec 11 § Licensing rules). The config says `"ai": false` explicitly, and `LICENSES.md` notes how human authorship was checked;
+  - it follows the depiction rules above: the linga aniconic, in plain dark stone, with no face, eyes or painted marks (no tripundra while that item is Off); Nandi seated, calm and traditional; Ganesha traditional and never a mascot, cartoon or "cute" figure. It isn't a copy or scan of a specific real temple's murti;
+  - it is marked `interim` in `assets-src/slots.json` (the build refuses a downloaded sacred form that isn't);
+  - it is added to the check-with-advisor list below, with its source, in the same change that configures it, the `cultural-reviewer` agent checks it then, and the advisor reviews whatever is shown in the temple before launch.
+- **Not used as stand-ins, by default (check with advisor):** scans of museum or heritage sculptures; damaged or fragmentary forms (a broken murti is traditionally not worshipped); linga variants such as a naga coiled over it, a metal kavacha, or a white marble or banalinga.
+- **Deity figures in other models:** a model for any slot that includes a deity figure (a linga or murti inside a downloaded shrine, a carved Ganesha on a lintel) is treated like a sacred form: never AI-made, and listed for the advisor. Better, remove the figure or choose another model; the shrine and Ganesha shrine slots are meant to be empty.
 - **Deity images stay in the shrine:** no deity images or faces in UI icons, buttons, loading screens, the favicon or app icon, notifications, donation prompts or merchandise-style decoration. The app icon is the shikhara silhouette or a diya.
 - **Sacred symbols** (ॐ, trishul, damru) appear only at height or in sacred places: the sanctum lintel, banners, the aarti lamp. **Never** on floors, steps, mats, the footwear rack, or anything sat or stepped on.
 - **The swastika motif** is not used as decoration in v1. Many international visitors misread it. This is a product choice for clarity, not a judgement on a sacred Hindu symbol.
@@ -92,6 +99,8 @@ Where Hindu practice varies by region or tradition, this document picks a defaul
 | Aarti lyrics text | Hidden until verified | 06 |
 | Temple mark (boot screen, favicon, future app icon): kalasha, amalaka, tower proportions, doorway | Stylised M0 mark in `apps/web/src/ui/shikhara.svg`; no sacred symbols on it | this spec, 11 |
 | Greybox stand-ins for the sacred forms until the human-made assets (M5) | Linga: a plain dark stone form on its pitha, spout to the north. Nandi: plain stone blocks that only suggest the seated form and its facing, with no face. The Ganesha murti: an unadorned stone mass | 02, 11 |
+| Downloaded stand-ins for the sacred forms (§ Depiction) | None yet. Each one is listed here with its source in the same change that configures it | 11 |
+| Downloaded stand-ins in public builds | The workers.dev staging and production deploys are public. Default: a stand-in sacred form may be deployed once the `cultural-reviewer` agent has checked it; the advisor reviews before launch | 11 |
 | Shawl colours | 8 muted wool colours (madder, rust, mustard, olive, teal, indigo, plum, charcoal); no saffron, which reads as a renunciate's robe. Rust is close to geru and madder to monastic maroon: review both at dusk and under lamp light | 02 |
 | Darshan from off the axis | The darshan camera moves towards the axis so the linga shows through the door; the avatar stays where it is. For anyone within about 9 m of the linga (the front mats, the antarala) the viewpoint is inside the Nandi-axis strip. Only the camera is there, never an avatar | 02 |
 | Visitor names (M2) | The curated list in `packages/protocol/src/names.ts`. Reviewed by the cultural reviewer. Open points: `megh` (also the name of a community), `deodar` (devadaru), `bhojpatra` (used for writing yantras) and `walnut` (a Herath offering in Kashmir). Spec 05 gives `megh`, `deodar` and `bhojpatra` as examples, so dropping one changes spec 05 too | 05 |
@@ -100,7 +109,7 @@ Where Hindu practice varies by region or tradition, this document picks a defaul
 ## Acceptance criteria
 
 - Automated tests prove that no avatar position inside the garbhagriha or on the Nandi axis is accepted by the server (spec 05).
-- A grep check in CI fails if deity image assets are referenced from UI icon, favicon, loading or donation code paths (asset tags in the manifest, spec 11).
+- `npm run check` fails if any web code outside the 3D scene (UI, boot and loading screens, donation code, `index.html`) loads the asset manifest or a model, or names a built model's path, so no deity model can appear there (spec 11 § Acceptance criteria). Sacred models carry the `sacred` tag in the manifest. The favicon and app icon are static files, checked by review: the shikhara mark or a diya.
 - Every check-with-advisor item has a recorded decision before launch.
 - The advisor sign-off log has entries for M1, M3, M5 and launch.
 

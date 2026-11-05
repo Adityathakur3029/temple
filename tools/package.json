@@ -11,6 +11,12 @@
     "ws": "8.21.0"
   },
   "devDependencies": {
-    "@types/ws": "8.18.2"
+    "@gltf-transform/core": "4.5.1",
+    "@gltf-transform/extensions": "4.5.1",
+    "@gltf-transform/functions": "4.5.1",
+    "@types/ws": "8.18.2",
+    "ktx2-encoder": "0.6.0",
+    "meshoptimizer": "1.3.0",
+    "sharp": "0.35.5"
   }
 }

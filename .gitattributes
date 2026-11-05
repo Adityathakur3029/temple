@@ -10,3 +10,5 @@
 *.wav binary
 *.woff2 binary
 *.blend binary
+*.jpeg binary
+*.bin binary

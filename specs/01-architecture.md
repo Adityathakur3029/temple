@@ -57,7 +57,8 @@ The client has no UI framework. The HUD is plain DOM plus CSS, which keeps the i
 │  │  ├─ index.html             boot screen + module script
 │  │  ├─ src/
 │  │  │  ├─ main.ts             boot, error screen, lazy-load scene
-│  │  │  ├─ scene/              world, avatars, camera, lighting, LOD
+│  │  │  ├─ assets/             asset slots, the built asset manifest (11)
+│  │  │  ├─ scene/              world, avatars, camera, lighting, LOD, slot models
 │  │  │  ├─ rituals/            one module per ritual (03)
 │  │  │  ├─ net/                WebSocket client, interpolation, clock sync
 │  │  │  ├─ audio/              mixer, channels, aarti scheduler
@@ -81,7 +82,7 @@ The client has no UI framework. The HUD is plain DOM plus CSS, which keeps the i
 │        ├─ validate.ts         type guards (no dependencies)
 │        ├─ world.ts            walkable areas, sacred zones, ritual spots (shared by client and server)
 │        └─ schedule.ts         aarti times, IST helpers
-├─ assets-src/                  source .blend/.wav/etc. + LICENSES.md (not shipped)
+├─ assets-src/                  source .blend/.wav/etc., slots.json, LICENSES.md (not shipped)
 └─ tools/
    ├─ assets/                   optimise + manifest scripts
    ├─ bots/                     load-test clients
@@ -95,8 +96,8 @@ The client has no UI framework. The HUD is plain DOM plus CSS, which keeps the i
 | Env | Web | Realtime | Assets | Notes |
 |---|---|---|---|---|
 | local | `vite` on `http://localhost:5173` | `wrangler dev` on `http://localhost:8787` | served from `apps/web/public` or local R2 | Origin `http://localhost:5173` allowed |
-| staging | `sannidhi-web-staging.<account>.workers.dev` / `staging.<domain>` | Worker env `staging` | R2 bucket `sannidhi-assets-staging` | Real Cloudflare, test data |
-| production | `<domain>` (until then `sannidhi-web-production.<account>.workers.dev`) | Worker env `production` | R2 bucket `sannidhi-assets` | Deploys only through the `release` skill |
+| staging | `sannidhi-web-staging.<account>.workers.dev` / `staging.<domain>` | Worker env `staging` | R2 bucket `sannidhi-assets-staging` (until the asset Worker exists: the web Worker, under `/v/`) | Real Cloudflare, test data |
+| production | `<domain>` (until then `sannidhi-web-production.<account>.workers.dev`) | Worker env `production` | R2 bucket `sannidhi-assets` (until then: the web Worker, under `/v/`) | Deploys only through the `release` skill |
 
 Configuration the client needs (realtime URL, asset origin, analytics token, UPI details) comes from Vite env variables at build time. Secrets are never shipped to the client. The server has no secrets in v1 apart from Cloudflare's own bindings.
 
@@ -106,7 +107,7 @@ Configuration the client needs (realtime URL, asset origin, analytics token, UPI
 
 1. `index.html` shows a static boot screen with no JS dependency. A CSS-only retry link appears after 15 s.
 2. `main.ts` (small) checks for WebGL2. If it's missing, it shows a respectful "This device can't show the temple" page with an audio-only aarti option.
-3. `main.ts` lazy-loads the scene bundle, then fetches the asset manifest, then loads the **first-view assets** (gate, path, low LOD trees) before anything else.
+3. `main.ts` lazy-loads the scene bundle, which includes the asset manifest (spec 11), then loads the **first-view assets** (gate, path, low LOD trees) before anything else. The boot screen waits for them for at most 5 s (`FIRST_VIEW_WAIT_MS`); after that the temple opens with greybox shapes, and the models replace them as they arrive.
 4. In parallel it calls `GET /api/rooms`, picks a hall, and opens the WebSocket.
 5. The temple becomes interactive. Remaining assets stream in by priority (spec 10).
 

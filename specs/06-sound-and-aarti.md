@@ -97,6 +97,6 @@ Lite mode loads ambience as one mixed loop instead of layered stems.
 
 ## Open decisions
 
-1. **Recording source:** commission (preferred) or license one, and the budget.
+1. **Recording source:** the owner supplies the recordings (ambience, aartis, bells) and a 24-hour schedule of what plays when (decided 2026-11-04). Each file still needs a licence entry before it ships. If the schedule adds music or chant outside the aartis, the "no music outside aarti" principle above changes with it.
 2. **Lyrics overlay** in M4 or M5.
 3. **Distinct morning aarti,** or the same aarti both times with a different opening.

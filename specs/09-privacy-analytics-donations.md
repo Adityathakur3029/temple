@@ -107,6 +107,6 @@ The "Support the temple's upkeep" sheet, reached only from Settings and the Exit
 
 ## Open decisions
 
-1. **Recipient entity** for donations (see the legal checklist), and when donations are switched on.
+1. **Recipient entity** for donations (see the legal checklist), and when donations are switched on. **On hold (2026-11-04):** no donations for now, decided by the owner. `VITE_UPI_VPA` stays unset everywhere.
 2. **Preset amounts.** Offer chips such as ₹51 / ₹101 / ₹251, or leave the amount to the visitor (default: none)?
 3. **Yearly transparency note:** publish one?

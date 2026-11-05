@@ -22,6 +22,7 @@ Sannidhi (सन्निधि, "sacred presence") is a browser-based 3D temple
 - Seated avatars face the sanctum. No pose points feet towards the deity.
 - No dancing, jokes, emotes or playful animations anywhere in the temple.
 - Offerings are symbolic. Money never buys a blessing, a bigger lamp or any in-temple effect.
+- The linga, Nandi and Ganesha are never AI-made. Downloaded stand-ins are allowed until final art if licensed, respectful and marked `interim`.
 - No free-text input from visitors anywhere: no chat, no custom names, no messages.
 
 ## Stack and layout (planned; created in milestone M0)
@@ -48,7 +49,8 @@ Planned npm scripts (root):
 | `npm run build` | Build all workspaces |
 | `npm test` | Vitest across workspaces |
 | `npm run test:e2e` | Playwright (desktop + mobile emulation) |
-| `npm run check` | `tsc --noEmit`, ESLint, size budgets, spec link check |
+| `npm run check` | `tsc --noEmit`, ESLint, asset checks, size budgets, spec link check |
+| `npm run assets:build` | Fit, shrink and pack the models in `assets-src/slots.json` into their slots (spec 11) |
 | `npm run bots -- --hall hall-01 --n 200` | Load-test bots against a local or staging server |
 | `npm run deploy:*` | Deploy steps (always asks first; see the `release` skill) |
 

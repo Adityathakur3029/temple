@@ -49,6 +49,12 @@ These documents define what Sannidhi is and how it works. They are the source of
 | 2026-11-04 | A reload keeps the visitor's place: through the resume record within 60 s, and after that by accepting the first walkable position (spec 05, open decision 3) | Default |
 | 2026-11-04 | `PROTOCOL_VERSION` stays 1 while adding close code `4004`, changing `StateTuple.mat` to mean "the mat held", and adding constants. No client speaking v1 has shipped; v1 is frozen from the first public release | Default |
 | 2026-11-04 | No binary deltas: Workers negotiates permessage-deflate, and 50 bots measure 2.0 KB/s per visitor on the wire (budget 3) (spec 04, open decision 1) | Measured |
+| 2026-11-04 | No donations for now. The support sheet isn't built and `VITE_UPI_VPA` stays unset, so no support UI appears (spec 09) | Decided by owner |
+| 2026-11-04 | The owner supplies the recordings (ambience, aartis, bells) and a 24-hour schedule of what plays when. Each file still needs a traceable licence (specs 06, 11) | Decided by owner |
+| 2026-11-05 | Build the swappable asset slots now, during M2, so models downloaded from the internet can stand in until artists' models replace them in M5 (specs 11, 13) | Decided by owner |
+| 2026-11-05 | Downloaded models made by people MAY stand in for the linga, Nandi and Ganesha too, if licensed, following spec 08 § Depiction, copying no real temple's murti, and marked `interim`; never AI-made; listed for the advisor, who reviews them before launch (spec 08 § Depiction) | Decided by owner |
+| 2026-11-05 | KTX2 textures are encoded with `ktx2-encoder` (WebAssembly) instead of the KTX-Software `toktx` tool, so the asset build needs nothing installed on Windows (spec 11) | Default |
+| 2026-11-05 | Until the lighting pass (M5), models use matte lighting like the greybox and keep only colour textures (spec 11 § Formats) | Default |
 
 ## Open decisions (collected)
 
@@ -56,7 +62,7 @@ These are repeated in the spec they belong to.
 
 1. Final product name and domain (trademark check). See [00](00-vision.md#open-decisions).
 2. Religious advisor or priest who signs off on spec 08 and the aarti. See [08](08-cultural-guidelines.md#open-decisions).
-3. Aarti recording: commission one or license one. See [06](06-sound-and-aarti.md#open-decisions).
-4. Who receives donations: an individual, a trust, or a Section 8 company. See [09](09-privacy-analytics-donations.md#open-decisions).
+3. Aarti recording: supplied by the owner (2026-11-04); the licence for each file is still to be recorded. See [06](06-sound-and-aarti.md#open-decisions).
+4. Who receives donations: an individual, a trust, or a Section 8 company. On hold: no donations for now (2026-11-04). See [09](09-privacy-analytics-donations.md#open-decisions).
 5. Whether to show a pujari figure during aarti or use a lamp-only choreography. See [03](03-rituals.md#open-decisions).
 6. Seasonal weather (snow, monsoon mist) in M5 or later. See [02](02-temple-world.md#open-decisions).

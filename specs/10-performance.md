@@ -49,7 +49,7 @@ Most visitors use mid-range or budget Android phones on 4G with prepaid data. Th
 | P3 | Higher LODs, Full-tier textures, ambience |
 | P4 | Aarti audio (from the 15-minute banner, only if sound is on) |
 
-The temple is interactive after P0. Later priorities load in the background and never block input.
+The temple is interactive after P0. Later priorities load in the background and never block input. The boot screen waits at most 5 s for P0 models (`FIRST_VIEW_WAIT_MS` in `scene/models.ts`); a slow model then appears when it arrives, replacing its greybox shape. Each slot's priority is in spec 11 § Slots.
 
 ## Render budgets
 
@@ -62,6 +62,10 @@ The temple is interactive after P0. Later priorities load in the background and 
 | Real-time point lights (on top of the sun or moon and the sky's ambient light) | 2 | 4 | 4 |
 | Shadows | Blob shadows | Blob shadows | One directional shadow map |
 | Post-processing | None | None | Optional subtle bloom |
+
+**Models in asset slots** (spec 11 § Slots), summed over every copy, stay within 100k triangles and 60 MB of GPU textures with Lite models, and 220k triangles and 100 MB with Full models. The rest of each budget is for avatars, the greybox, the sky and shadows. `npm run check` adds them up from the asset manifest; GPU memory is estimated at 8 bits per pixel with mipmaps.
+
+**The lighter scene:** Lite mode and Low phones get Lite models and the nearest 120 trees. Texture decoding uses 1 worker on Low and 2 elsewhere, and the decoders are freed once every model has loaded.
 
 ### Techniques the budgets assume
 
@@ -112,7 +116,7 @@ The compact delta tuples in spec 04, change-only sending, permessage-deflate and
 - **Size budgets:** `npm run check` reads the Vite build manifest and the asset manifest, sums the bytes per budget line, and fails on any overrun.
   - Compressed sizes are measured as gzip level 9, with 1 KB counted as 1,000 bytes (stricter than 1,024). Already-compressed files (WOFF2, KTX2, `.m4a`) count at their file size.
   - CSS linked by the entry counts with the HTML. `.wasm` decoders count towards the total before interactive.
-  - Lines that need the asset manifest report "not measured" until it exists. The checker lists any built file that no line counts.
+  - The asset lines add up the models in the asset manifest (spec 11) at their file size, since meshopt and KTX2 are already compressed. The two full-scene lines are a whole visit: the app (HTML, CSS, JS, wasm, fonts) plus that tier's models. First view counts the Full-tier P0 models. Lines with nothing to measure yet (audio) report "not measured". The checker lists any built file that no line counts.
 - **Perf overlay:** `?perf=1` shows fps, frame time, draw calls, triangles, textures, geometries, JS heap, the tier and the pixel ratio.
 - **CI perf run:** Playwright on the High tier with a 4× CPU throttle and an emulated 4G profile, recording time to interactive and the frame-time distribution while walking gate → mandapa.
 - **Device matrix (manual, each milestone from M1):**

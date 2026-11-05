@@ -11,14 +11,46 @@ import {
   type ColorRepresentation,
 } from "three";
 
+/** A run of vertices in a built geometry. */
+export interface Run {
+  start: number;
+  count: number;
+}
+
 export class MeshBuilder {
   private readonly pos: number[] = [];
   private readonly nor: number[] = [];
   private readonly col: number[] = [];
   private readonly c = new Color();
+  private readonly runs = new Map<string, Run[]>();
+  private open: { name: string; start: number } | null = null;
 
   get triangles(): number {
     return this.pos.length / 9;
+  }
+
+  get vertices(): number {
+    return this.pos.length / 3;
+  }
+
+  /**
+   * Names the shapes added from now on (null ends the section), so they can be cut out of the
+   * built geometry later with `withoutSection`. A name may be used for several runs.
+   */
+  section(name: string | null): this {
+    if (this.open && this.vertices > this.open.start) {
+      const list = this.runs.get(this.open.name) ?? [];
+      list.push({ start: this.open.start, count: this.vertices - this.open.start });
+      this.runs.set(this.open.name, list);
+    }
+    this.open = name === null ? null : { name, start: this.vertices };
+    return this;
+  }
+
+  /** The named runs, closing any open section. */
+  sections(): Map<string, Run[]> {
+    this.section(null);
+    return new Map([...this.runs].map(([k, v]) => [k, v.map((r) => ({ ...r }))]));
   }
 
   /** An axis-aligned box. Its bottom face is skipped when it rests on the ground (y0 ≤ 0). */
@@ -102,6 +134,7 @@ export class MeshBuilder {
   }
 
   build(): BufferGeometry {
+    this.section(null);
     const g = new BufferGeometry();
     g.setAttribute("position", new BufferAttribute(new Float32Array(this.pos), 3));
     g.setAttribute("normal", new BufferAttribute(new Float32Array(this.nor), 3));
@@ -110,6 +143,50 @@ export class MeshBuilder {
     g.computeBoundingBox();
     return g;
   }
+}
+
+/**
+ * A copy of a non-indexed geometry without one section's vertices. The other sections' runs in
+ * `runs` are moved to match, and the removed section is deleted from it.
+ */
+export function withoutSection(
+  geometry: BufferGeometry,
+  runs: Map<string, Run[]>,
+  name: string,
+): BufferGeometry {
+  const drop = [...(runs.get(name) ?? [])].sort((a, b) => a.start - b.start);
+  runs.delete(name);
+  const total = geometry.getAttribute("position").count;
+  // Vertices removed before a given index, for moving the remaining runs.
+  const removedBefore = (index: number): number =>
+    drop.reduce((n, r) => n + (r.start < index ? Math.min(r.count, index - r.start) : 0), 0);
+  const keep: Run[] = [];
+  let at = 0;
+  for (const r of drop) {
+    if (r.start > at) keep.push({ start: at, count: r.start - at });
+    at = Math.max(at, r.start + r.count);
+  }
+  if (at < total) keep.push({ start: at, count: total - at });
+
+  const out = new BufferGeometry();
+  for (const key of ["position", "normal", "color"] as const) {
+    const src = geometry.getAttribute(key);
+    if (!src) continue;
+    const size = src.itemSize;
+    const data = new Float32Array(keep.reduce((n, r) => n + r.count, 0) * size);
+    let o = 0;
+    for (const r of keep) {
+      data.set((src.array as Float32Array).subarray(r.start * size, (r.start + r.count) * size), o);
+      o += r.count * size;
+    }
+    out.setAttribute(key, new BufferAttribute(data, size));
+  }
+  for (const list of runs.values()) {
+    for (const r of list) r.start -= removedBefore(r.start);
+  }
+  out.computeBoundingSphere();
+  out.computeBoundingBox();
+  return out;
 }
 
 /** Translation · rotation about +y · scale. */

@@ -6,6 +6,9 @@
  * simple dark stone form on its pitha; Nandi is plain stone blocks that only suggest the seated
  * form and its facing; the Ganesha murti is an unadorned stone mass. None has a face. All are
  * replaced by the human-made, advisor-reviewed assets.
+ *
+ * Each asset slot's shapes are a named section of the merged mesh, so a loaded model can take a
+ * shape's place (hide) without another draw call for the rest (scene/models.ts, spec 11 § Slots).
  */
 import {
   AdditiveBlending,
@@ -65,7 +68,8 @@ import {
   type PradakshinaMode,
   type Shape as WorldShape,
 } from "@sannidhi/protocol";
-import { MeshBuilder, placed } from "./builder";
+import type { SlotId } from "../assets/slots";
+import { MeshBuilder, placed, withoutSection } from "./builder";
 import { HEIGHTS, KUND_FLOOR_Y, KUND_STEP, KUND_WATER_Y, PAVING, PLINTH } from "./ground";
 
 /** Weathered grey-brown stone, deodar green, brass and a few warm accents (spec 02 § Setting). */
@@ -238,8 +242,13 @@ export function bellHangs(): Record<BellId, { x: number; y: number; z: number; s
 
 export interface Greybox {
   group: Group;
-  /** Raycast target for tap-to-walk: the floors and everything solid. */
+  /** The merged static greybox: the floors and everything solid. */
   ground: Mesh;
+  /**
+   * Raycast target for tap-to-walk: the whole greybox as first built, never drawn. Models that
+   * replace greybox shapes are not raycast, so a tap stays cheap (spec 10).
+   */
+  tapMesh: Mesh;
   mats: InstancedMesh;
   /** One instance per bell, in BELL_IDS order; their matrices swing when rung (scene/bells.ts). */
   bells: InstancedMesh;
@@ -253,6 +262,10 @@ export interface Greybox {
   glowMaterial: PointsMaterial;
   /** Every mesh that should cast and receive the High-tier shadow. */
   shadowCasters: (Mesh | InstancedMesh)[];
+  /** Slots whose greybox shapes are still drawn in the merged mesh. */
+  readonly sections: ReadonlySet<SlotId>;
+  /** Removes a slot's greybox shapes once its model is in place. */
+  hide(slot: SlotId): void;
   dispose(): void;
 }
 
@@ -342,6 +355,8 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   kerb(COMPOUND.x1, 21, 26.7, 27);
 
   // --- Kund ----------------------------------------------------------------------------------
+  // Each section("…") names the shapes an asset slot replaces (assets/slots.ts, spec 11).
+  b.section("kund");
   ring(b, { x0: 11, x1: 21, z0: 27, z1: 37 }, 0, 1, 0, 0.04, C.kund);
   ring(b, KUND, -0.2, 0, -KUND_STEP.drop, 0, C.kund);
   for (let k = 1; k <= 3; k++) {
@@ -364,10 +379,12 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
     KUND.z1 - 1.8,
     C.groove,
   );
+  b.section(null);
 
   // --- Garbhagriha, antarala and shikhara -------------------------------------------------------
   const wallTop = HEIGHTS.shrineWall;
   const door = SANCTUM_DOOR.halfWidth;
+  b.section("shrine");
   b.box(-2.6, 2.6, 0, PLINTH, -2.6, 2.6, C.plinth);
   b.box(-2.6, 2.6, PLINTH, wallTop, -2.6, -2.2, C.stone);
   b.box(2.2, 2.6, PLINTH, wallTop, -2.2, 2.2, C.stone);
@@ -419,9 +436,13 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   b.add(new CylinderGeometry(0.7, 0.8, 0.22, 16), placed(0, 14.36, 0), C.stoneDark, true);
   b.add(amalaka(), placed(0, 14.47, 0), C.stone, true);
   b.add(kalasha(), placed(0, 15.03, 0, 0, 1.05), C.brass);
+  // The somasutra spout on the north wall belongs to the shrine; the channel stays.
+  b.box(2.6, 3.15, PLINTH + 0.05, PLINTH + 0.17, -0.1, 0.1, C.stoneDark);
+  b.section(null);
 
   // --- Linga on its yoni pitha, at the origin ----------------------------------------------------
   const floor = PLINTH + 0.015;
+  b.section("linga");
   b.box(-0.45, 0.45, floor, floor + 0.25, -0.45, 0.45, C.pitha);
   b.add(new CylinderGeometry(0.42, 0.42, 0.1, 28), placed(0, floor + 0.3, 0), C.pitha);
   // The pitha's spout points north, towards the somasutra.
@@ -432,6 +453,7 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
     placed(0, floor + 0.77, 0),
     C.linga,
   );
+  b.section(null);
   // Two sanctum lamps.
   for (const x of [-1.1, 1.1]) {
     b.add(new CylinderGeometry(0.03, 0.06, 0.72, 8), placed(x, floor + 0.36, 0.9), C.brass);
@@ -439,8 +461,7 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
     addLamp(x, floor + 0.81, 0.9, 0.05);
   }
 
-  // --- Somasutra: spout, channel to the forest edge, optional bridge ------------------------------
-  b.box(2.6, 3.15, PLINTH + 0.05, PLINTH + 0.17, -0.1, 0.1, C.stoneDark);
+  // --- Somasutra: channel to the forest edge, optional bridge (the spout is with the shrine) -------
   b.box(2.95, 3.45, 0, 0.12, -0.32, 0.32, C.channel);
   b.box(3.45, SOMASUTRA.x1, 0, 0.1, 0.13, 0.3, C.channel);
   b.box(3.45, SOMASUTRA.x1, 0, 0.1, -0.3, -0.13, C.channel);
@@ -459,6 +480,7 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   }
 
   // --- Mandapa ------------------------------------------------------------------------------------
+  b.section("mandapa");
   b.box(MANDAPA.x0, MANDAPA.x1, 0, PLINTH, MANDAPA.z0, MANDAPA.z1, C.plinth);
   b.box(MANDAPA.x0 - 0.15, MANDAPA.x1 + 0.15, 0, 0.14, MANDAPA.z0 - 0.15, MANDAPA.z1, C.moulding);
   // The clear central aisle (the Nandi axis) is a slightly paler stone.
@@ -484,6 +506,8 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   b.box(-5.1, 5.1, 5.05, 5.4, 7.2, 17.2, C.stone);
   b.box(-3.5, 3.5, 5.4, 5.75, 8.8, 15.6, C.stoneDark);
   b.add(kalasha(), placed(0, 5.75, 12.2, 0, 0.6), C.brass);
+  b.section(null);
+  // Lamp brackets stay with the lamps, which are drawn in code.
   for (const p of MANDAPA_PILLARS.filter((q) => Math.abs(q.x) > 6)) {
     const out = Math.sign(p.x);
     b.box(p.x + out * 0.25, p.x + out * 0.45, 3.42, 3.48, p.z - 0.03, p.z + 0.03, C.woodDark);
@@ -509,12 +533,15 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
     NANDI_PLATFORM.z1 + 0.1,
     C.stoneDark,
   );
+  b.section("nandi");
   b.box(-0.36, 0.36, 0.5, 1.08, 21.55, 22.85, C.sacredStone);
   b.box(-0.24, 0.24, 1.08, 1.2, 21.75, 22.05, C.sacredStone);
   b.box(-0.2, 0.2, 0.9, 1.4, 21.25, 21.62, C.sacredStone);
+  b.section(null);
 
   // --- Deepa stand and aarti plate stand ------------------------------------------------------
   const ds = DEEPA_STAND;
+  b.section("deepa-stand");
   b.add(new CylinderGeometry(0.8, 0.8, 0.22, 20), placed(ds.x, 0.11, ds.z), C.stoneDark);
   b.add(new CylinderGeometry(0.1, 0.14, 2, 10), placed(ds.x, 1.22, ds.z), C.brass);
   for (const [y, r] of [
@@ -526,6 +553,7 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
     b.add(new CylinderGeometry(r, r * 0.92, 0.05, 20), placed(ds.x, y, ds.z), C.brass);
   }
   b.add(new SphereGeometry(0.07, 10, 6), placed(ds.x, 2.28, ds.z), C.brass);
+  b.section("aarti-plate");
   b.add(
     new CylinderGeometry(0.12, 0.2, 0.85, 10),
     placed(AARTI_PLATE.x, 0.425, AARTI_PLATE.z),
@@ -536,9 +564,11 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
     placed(AARTI_PLATE.x, 0.87, AARTI_PLATE.z),
     C.brass,
   );
+  b.section(null);
 
   // --- Ganesha shrine (plain stone placeholder murti, facing +x) -------------------------------
   const gs = GANESHA_SHRINE;
+  b.section("ganesha-shrine");
   b.box(gs.x0, gs.x1, 0, 0.4, gs.z0, gs.z1, C.plinth);
   b.box(gs.x0, gs.x0 + 0.3, 0.4, 2.3, gs.z0, gs.z1, C.stone);
   b.box(gs.x0 + 0.3, gs.x1, 0.4, 2.3, gs.z0, gs.z0 + 0.25, C.stone);
@@ -558,12 +588,15 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   );
   b.add(kalasha(), placed((gs.x0 + gs.x1) / 2, 3.55, (gs.z0 + gs.z1) / 2, 0, 0.35), C.brass);
   b.box(-5.75, -5.05, 0.4, 0.75, 51.6, 52.4, C.stoneDark);
+  b.section("ganesha");
   b.box(-5.6, -5.15, 0.75, 1.3, 51.76, 52.24, C.sacredStone);
   b.box(-5.55, -5.2, 1.3, 1.46, 51.84, 52.16, C.sacredStone);
+  b.section(null);
   addLamp(-4.95, 0.82, 51.7, 0.05);
   addLamp(-4.95, 0.82, 52.3, 0.05);
 
   // --- Gate (torana), boundary wall, footwear rack and today board -----------------------------
+  b.section("gate");
   for (const p of GATE_PILLARS) {
     b.add(
       new CylinderGeometry(0.25, 0.3, 3.3, 8),
@@ -587,6 +620,7 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
     C.shikhara,
     true,
   );
+  b.section(null);
   b.box(2.6, 11, 0, 1.3, 58.05, 58.35, C.stone);
   b.box(-11, -2.6, 0, 1.3, 58.05, 58.35, C.stone);
   b.box(2.6, 11, 1.3, 1.4, 58.0, 58.4, C.stoneDark);
@@ -597,18 +631,22 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   const rackX1 = rack.x + 1.8;
   const rackZ0 = rack.z - 0.2;
   const rackZ1 = rack.z + 0.2;
+  b.section("footwear-rack");
   b.box(rackX0, rackX0 + 0.06, 0, 1.16, rackZ0, rackZ1, C.wood);
   b.box(rackX1 - 0.06, rackX1, 0, 1.16, rackZ0, rackZ1, C.wood);
   const shelves = [0.08, 0.36, 0.64, 0.92];
   for (const y of shelves) b.box(rackX0, rackX1, y, y + 0.03, rackZ0, rackZ1, C.wood);
   b.box(rackX0, rackX1, 1.13, 1.16, rackZ0, rackZ1, C.wood);
+  b.section(null);
 
   const tb = TODAY_BOARD;
+  b.section("today-board");
   b.box(tb.x - 0.06, tb.x + 0.06, 0, 1.95, tb.z - 0.75, tb.z - 0.63, C.woodDark);
   b.box(tb.x - 0.06, tb.x + 0.06, 0, 1.95, tb.z + 0.63, tb.z + 0.75, C.woodDark);
   b.box(tb.x - 0.05, tb.x + 0.05, 1.0, 1.85, tb.z - 0.8, tb.z + 0.8, C.wood);
   b.box(tb.x - 0.065, tb.x - 0.05, 1.06, 1.79, tb.z - 0.72, tb.z + 0.72, C.board);
   b.box(tb.x - 0.2, tb.x + 0.25, 1.95, 2.02, tb.z - 0.9, tb.z + 0.9, C.woodDark);
+  b.section(null);
 
   // --- Bells: chains and the frames that hold the path bells ------------------------------------
   const hangs = bellHangs();
@@ -664,6 +702,9 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   const worldMat = new MeshLambertMaterial({ vertexColors: true });
   const ground = new Mesh(b.build(), worldMat);
   ground.name = "greybox";
+  const runs = b.sections();
+  const tapMesh = new Mesh(ground.geometry, worldMat);
+  const sections = new Set(runs.keys() as Iterable<SlotId>);
   group.add(ground);
 
   const lampMaterial = new MeshBasicMaterial({ vertexColors: true });
@@ -696,12 +737,13 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   group.add(water);
 
   const m = new Matrix4();
+  // Instanced shapes have their origin where a slot model's goes: the bottom centre (bells: top).
   const mats = new InstancedMesh(
-    new BoxGeometry(0.7, 0.025, 0.8),
+    new BoxGeometry(0.7, 0.025, 0.8).translate(0, 0.0125, 0),
     new MeshLambertMaterial({ color: C.mat }),
     MATS.length,
   );
-  MATS.forEach((mat, i) => mats.setMatrixAt(i, m.makeTranslation(mat.x, PLINTH + 0.0125, mat.z)));
+  MATS.forEach((mat, i) => mats.setMatrixAt(i, m.makeTranslation(mat.x, PLINTH, mat.z)));
   mats.name = "mats";
   group.add(mats);
 
@@ -744,6 +786,7 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   return {
     group,
     ground,
+    tapMesh,
     mats,
     bells,
     bellHang,
@@ -753,13 +796,26 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
     lampMaterial,
     glowMaterial,
     shadowCasters: [ground, trees, bells],
+    sections,
+    hide(slot) {
+      if (!sections.delete(slot)) return;
+      const next = withoutSection(ground.geometry, runs, slot);
+      // Frees only the GPU copy; the tap mesh keeps the first geometry's arrays for raycasts.
+      ground.geometry.dispose();
+      ground.geometry = next;
+    },
     dispose() {
+      tapMesh.geometry.dispose();
       group.traverse((o) => {
         if (o instanceof Mesh || o instanceof Points) {
           const mesh = o as Mesh<BufferGeometry, Material | Material[]>;
           mesh.geometry.dispose();
           for (const mt of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
-            (mt as Material & { map?: Texture | null }).map?.dispose();
+            const maps = mt as Material &
+              Partial<Record<"map" | "emissiveMap" | "alphaMap", Texture | null>>;
+            maps.map?.dispose();
+            maps.emissiveMap?.dispose();
+            maps.alphaMap?.dispose();
             mt.dispose();
           }
           // Instance matrices and colours live in their own GPU buffers.

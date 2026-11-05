@@ -102,3 +102,65 @@ describe("measureWeb with CSS, wasm and other files", () => {
     expect(uncountedFiles(dist)).toEqual(["assets/logo.png"]);
   });
 });
+
+describe("measureWeb with an asset manifest", () => {
+  const dist = mkdtempSync(join(tmpdir(), "sannidhi-size3-"));
+  mkdirSync(join(dist, ".vite"));
+  mkdirSync(join(dist, "assets"));
+  writeFileSync(join(dist, "index.html"), "<!doctype html>");
+  writeFileSync(join(dist, "assets", "index.js"), "1");
+  writeFileSync(
+    join(dist, ".vite", "manifest.json"),
+    JSON.stringify({ "index.html": { file: "assets/index.js", isEntry: true } }),
+  );
+  const file = (slot: "gate" | "bell", tier: "full" | "lite", bytes: number) => ({
+    src: `models/${slot}.glb`,
+    slot,
+    tier,
+    path: `/v/r/${tier}/models/${slot}.glb`,
+    sha256: "",
+    bytes,
+    priority: slot === "gate" ? ("P0" as const) : ("P2" as const),
+    tags: [],
+    licence: "CC0" as const,
+    credit: null,
+    triangles: 1,
+    draws: 1,
+    textures: [],
+    gpuBytes: 0,
+  });
+
+  it("counts models per tier, and Full-tier P0 models as first view", () => {
+    const results = Object.fromEntries(
+      measureWeb(dist, {
+        release: "r",
+        inputs: "i",
+        files: [
+          file("gate", "full", 300_000),
+          file("gate", "lite", 100_000),
+          file("bell", "full", 50_000),
+          file("bell", "lite", 20_000),
+        ],
+      }).map((r) => [r.id, r]),
+    );
+    expect(results.firstView?.bytes).toBe(300_000);
+    const app = results.beforeInteractive!.bytes! - 300_000;
+    expect(results.fullScene?.bytes).toBe(app + 350_000);
+    expect(results.liteScene?.bytes).toBe(app + 120_000);
+    expect(results.beforeInteractive?.partial).toBeUndefined();
+  });
+
+  it("measures zero, not 'not measured', when no model is configured", () => {
+    const results = Object.fromEntries(
+      measureWeb(dist, { release: null, inputs: "i", files: [] }).map((r) => [r.id, r]),
+    );
+    expect(results.fullScene?.bytes).toBe(results.beforeInteractive?.bytes);
+    expect(results.fullScene?.note).toBe("the app; no models yet");
+  });
+
+  it("counts files under v/ through the manifest, not as uncounted", () => {
+    mkdirSync(join(dist, "v", "r", "full", "models"), { recursive: true });
+    writeFileSync(join(dist, "v", "r", "full", "models", "gate.glb"), "glb");
+    expect(uncountedFiles(dist)).toEqual([]);
+  });
+});

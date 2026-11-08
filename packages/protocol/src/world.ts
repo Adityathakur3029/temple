@@ -42,7 +42,7 @@ export interface Circle {
   readonly r: number;
 }
 
-/** Every point within `r` of the segment a → b. Used for the winding gate path. */
+/** Every point within `r` of the segment a → b. Used for the gate path. */
 export interface Capsule {
   readonly kind: "capsule";
   readonly ax: number;
@@ -150,33 +150,38 @@ export const KUND = rect(12, 20, 28, 36);
 /** The water and everything below the second step. */
 export const KUND_WATER = rect(13.2, 18.8, 29.2, 34.8);
 
-/** The small open-fronted Ganesha shrine near the gate; the murti faces +x. */
-export const GANESHA: Spot = { x: -5, z: 52, yaw: Math.PI / 2 };
-export const GANESHA_SHRINE = rect(-6.3, -4.3, 50.9, 53.1);
+/** The small open-fronted Ganesha shrine just inside the gate; the murti faces +x. */
+export const GANESHA: Spot = { x: -5, z: 42.4, yaw: Math.PI / 2 };
+export const GANESHA_SHRINE = rect(-6.3, -4.3, 41.3, 43.5);
+/** The space in front of the Ganesha shrine, open to the path. */
+export const GANESHA_FRONT = rect(-4.3, -0.5, 41, 43.8);
 
-/** The torana. The walkable area ends just inside it. */
-export const GATE: Point = { x: 0, z: 58 };
+/** The torana. Visitors arrive on the approach outside it and walk in. */
+export const GATE: Point = { x: 0, z: 46 };
 export const GATE_PILLARS: readonly Point[] = [
-  { x: 2, z: 58 },
-  { x: -2, z: 58 },
+  { x: 2, z: 46 },
+  { x: -2, z: 46 },
 ];
-
-/** Outside the gate: footwear is left here (decorative). */
-export const FOOTWEAR_RACK: Point = { x: -3, z: 61 };
+/** Radius of the circle round each gate pillar that visitors keep clear of (the stone base). */
+export const GATE_PILLAR_RADIUS = 0.45;
 
 /** The painted "today" board beside the path, facing it. */
-export const TODAY_BOARD: Spot = { x: 3, z: 56, yaw: -Math.PI / 2 };
+export const TODAY_BOARD: Spot = { x: 3, z: 44.4, yaw: -Math.PI / 2 };
 
-/** New visitors appear just inside the gate, facing the temple. */
-export const SPAWN: Spot = { x: 0, z: 56.5, yaw: Math.PI };
+/** Just inside the gate, between its pillars and the start of the path. */
+export const GATE_INSIDE = rect(-2.6, 2.6, 42.4, 46.3);
+/** The paved approach outside the gate, as far as visitors may walk back out. */
+export const GATE_APPROACH = rect(-1.8, 1.8, 46, 55);
 
-/** Centre line of the winding path from the gate to the courtyard. */
+/**
+ * New visitors appear on the approach, facing the gate and the temple beyond it, far enough out
+ * that the whole torana is in the first view.
+ */
+export const SPAWN: Spot = { x: 0, z: 53.5, yaw: Math.PI };
+
+/** Centre line of the path from the gate to the courtyard: straight, on the temple's axis. */
 export const GATE_PATH: readonly Point[] = [
-  { x: 0, z: 57.2 },
-  { x: 0.5, z: 54 },
-  { x: -1.5, z: 49 },
-  { x: 1.5, z: 43 },
-  { x: -1, z: 37 },
+  { x: 0, z: 45.2 },
   { x: 0, z: 30 },
 ];
 export const GATE_PATH_HALF_WIDTH = 1.8;
@@ -220,15 +225,15 @@ export const SOMASUTRA_BRIDGE = rect(
 
 /** Where each bell hangs. Visitors ring from within BELL_REACH_M (spec 03). */
 export const BELLS: Readonly<Record<BellId, Point>> = {
-  gate: { x: 0, z: 58 },
-  "path-1": { x: -0.8, z: 55 },
-  "path-2": { x: 0.7, z: 51.5 },
-  "path-3": { x: -2.2, z: 48 },
-  "path-4": { x: 2, z: 44.5 },
-  "path-5": { x: -0.5, z: 41 },
-  "path-6": { x: 0.4, z: 37.5 },
-  "path-7": { x: -1.8, z: 34 },
-  "path-8": { x: 1.1, z: 30.5 },
+  gate: { x: 0, z: 46 },
+  "path-1": { x: -1.2, z: 44.4 },
+  "path-2": { x: 1.2, z: 42.4 },
+  "path-3": { x: -1.2, z: 40.4 },
+  "path-4": { x: 1.2, z: 38.4 },
+  "path-5": { x: -1.2, z: 36.4 },
+  "path-6": { x: 1.2, z: 34.4 },
+  "path-7": { x: -1.2, z: 32.4 },
+  "path-8": { x: 1.2, z: 30.4 },
   "mandapa-n": { x: 2.2, z: 19.5 },
   "mandapa-s": { x: -2.2, z: 19.5 },
 };
@@ -273,8 +278,9 @@ export const WALKABLE: readonly Shape[] = [
   COMPOUND,
   rect(11, 21, 27, 37), // around the kund (the rim and its first two steps)
   ...GATE_PATH.slice(1).map((b, i) => capsule(GATE_PATH[i] ?? b, b, GATE_PATH_HALF_WIDTH)),
-  rect(-4.3, -0.5, 50.6, 53.4), // in front of the Ganesha shrine
-  rect(-2.6, 2.6, 54.4, 58.3), // just inside the gate
+  GANESHA_FRONT,
+  GATE_INSIDE,
+  GATE_APPROACH,
 ];
 
 export type ObstacleId =
@@ -313,8 +319,11 @@ export const OBSTACLES: readonly Obstacle[] = [
   { id: "deepa-stand", shape: circle(DEEPA_STAND.x, DEEPA_STAND.z, DEEPA_STAND_RADIUS) },
   { id: "aarti-plate", shape: circle(AARTI_PLATE.x, AARTI_PLATE.z, 0.3) },
   { id: "ganesha-shrine", shape: GANESHA_SHRINE },
-  { id: "today-board", shape: rect(2.8, 3.2, 55.2, 56.8) },
-  ...GATE_PILLARS.map((p): Obstacle => ({ id: "gate", shape: circle(p.x, p.z, 0.3) })),
+  { id: "today-board", shape: rect(2.8, 3.2, TODAY_BOARD.z - 0.8, TODAY_BOARD.z + 0.8) },
+  ...GATE_PILLARS.map((p): Obstacle => ({
+    id: "gate",
+    shape: circle(p.x, p.z, GATE_PILLAR_RADIUS),
+  })),
 ];
 
 export type ZoneId = "garbhagriha" | "nandi-axis" | "kund-water" | "somasutra";

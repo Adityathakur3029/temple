@@ -12,7 +12,6 @@ import {
   DEEPA_STAND,
   DIYA_SPOTS,
   DIYA_SPOT_POSITIONS,
-  FOOTWEAR_RACK,
   GANESHA,
   GARBHAGRIHA,
   GATE,
@@ -124,7 +123,6 @@ describe("world.ts matches spec 02", () => {
     expect(coords(row(layout, "Aarti plate stand"))[0]).toEqual(AARTI_PLATE);
     expect(coords(row(layout, "Ganesha shrine"))[0]).toEqual({ x: GANESHA.x, z: GANESHA.z });
     expect(coords(row(layout, "Gate (torana)"))[0]).toEqual(GATE);
-    expect(coords(row(layout, "Footwear rack"))[0]).toEqual(FOOTWEAR_RACK);
     expect(coords(row(layout, "Temple-wide"))[0]).toEqual({ x: TODAY_BOARD.x, z: TODAY_BOARD.z });
     expect(coords(row(layout, "Kund"))[0]).toEqual({
       x: (KUND.x0 + KUND.x1) / 2,
@@ -247,7 +245,6 @@ describe("sacred and blocked zones", () => {
     expect(blockedAt(7.2, 12)).toBe("plinth-edge");
     expect(blockedAt(DEEPA_STAND.x, DEEPA_STAND.z)).toBe("deepa-stand");
     expect(blockedAt(0, 80)).toBe("outside");
-    expect(blockedAt(FOOTWEAR_RACK.x, FOOTWEAR_RACK.z)).toBe("outside");
     expect(blockedAt(4, 12)).toBeNull();
   });
 

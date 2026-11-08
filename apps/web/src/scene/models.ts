@@ -1,7 +1,8 @@
 /**
  * Models in asset slots (spec 11 § Slots): loads each built model listed in the asset manifest,
  * by priority (spec 10 § Loading priority), and puts it in place of its greybox shape. A model
- * that fails to load leaves the greybox shape, so the temple always works.
+ * that fails to load leaves the greybox shape, so the temple always works. The avatar (a `rig`
+ * slot) goes to scene/avatar.ts, which dresses every visitor in it.
  *
  * Until the lighting pass (M5) adds an environment map, models use the greybox's matte
  * (Lambert) lighting, which also keeps them cheap on Low phones.
@@ -26,6 +27,7 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import manifestJson from "../assets/manifest.json";
 import type { AssetManifest, AssetTier, ManifestFile } from "../assets/manifest";
 import { PRIORITIES, SLOTS, isSlotId, type SlotId } from "../assets/slots";
+import { setAvatarModel } from "./avatar";
 import type { Greybox } from "./greybox";
 
 export const MANIFEST = manifestJson as AssetManifest;
@@ -273,9 +275,11 @@ export class SceneModels {
     const g = this.opts.greybox;
     const map: Partial<Record<SlotId, InstancedMesh>> = {
       bell: g.bells,
+      "post-lamp": g.postLamps,
       mat: g.mats,
       tree: g.trees,
-      footwear: g.footwear,
+      "near-tree": g.nearTrees,
+      oak: g.oaks,
     };
     return map[slot] ?? null;
   }
@@ -292,6 +296,18 @@ export class SceneModels {
       const gltf = await loaders.gltf.loadAsync(assetUrl(file.path));
       if (gen !== this.generation || this.disposed) {
         disposeTree(gltf.scene);
+        return;
+      }
+      if (SLOTS[slot].kind === "rig") {
+        // The avatars copy what they need and keep their own shared material.
+        try {
+          setAvatarModel(gltf.scene);
+        } finally {
+          disposeTree(gltf.scene);
+        }
+        this.shown.add(slot);
+        this.state.set(slot, "ready");
+        this.opts.onChange?.();
         return;
       }
       matteAll(gltf.scene);

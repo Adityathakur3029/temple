@@ -20,6 +20,7 @@ import {
   CylinderGeometry,
   Float32BufferAttribute,
   Group,
+  IcosahedronGeometry,
   InstancedMesh,
   LatheGeometry,
   Matrix4,
@@ -34,6 +35,7 @@ import {
   ShapeGeometry,
   SphereGeometry,
   Vector2,
+  Vector3,
   type Material,
   type Texture,
 } from "three";
@@ -42,15 +44,19 @@ import {
   AARTI_PLATE,
   BELLS,
   BELL_IDS,
+  circle,
   COMPOUND,
   COURTYARD,
   DEEPA_STAND,
+  GANESHA,
+  GANESHA_FRONT,
   GANESHA_SHRINE,
+  GATE,
+  GATE_APPROACH,
+  GATE_INSIDE,
   GATE_PATH,
   GATE_PATH_HALF_WIDTH,
   GATE_PILLARS,
-  FOOTWEAR_RACK,
-  INSTANCE_CAPACITY,
   KUND,
   KUND_WATER,
   MANDAPA,
@@ -59,6 +65,7 @@ import {
   NANDI_AXIS,
   NANDI_PLATFORM,
   PRADAKSHINA,
+  rect,
   SANCTUM_DOOR,
   SOMASUTRA,
   SOMASUTRA_BRIDGE,
@@ -68,7 +75,8 @@ import {
   type PradakshinaMode,
   type Shape as WorldShape,
 } from "@sannidhi/protocol";
-import type { SlotId } from "../assets/slots";
+import type { AssetTier } from "../assets/manifest";
+import { SLOTS, type SlotId } from "../assets/slots";
 import { MeshBuilder, placed, withoutSection } from "./builder";
 import { HEIGHTS, KUND_FLOOR_Y, KUND_STEP, KUND_WATER_Y, PAVING, PLINTH } from "./ground";
 
@@ -99,7 +107,6 @@ export const COLOURS = {
   trunk: "#4a3626",
   rock: "#6b6e72",
   snow: "#e6ecf0",
-  chappal: "#3b2a20",
   board: "#b9a27c",
   kerb: "#6f695e",
   water: "#3d5c5e",
@@ -228,6 +235,62 @@ function bellGeometry(): LatheGeometry {
   );
 }
 
+/** A small brass standing lamp (the post-lamp slot's shape), its bottom centre at the origin. */
+function postLampGeometry(): LatheGeometry {
+  const h = SLOTS["post-lamp"].fit.size;
+  // [radius, height] for a 0.28 m lamp: foot, stem with a knop, wide tray, and a finial for the wick.
+  const pts: [number, number][] = [
+    [0.001, 0],
+    [0.085, 0],
+    [0.085, 0.012],
+    [0.07, 0.02],
+    [0.03, 0.05],
+    [0.018, 0.08],
+    [0.032, 0.11],
+    [0.018, 0.14],
+    [0.02, 0.17],
+    [0.09, 0.2],
+    [0.095, 0.21],
+    [0.03, 0.205],
+    [0.026, 0.23],
+    [0.02, 0.26],
+    [0.008, 0.28],
+    [0.001, 0.28],
+  ];
+  return new LatheGeometry(
+    pts.map(([r, y]) => new Vector2(r, (y * h) / 0.28)),
+    12,
+  );
+}
+
+/** The top of the lamp shelf on each path post. */
+export const POST_SHELF_TOP = 1.46;
+/** How far each post lamp stands from its post's centre, towards the path. */
+export const POST_LAMP_OUT = 0.18;
+
+export interface PathPost {
+  /** The bell it holds. */
+  id: BellId;
+  x: number;
+  z: number;
+  /** The side of the path the post stands on (+1 is +x); the path is towards −side. */
+  side: number;
+}
+
+/**
+ * The posts that hold the path bells: just off the path, with room for the lamp shelf, so the
+ * lamp doesn't reach over where visitors walk.
+ */
+export function pathPosts(): PathPost[] {
+  return BELL_IDS.filter((id) => id.startsWith("path")).map((id) => {
+    const p = BELLS[id];
+    const side = Math.sign(p.x - gatePathX(p.z)) || 1;
+    let x = p.x + side * 0.6;
+    while (WALKABLE.some((s) => nearShape(s, x, p.z, 0.3))) x += side * 0.1;
+    return { id, x, z: p.z, side };
+  });
+}
+
 /** Where each bell hangs (its top), and how big it is. */
 export function bellHangs(): Record<BellId, { x: number; y: number; z: number; scale: number }> {
   const out = {} as Record<BellId, { x: number; y: number; z: number; scale: number }>;
@@ -253,10 +316,19 @@ export interface Greybox {
   /** One instance per bell, in BELL_IDS order; their matrices swing when rung (scene/bells.ts). */
   bells: InstancedMesh;
   bellHang: Record<BellId, { x: number; y: number; z: number; scale: number }>;
+  /** The brass lamp on each path post's shelf, in pathPosts() order; their flames are in code. */
+  postLamps: InstancedMesh;
+  /** The deodars beyond the near trees, nearest the temple first (the tree slot). */
   trees: InstancedMesh;
-  /** How many trees were placed; Lite shows the nearest 120 of them (spec 11). */
-  treesAvailable: number;
-  footwear: InstancedMesh;
+  /** The deodars closest to where visitors walk, closest first (the near-tree slot). */
+  nearTrees: InstancedMesh;
+  /** The Himalayan oaks among the deodars, nearest the temple first (the oak slot). */
+  oaks: InstancedMesh;
+  /**
+   * Shows `total` trees (all of them, or Lite's 72): the tier's near deodars and oaks first, then
+   * the far deodars nearest the temple (spec 11 § Slots).
+   */
+  setTrees(total: number, tier: AssetTier): void;
   /** Lamp bodies; their colour is scaled by the time of day. */
   lampMaterial: MeshBasicMaterial;
   glowMaterial: PointsMaterial;
@@ -272,10 +344,43 @@ export interface Greybox {
 export interface GreyboxOptions {
   mode: PradakshinaMode;
   trees: number;
-  footwearPairs: number;
+  /** Which tier's near-tree count to show (default Full). */
+  treeTier?: AssetTier;
 }
 
-export const MAX_TREES = 300;
+/** Every tree, near and far, deodars and oaks (spec 02 § Setting). */
+export const MAX_TREES = 120;
+/** Near trees keep within the greybox tree's spread, so none reaches over a path. */
+const NEAR_TREE_MAX_SCALE = 1.1;
+/** The greybox trees' widest branches (deodar and oak) reach this far from the trunk at scale 1. */
+export const TREE_SPREAD = 2.6;
+/** The low walls either side of the torana, with their coping. */
+export const GATE_WALLS = [
+  rect(2.6, 11, GATE.z, GATE.z + 0.4),
+  rect(-11, -2.6, GATE.z, GATE.z + 0.4),
+] as const;
+
+/**
+ * What stands outside the walkable area beside the paths, and how far trees keep from it: their
+ * branch tips at least `gap` away, and their trunk at least `trunk` away. The Ganesha shrine (with
+ * its 0.15 m roof overhang) stands against open forest, not inside a tree (spec 08 § Depiction);
+ * no lamp on a bell post sits in the branches.
+ */
+export const TREES_KEEP_CLEAR: readonly { shape: WorldShape; gap: number; trunk: number }[] = [
+  {
+    shape: rect(
+      GANESHA_SHRINE.x0 - 0.15,
+      GANESHA_SHRINE.x1 + 0.15,
+      GANESHA_SHRINE.z0 - 0.15,
+      GANESHA_SHRINE.z1 + 0.15,
+    ),
+    gap: 1,
+    trunk: 3,
+  },
+  ...GATE_WALLS.map((shape) => ({ shape, gap: 0.3, trunk: 0 })),
+  ...pathPosts().map((p) => ({ shape: circle(p.x, p.z, 0.1), gap: 0.5, trunk: 0 })),
+  { shape: circle(TODAY_BOARD.x, TODAY_BOARD.z, 0.8), gap: 0.3, trunk: 0 },
+];
 
 export function buildGreybox(opts: GreyboxOptions): Greybox {
   const C = COLOURS;
@@ -337,9 +442,10 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
       );
     }
   }
-  b.box(-2.6, 2.6, 0, PAVING, 54.4, 58.3, C.court); // inside the gate
-  b.box(-4.3, -0.5, 0, PAVING, 50.6, 53.4, C.court); // before the Ganesha shrine
-  b.box(-1.8, 1.8, 0, PAVING, 58.3, 72, C.court); // the approach outside the gate
+  for (const r of [GATE_INSIDE, GANESHA_FRONT]) b.box(r.x0, r.x1, 0, PAVING, r.z0, r.z1, C.court);
+  // The approach outside the gate, paved on past where visitors may walk.
+  const ap = GATE_APPROACH;
+  b.box(ap.x0, ap.x1, 0, PAVING, GATE_INSIDE.z1, GATE.z + 14, C.court);
 
   // Low kerb along the forest edge (the soft wall, spec 02).
   const kerb = (x0: number, x1: number, z0: number, z1: number): void =>
@@ -587,28 +693,30 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
     true,
   );
   b.add(kalasha(), placed((gs.x0 + gs.x1) / 2, 3.55, (gs.z0 + gs.z1) / 2, 0, 0.35), C.brass);
-  b.box(-5.75, -5.05, 0.4, 0.75, 51.6, 52.4, C.stoneDark);
+  const gz = GANESHA.z;
+  b.box(-5.75, -5.05, 0.4, 0.75, gz - 0.4, gz + 0.4, C.stoneDark);
   b.section("ganesha");
-  b.box(-5.6, -5.15, 0.75, 1.3, 51.76, 52.24, C.sacredStone);
-  b.box(-5.55, -5.2, 1.3, 1.46, 51.84, 52.16, C.sacredStone);
+  b.box(-5.6, -5.15, 0.75, 1.3, gz - 0.24, gz + 0.24, C.sacredStone);
+  b.box(-5.55, -5.2, 1.3, 1.46, gz - 0.16, gz + 0.16, C.sacredStone);
   b.section(null);
-  addLamp(-4.95, 0.82, 51.7, 0.05);
-  addLamp(-4.95, 0.82, 52.3, 0.05);
+  addLamp(-4.95, 0.82, gz - 0.3, 0.05);
+  addLamp(-4.95, 0.82, gz + 0.3, 0.05);
 
-  // --- Gate (torana), boundary wall, footwear rack and today board -----------------------------
+  // --- Gate (torana), boundary wall and today board ---------------------------------------------
   b.section("gate");
   for (const p of GATE_PILLARS) {
     b.add(
-      new CylinderGeometry(0.25, 0.3, 3.3, 8),
+      new CylinderGeometry(0.3, 0.38, 3.3, 8),
       placed(p.x, 1.65, p.z, Math.PI / 8),
       C.stone,
       true,
     );
-    b.box(p.x - 0.34, p.x + 0.34, 3.18, 3.32, p.z - 0.34, p.z + 0.34, C.stoneDark);
-    addLamp(p.x - Math.sign(p.x) * 0.36, 2.45, p.z - 0.2);
+    b.box(p.x - 0.45, p.x + 0.45, 3.18, 3.32, p.z - 0.45, p.z + 0.45, C.stoneDark);
+    // On a small shelf on the pillar's inner, temple-side corner (the gate model carves it).
+    addLamp(p.x - Math.sign(p.x) * 0.42, 2.45, p.z - 0.24);
   }
-  b.box(-2.6, 2.6, 3.3, 3.62, 57.82, 58.18, C.stoneDark);
-  b.box(-2.8, 2.8, 3.62, 3.75, 57.75, 58.25, C.stone);
+  b.box(-2.6, 2.6, 3.3, 3.62, GATE.z - 0.18, GATE.z + 0.18, C.stoneDark);
+  b.box(-2.8, 2.8, 3.62, 3.75, GATE.z - 0.25, GATE.z + 0.25, C.stone);
   b.add(
     tower([
       [0.42, 0],
@@ -616,28 +724,15 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
       [0.26, 0.55],
       [0.12, 0.7],
     ]),
-    placed(0, 3.75, 58, Math.PI / 4),
+    placed(GATE.x, 3.75, GATE.z, Math.PI / 4),
     C.shikhara,
     true,
   );
   b.section(null);
-  b.box(2.6, 11, 0, 1.3, 58.05, 58.35, C.stone);
-  b.box(-11, -2.6, 0, 1.3, 58.05, 58.35, C.stone);
-  b.box(2.6, 11, 1.3, 1.4, 58.0, 58.4, C.stoneDark);
-  b.box(-11, -2.6, 1.3, 1.4, 58.0, 58.4, C.stoneDark);
-
-  const rack = FOOTWEAR_RACK;
-  const rackX0 = rack.x - 1.8;
-  const rackX1 = rack.x + 1.8;
-  const rackZ0 = rack.z - 0.2;
-  const rackZ1 = rack.z + 0.2;
-  b.section("footwear-rack");
-  b.box(rackX0, rackX0 + 0.06, 0, 1.16, rackZ0, rackZ1, C.wood);
-  b.box(rackX1 - 0.06, rackX1, 0, 1.16, rackZ0, rackZ1, C.wood);
-  const shelves = [0.08, 0.36, 0.64, 0.92];
-  for (const y of shelves) b.box(rackX0, rackX1, y, y + 0.03, rackZ0, rackZ1, C.wood);
-  b.box(rackX0, rackX1, 1.13, 1.16, rackZ0, rackZ1, C.wood);
-  b.section(null);
+  for (const w of GATE_WALLS) {
+    b.box(w.x0, w.x1, 0, 1.3, w.z0 + 0.05, w.z1 - 0.05, C.stone);
+    b.box(w.x0, w.x1, 1.3, 1.4, w.z0, w.z1, C.stoneDark);
+  }
 
   const tb = TODAY_BOARD;
   b.section("today-board");
@@ -650,30 +745,50 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
 
   // --- Bells: chains and the frames that hold the path bells ------------------------------------
   const hangs = bellHangs();
-  for (const id of BELL_IDS) {
+  for (const id of ["gate", "mandapa-n", "mandapa-s"] as const) {
     const h = hangs[id];
-    if (id === "gate") {
-      b.box(h.x - 0.015, h.x + 0.015, h.y, 3.3, h.z - 0.015, h.z + 0.015, C.woodDark);
-    } else if (id.startsWith("mandapa")) {
-      b.box(h.x - 0.015, h.x + 0.015, h.y, 4.42, h.z - 0.015, h.z + 0.015, C.woodDark);
-    } else {
-      // A post just off the path, with an arm out over it.
-      const side = Math.sign(h.x - gatePathX(h.z)) || 1;
-      let px = h.x + side * 0.6;
-      while (WALKABLE.some((s) => nearShape(s, px, h.z, 0.15))) px += side * 0.1;
-      b.box(px - 0.06, px + 0.06, 0, 2.75, h.z - 0.06, h.z + 0.06, C.woodDark);
-      b.box(
-        Math.min(px, h.x) - 0.04,
-        Math.max(px, h.x) + 0.04,
-        2.6,
-        2.68,
-        h.z - 0.04,
-        h.z + 0.04,
-        C.woodDark,
-      );
-      b.box(h.x - 0.015, h.x + 0.015, h.y, 2.6, h.z - 0.015, h.z + 0.015, C.woodDark);
-      addLamp(px - side * 0.12, 1.75, h.z);
-    }
+    const top = id === "gate" ? 3.3 : 4.42;
+    b.box(h.x - 0.015, h.x + 0.015, h.y, top, h.z - 0.015, h.z + 0.015, C.woodDark);
+  }
+  // A post just off the path, with an arm out over it and a shelf facing the path. The lamp on
+  // the shelf is the post-lamp slot (an instanced mesh below); its flame is drawn here.
+  const posts = pathPosts();
+  const lampHeight = SLOTS["post-lamp"].fit.size;
+  for (const { id, x: px, z, side } of posts) {
+    const h = hangs[id];
+    b.box(px - 0.06, px + 0.06, 0, 2.75, z - 0.06, z + 0.06, C.woodDark);
+    b.box(
+      Math.min(px, h.x) - 0.04,
+      Math.max(px, h.x) + 0.04,
+      2.6,
+      2.68,
+      z - 0.04,
+      z + 0.04,
+      C.woodDark,
+    );
+    b.box(h.x - 0.015, h.x + 0.015, h.y, 2.6, z - 0.015, z + 0.015, C.woodDark);
+    const face = px - side * 0.06;
+    const edge = px - side * (POST_LAMP_OUT + 0.12);
+    const brace = px - side * 0.2;
+    b.box(
+      Math.min(face, edge),
+      Math.max(face, edge),
+      POST_SHELF_TOP - 0.04,
+      POST_SHELF_TOP,
+      z - 0.12,
+      z + 0.12,
+      C.woodDark,
+    );
+    b.box(
+      Math.min(face, brace),
+      Math.max(face, brace),
+      POST_SHELF_TOP - 0.16,
+      POST_SHELF_TOP - 0.04,
+      z - 0.025,
+      z + 0.025,
+      C.woodDark,
+    );
+    addLamp(px - side * POST_LAMP_OUT, POST_SHELF_TOP + lampHeight + 0.03, z, 0.05);
   }
 
   // --- Far snow peaks (generic shapes, no real mountain) -----------------------------------------
@@ -760,28 +875,38 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   bells.name = "bells";
   group.add(bells);
 
-  const pair = new MeshBuilder()
-    .box(-0.115, -0.015, 0, 0.02, -0.13, 0.13, C.chappal)
-    .box(0.015, 0.115, 0, 0.02, -0.13, 0.13, C.chappal)
-    .build();
-  const footwear = new InstancedMesh(
-    pair,
-    new MeshLambertMaterial({ vertexColors: true }),
-    INSTANCE_CAPACITY,
+  // Each lamp faces the path (a model's front is +z).
+  const postLamps = new InstancedMesh(
+    postLampGeometry(),
+    new MeshLambertMaterial({ color: C.brass }),
+    posts.length,
   );
-  const perShelf = Math.ceil(INSTANCE_CAPACITY / shelves.length);
-  for (let i = 0; i < INSTANCE_CAPACITY; i++) {
-    const shelf = shelves[Math.floor(i / perShelf)] ?? 0;
-    const x = rackX0 + 0.2 + (i % perShelf) * ((rackX1 - rackX0 - 0.4) / (perShelf - 1));
-    footwear.setMatrixAt(i, m.makeTranslation(x, shelf + 0.03, rack.z));
-  }
-  footwear.count = Math.min(INSTANCE_CAPACITY, Math.max(0, opts.footwearPairs));
-  group.add(footwear);
+  posts.forEach((p, i) => {
+    const yaw = (-p.side * Math.PI) / 2;
+    postLamps.setMatrixAt(i, placed(p.x - p.side * POST_LAMP_OUT, POST_SHELF_TOP, p.z, yaw));
+  });
+  postLamps.name = "post-lamps";
+  group.add(postLamps);
 
-  const trees = buildTrees();
-  const treesAvailable = trees.count;
-  trees.count = Math.min(treesAvailable, opts.trees);
-  group.add(trees);
+  const { far: trees, near: nearTrees, oaks } = buildTrees();
+  const farAvailable = trees.count;
+  const nearAvailable = nearTrees.count;
+  const oakAvailable = oaks.count;
+  const showCount = (mesh: InstancedMesh, count: number): void => {
+    if (mesh.count === count) return;
+    mesh.count = count;
+    // Bounds are cached per count; a stale sphere could cull every tree at once.
+    mesh.boundingSphere = null;
+  };
+  const setTrees = (total: number, tier: AssetTier): void => {
+    const near = Math.min(nearAvailable, SLOTS["near-tree"].copies?.[tier] ?? 0, total);
+    const oak = Math.min(oakAvailable, SLOTS.oak.copies?.[tier] ?? 0, total - near);
+    showCount(nearTrees, near);
+    showCount(oaks, oak);
+    showCount(trees, Math.min(farAvailable, Math.max(0, total - near - oak)));
+  };
+  setTrees(opts.trees, opts.treeTier ?? "full");
+  group.add(trees, nearTrees, oaks);
 
   return {
     group,
@@ -790,12 +915,14 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
     mats,
     bells,
     bellHang,
+    postLamps,
     trees,
-    treesAvailable,
-    footwear,
+    nearTrees,
+    oaks,
+    setTrees,
     lampMaterial,
     glowMaterial,
-    shadowCasters: [ground, trees, bells],
+    shadowCasters: [ground, trees, nearTrees, oaks, bells, postLamps],
     sections,
     hide(slot) {
       if (!sections.delete(slot)) return;
@@ -826,49 +953,287 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   };
 }
 
-/** Deodars outside the walkable area, nearest the temple first so Lite can keep the first 120. */
-function buildTrees(): InstancedMesh {
+/** How far a point outside a walkable shape is from its edge (0 inside). */
+function shapeDistance(s: WorldShape, x: number, z: number): number {
+  switch (s.kind) {
+    case "rect":
+      return Math.hypot(Math.max(s.x0 - x, 0, x - s.x1), Math.max(s.z0 - z, 0, z - s.z1));
+    case "circle":
+      return Math.max(0, Math.hypot(x - s.x, z - s.z) - s.r);
+    case "capsule": {
+      const sx = s.bx - s.ax;
+      const sz = s.bz - s.az;
+      const t = Math.max(0, Math.min(1, ((x - s.ax) * sx + (z - s.az) * sz) / (sx * sx + sz * sz)));
+      return Math.max(0, Math.hypot(x - (s.ax + t * sx), z - (s.az + t * sz)) - s.r);
+    }
+  }
+}
+
+type TreeKind = "deodar" | "oak";
+
+interface TreeSpot {
+  kind: TreeKind;
+  x: number;
+  z: number;
+  /** Scale across (x), across the other way (z) and up (y), from the tree's age and shape. */
+  w: number;
+  d: number;
+  h: number;
+  yaw: number;
+  /** A slight lean off upright (radians), and which way. */
+  lean: number;
+  leanDir: number;
+  /** Instance colour: brightness, and a slight lean towards yellow-green (+) or blue-green (−). */
+  tint: number;
+  warmth: number;
+}
+
+/**
+ * Pulls a round shape's outline in and out with the direction round its axis (and a little with
+ * height), so cones and balls come out uneven. The same point always moves the same way, so seams
+ * stay closed, and it only ever pulls in, so a tree's spread still holds.
+ */
+function uneven(geometry: BufferGeometry, amp: number, phase: number): BufferGeometry {
+  const p = geometry.getAttribute("position");
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i);
+    const y = p.getY(i);
+    const z = p.getZ(i);
+    const len = Math.hypot(x, y, z) || 1;
+    const a = Math.atan2(z, x);
+    const s =
+      0.5 +
+      0.25 * Math.sin(3 * a + phase) * Math.cos((4 * y) / len - phase) +
+      0.25 * Math.sin(5 * a + 2.1 * phase + y);
+    const k = 1 - amp * s;
+    p.setXYZ(i, x * k, y, z * k);
+  }
+  return geometry;
+}
+
+/**
+ * A deodar: tiers of drooping branches. The tiers sit a little off the trunk and are uneven at
+ * the edge, and the top bends over as a deodar's leading shoot does, so trees turned different
+ * ways don't look alike. The lowest tier stays centred, so the spread holds.
+ */
+function deodarGeometry(): BufferGeometry {
   const t = new MeshBuilder();
   t.add(new CylinderGeometry(0.16, 0.28, 3.2, 6), placed(0, 1.6, 0), COLOURS.trunk, true);
-  const tiers: [number, number, number, string][] = [
-    [2.6, 3.6, 3.6, "#2c4630"],
-    [2.1, 3.2, 5.6, "#33503a"],
-    [1.55, 2.9, 7.4, "#2f4b34"],
-    [0.95, 2.6, 9.1, "#375640"],
+  // Radius, height, centre height, offset x and z, colour.
+  const tiers: [number, number, number, number, number, string][] = [
+    [TREE_SPREAD, 3.6, 3.6, 0, 0, "#2c4630"],
+    [2.1, 3.2, 5.6, -0.22, 0.12, "#33503a"],
+    [1.55, 2.9, 7.4, 0.14, 0.24, "#2f4b34"],
+    [0.95, 2.6, 9.1, 0.05, -0.1, "#375640"],
   ];
-  for (const [r, h, y, c] of tiers) t.add(new ConeGeometry(r, h, 8), placed(0, y, 0), c, true);
-  const mesh = new InstancedMesh(
-    t.build(),
-    new MeshLambertMaterial({ vertexColors: true }),
-    MAX_TREES,
-  );
-  mesh.name = "trees";
+  tiers.forEach(([r, h, y, dx, dz, c], i) => {
+    const m = new Matrix4().makeTranslation(dx, y, dz);
+    if (i === tiers.length - 1) m.multiply(new Matrix4().makeRotationZ(-0.2));
+    t.add(uneven(new ConeGeometry(r, h, 9), 0.16, i * 1.7), m, c, true);
+  });
+  return t.build();
+}
 
+/**
+ * A Himalayan oak (banj): a short trunk forking into two limbs under a broad, lumpy, rounded
+ * crown, darker and greyer than the deodars. Every lump stays within the tree's spread.
+ */
+function oakGeometry(): BufferGeometry {
+  const t = new MeshBuilder();
+  t.add(new CylinderGeometry(0.2, 0.34, 2.8, 6), placed(0, 1.4, 0), COLOURS.trunk, true);
+  const limbs: [number, number][] = [
+    [0.4, 0.42],
+    [3.6, 0.36],
+  ];
+  for (const [dir, tilt] of limbs) {
+    const m = new Matrix4()
+      .makeTranslation(0, 2.6, 0)
+      .multiply(new Matrix4().makeRotationY(dir))
+      .multiply(new Matrix4().makeRotationZ(tilt))
+      .multiply(new Matrix4().makeTranslation(0, 0.9, 0));
+    t.add(new CylinderGeometry(0.1, 0.17, 1.8, 5), m, COLOURS.trunk, true);
+  }
+  // Centre x, y, z, radius, colour.
+  const lumps: [number, number, number, number, string][] = [
+    [0, 5.4, 0, 2.1, "#3f5434"],
+    [1.0, 4.9, 0.45, 1.45, "#465b39"],
+    [-0.95, 5.1, -0.55, 1.5, "#3b4f31"],
+    [-0.3, 4.7, 1.05, 1.35, "#435836"],
+    [0.55, 5.2, -1.05, 1.3, "#4a5e3b"],
+    [0.2, 6.5, -0.15, 1.35, "#41573a"],
+  ];
+  lumps.forEach(([x, y, z, r, c], i) => {
+    const m = new Matrix4().makeTranslation(x, y, z).scale(new Vector3(1, 0.85, 1));
+    t.add(uneven(new IcosahedronGeometry(r, 1), 0.22, i * 2.3), m, c, true);
+  });
+  return t.build();
+}
+
+/**
+ * Deodars and Himalayan oaks outside the walkable area, grown the way a hillside forest grows
+ * (spec 02 § Setting): stands of trees at uneven steps and distances round the temple, so the
+ * forest is thick one way and opens into clearings another, with trees on their own between them
+ * and a few a little way off the paths, on whichever side they fall. Oaks grow together in their
+ * own stands; the other stands are mostly deodar. Most are grown trees, some are young and
+ * slender, and a few old, broad giants stand back from the paths. The deodars closest to where
+ * visitors walk are the near trees (closest first, so Lite keeps the first of them); the other
+ * deodars and the oaks are nearest the temple first, so Lite can keep the first of those.
+ */
+function buildTrees(): { far: InstancedMesh; near: InstancedMesh; oaks: InstancedMesh } {
   const rng = mulberry32(108);
-  const spots: { x: number; z: number; s: number; yaw: number; tint: number }[] = [];
   const centre = { x: 0, z: 24 };
-  for (let tries = 0; spots.length < MAX_TREES && tries < 40000; tries++) {
+  const toPath = (x: number, z: number): number => {
+    let d = Infinity;
+    for (const s of WALKABLE) d = Math.min(d, shapeDistance(s, x, z));
+    return d;
+  };
+  const ring = (r0: number, r1: number): { x: number; z: number } => {
     const a = rng() * TAU;
-    const r = 8 + Math.sqrt(rng()) * 80;
-    const x = centre.x + Math.sin(a) * r;
-    const z = centre.z + Math.cos(a) * r * 1.15;
-    const margin = (s: WorldShape): number => (s.kind === "capsule" ? 3.4 : 2.8);
-    if (WALKABLE.some((s) => nearShape(s, x, z, margin(s)))) continue;
-    if (Math.abs(x) < 8 && z > 57 && z < 80) continue; // keep the gate approach and rack in view
-    if (spots.some((p) => (p.x - x) ** 2 + (p.z - z) ** 2 < 3.4 * 3.4)) continue;
-    spots.push({ x, z, s: 0.8 + rng() * 0.6, yaw: rng() * TAU, tint: 0.85 + rng() * 0.25 });
+    const r = r0 + Math.sqrt(rng()) * (r1 - r0);
+    return { x: centre.x + Math.sin(a) * r, z: centre.z + Math.cos(a) * r * 1.15 };
+  };
+
+  const groves: { x: number; z: number; r: number; oak: number; weight: number }[] = [];
+  const start = rng() * TAU;
+  for (let a = start; a < start + TAU - 0.3; a += 0.35 + rng() * 0.8) {
+    for (let tries = 0; tries < 20; tries++) {
+      const r = 16 + rng() * 55;
+      const x = centre.x + Math.sin(a) * r;
+      const z = centre.z + Math.cos(a) * r * 1.15;
+      if (toPath(x, z) < 5) continue;
+      const size = 5 + rng() ** 1.5 * 13;
+      groves.push({ x, z, r: size, oak: rng() < 0.4 ? 0.8 : 0.12, weight: size * (0.5 + rng()) });
+      break;
+    }
+  }
+  const groveWeight = groves.reduce((n, g) => n + g.weight, 0);
+  const pickGrove = (): (typeof groves)[number] | undefined => {
+    let u = rng() * groveWeight;
+    for (const g of groves) {
+      u -= g.weight;
+      if (u <= 0) return g;
+    }
+    return groves[groves.length - 1];
+  };
+
+  const oakQuota = SLOTS.oak.copies?.full ?? 0;
+  const quota: Record<TreeKind, number> = { deodar: MAX_TREES - oakQuota, oak: oakQuota };
+  const grown: Record<TreeKind, number> = { deodar: 0, oak: 0 };
+  const spots: TreeSpot[] = [];
+  // A few hundred tries fill the forest today. The cap bounds the boot cost if a change to the
+  // paths or the spacing ever makes room scarce; the forest test then finds fewer than MAX_TREES.
+  for (let tries = 0; spots.length < MAX_TREES && tries < 5000; tries++) {
+    let x: number;
+    let z: number;
+    let oakShare: number;
+    let room: number;
+    const where = rng();
+    const grove = where < 0.6 ? pickGrove() : undefined;
+    if (grove) {
+      // Denser towards the middle of the stand, thinning out at its edge; close together.
+      const a = rng() * TAU;
+      const d = grove.r * 0.55 * Math.sqrt(-2 * Math.log(1 - rng() * 0.95));
+      x = grove.x + Math.sin(a) * d;
+      z = grove.z + Math.cos(a) * d;
+      oakShare = grove.oak;
+      room = 0.55 + rng() * 0.15;
+    } else if (where < 0.82) {
+      // On its own, with room round it.
+      ({ x, z } = ring(10, 80));
+      oakShare = 0.35;
+      room = 0.75;
+    } else {
+      // A little way off a path.
+      ({ x, z } = ring(6, 45));
+      if (toPath(x, z) > 9) continue;
+      oakShare = 0.3;
+      room = 0.7;
+    }
+    if (Math.abs(x) < 8 && z > GATE.z - 1 && z < GATE.z + 22) continue; // keep the gate in view
+    let kind: TreeKind = rng() < oakShare ? "oak" : "deodar";
+    if (grown[kind] >= quota[kind]) kind = kind === "oak" ? "deodar" : "oak";
+    const oak = kind === "oak";
+
+    // A few young trees, mostly grown ones, and some old giants.
+    const age = rng();
+    const young = age < 0.22;
+    const old = age >= 0.82;
+    const s = young ? 0.42 + rng() * 0.25 : old ? 1.25 + rng() * 0.3 : 0.75 + rng() * 0.4;
+    // Young trees are slender; old ones spread wide, the oaks most.
+    const w = s * (young ? 0.85 : old ? (oak ? 1.15 : 1.08) : 1) * (0.92 + rng() * 0.16);
+    const d = w * (0.88 + rng() * 0.24); // a little oval from above
+    const h = s * (oak ? 0.85 + rng() * 0.25 : 0.9 + rng() * 0.2);
+    // Oaks lean a little; deodars grow almost straight.
+    const lean = rng() * (oak ? 0.05 : 0.018);
+    const leanDir = rng() * TAU;
+    // How far the widest branches reach, leaning (they are about 5.2 m up an oak, 3.6 m a deodar).
+    const size = TREE_SPREAD * Math.max(w, d);
+    const reach = size + (oak ? 5.2 : 3.6) * h * Math.sin(lean);
+    const gap = toPath(x, z);
+    // Branches stay off the paths and the compound; the giants stand well back.
+    if (gap < reach + 0.3 || (old && gap < 12)) continue;
+    if (TREES_KEEP_CLEAR.some((k) => shapeDistance(k.shape, x, z) < Math.max(reach + k.gap, k.trunk)))
+      continue;
+    if (
+      spots.some(
+        (p) => Math.hypot(p.x - x, p.z - z) < room * (TREE_SPREAD * Math.max(p.w, p.d) + size),
+      )
+    )
+      continue;
+    const tint = young ? 0.95 + rng() * 0.15 : old ? 0.78 + rng() * 0.15 : 0.85 + rng() * 0.2;
+    spots.push({ kind, x, z, w, d, h, yaw: rng() * TAU, lean, leanDir, tint, warmth: rng() * 2 - 1 });
+    grown[kind]++;
   }
   spots.sort(
     (p, q) =>
       Math.hypot(p.x - centre.x, p.z - centre.z) - Math.hypot(q.x - centre.x, q.z - centre.z),
   );
+  const deodars = spots.filter((p) => p.kind === "deodar");
+  const byPath = deodars
+    .map((p, i) => ({ i, d: toPath(p.x, p.z) }))
+    .sort((a, b) => a.d - b.d || a.i - b.i)
+    .slice(0, SLOTS["near-tree"].copies?.full ?? 0);
+  const nearIds = new Set(byPath.map((e) => e.i));
+  // The near-tree model stands straight and round, as wide as it was fitted.
+  const nearSpots = byPath
+    .map((e) => deodars[e.i])
+    .filter((p) => p !== undefined)
+    .map((p) => ({ ...p, d: p.w, lean: 0 }));
+  const farSpots = deodars.filter((_, i) => !nearIds.has(i));
+  const oakSpots = spots.filter((p) => p.kind === "oak");
+
   const c = new Color();
-  spots.forEach((p, i) => {
-    mesh.setMatrixAt(i, placed(p.x, 0, p.z, p.yaw, p.s, p.s * (0.9 + (p.tint - 0.85)), p.s));
-    mesh.setColorAt(i, c.setScalar(p.tint));
-  });
-  mesh.count = spots.length;
-  return mesh;
+  const m = new Matrix4();
+  const turn = new Matrix4();
+  const v = new Vector3();
+  const make = (name: string, list: TreeSpot[], geo: BufferGeometry, maxScale: number) => {
+    const mesh = new InstancedMesh(
+      geo,
+      new MeshLambertMaterial({ vertexColors: true }),
+      list.length,
+    );
+    mesh.name = name;
+    list.forEach((p, i) => {
+      // A capped tree keeps its shape, only smaller.
+      const k = Math.min(1, maxScale / Math.max(p.w, p.d));
+      m.makeRotationAxis(v.set(Math.cos(p.leanDir), 0, Math.sin(p.leanDir)), p.lean)
+        .multiply(turn.makeRotationY(p.yaw))
+        .scale(v.set(p.w * k, p.h * k, p.d * k))
+        .setPosition(p.x, 0, p.z);
+      mesh.setMatrixAt(i, m);
+      const warm = (p.kind === "oak" ? 0.07 : 0.04) * p.warmth;
+      mesh.setColorAt(i, c.setRGB(p.tint * (1 + warm), p.tint, p.tint * (1 - warm)));
+    });
+    mesh.count = list.length;
+    return mesh;
+  };
+  const deodar = deodarGeometry();
+  // Each mesh has its own geometry: a model replacing one disposes it.
+  return {
+    far: make("trees", farSpots, deodar, Infinity),
+    near: make("near-trees", nearSpots, deodar.clone(), NEAR_TREE_MAX_SCALE),
+    oaks: make("oaks", oakSpots, oakGeometry(), Infinity),
+  };
 }
 
 /** A soft round glow for lamp sprites. */

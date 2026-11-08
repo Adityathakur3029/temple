@@ -5,15 +5,15 @@
  *
  * Plain data with no three.js import, so the Node asset tools can share it.
  */
-import { AARTI_PLATE, DEEPA_STAND, FOOTWEAR_RACK, TODAY_BOARD } from "@sannidhi/protocol";
+import { AARTI_PLATE, DEEPA_STAND, GANESHA, GATE, TODAY_BOARD } from "@sannidhi/protocol";
 import { PLINTH } from "../scene/ground";
 
 export const SLOT_IDS = [
   "gate",
-  "footwear-rack",
   "today-board",
-  "footwear",
   "tree",
+  "near-tree",
+  "oak",
   "shrine",
   "linga",
   "nandi",
@@ -24,7 +24,9 @@ export const SLOT_IDS = [
   "deepa-stand",
   "aarti-plate",
   "bell",
+  "post-lamp",
   "mat",
+  "avatar",
 ] as const;
 
 export type SlotId = (typeof SLOT_IDS)[number];
@@ -36,8 +38,13 @@ export const PRIORITIES: readonly Priority[] = ["P0", "P1", "P2"];
 export interface SlotSpec {
   /** What goes here, in plain words, for whoever finds or makes the model. */
   label: string;
-  /** `single`: one placed model. `instanced`: one model drawn at many places. */
-  kind: "single" | "instanced";
+  /**
+   * `single`: one placed model. `instanced`: one model drawn at many places. `rig`: the skinned
+   * avatar, which the code poses and draws once per visitor (scene/avatar.ts); it is used as
+   * made (never fitted, joined or simplified) and isn't counted in the model budget, which
+   * spec 10 keeps apart from the avatars.
+   */
+  kind: "single" | "instanced" | "rig";
   priority: Priority;
   /** A deity or sacred object (spec 08 § Depiction). Tagged `sacred` in the manifest. */
   sacred: boolean;
@@ -78,19 +85,7 @@ export const SLOTS: Readonly<Record<SlotId, SlotSpec>> = {
     texture: { full: 2048, lite: 1024 },
     fit: { axis: "x", size: 5.6 },
     origin: "bottom",
-    place: { x: 0, y: 0, z: 58, yaw: 0 },
-  },
-  "footwear-rack": {
-    label: "Wooden footwear rack outside the gate, shelves at 0.08, 0.36, 0.64 and 0.92 m",
-    kind: "single",
-    priority: "P0",
-    sacred: false,
-    maxTriangles: 3_000,
-    maxDraws: 1,
-    texture: { full: 1024, lite: 512 },
-    fit: { axis: "x", size: 3.6 },
-    origin: "bottom",
-    place: { x: FOOTWEAR_RACK.x, y: 0, z: FOOTWEAR_RACK.z, yaw: 0 },
+    place: { x: GATE.x, y: 0, z: GATE.z, yaw: 0 },
   },
   "today-board": {
     label: "The painted board beside the path, blank (its text is drawn in code)",
@@ -104,28 +99,43 @@ export const SLOTS: Readonly<Record<SlotId, SlotSpec>> = {
     origin: "bottom",
     place: { x: TODAY_BOARD.x, y: 0, z: TODAY_BOARD.z, yaw: TODAY_BOARD.yaw },
   },
-  footwear: {
-    label: "One pair of plain chappals, side by side, toes towards +z",
-    kind: "instanced",
-    priority: "P0",
-    sacred: false,
-    maxTriangles: 300,
-    copies: { full: 50, lite: 50 },
-    maxDraws: 1,
-    texture: { full: 512, lite: 256 },
-    fit: { axis: "x", size: 0.23 },
-    origin: "bottom",
-  },
   tree: {
-    label: "A deodar (Himalayan cedar). One model until tree LODs exist (M5)",
+    label:
+      "A deodar (Himalayan cedar) for the forest beyond the near trees. One model until tree LODs exist (M5)",
     kind: "instanced",
     priority: "P0",
     sacred: false,
     maxTriangles: 120,
-    copies: { full: 300, lite: 120 },
+    copies: { full: 56, lite: 36 },
     maxDraws: 2,
     texture: { full: 1024, lite: 512 },
     fit: { axis: "y", size: 10.4 },
+    origin: "bottom",
+  },
+  "near-tree": {
+    label:
+      "A more detailed deodar or pine for the trees nearest the paths, with cut-out (not see-through) foliage, as wide as the greybox tree so it doesn't reach over the paths",
+    kind: "instanced",
+    priority: "P1",
+    sacred: false,
+    maxTriangles: 1_600,
+    copies: { full: 24, lite: 12 },
+    maxDraws: 2,
+    texture: { full: 1024, lite: 512 },
+    fit: { axis: "x", size: 5.2 },
+    origin: "bottom",
+  },
+  oak: {
+    label:
+      "A Himalayan oak (banj): a short trunk under a broad, rounded, uneven crown of dense dark leaves, with cut-out (not see-through) leaves, as wide as the greybox oak so it doesn't reach over the paths",
+    kind: "instanced",
+    priority: "P1",
+    sacred: false,
+    maxTriangles: 800,
+    copies: { full: 40, lite: 24 },
+    maxDraws: 2,
+    texture: { full: 1024, lite: 512 },
+    fit: { axis: "x", size: 5.2 },
     origin: "bottom",
   },
   shrine: {
@@ -191,7 +201,7 @@ export const SLOTS: Readonly<Record<SlotId, SlotSpec>> = {
     texture: { full: 1024, lite: 512 },
     fit: { axis: "y", size: 3.9 },
     origin: "bottom",
-    place: { x: -5.3, y: 0, z: 52, yaw: QUARTER_TURN },
+    place: { x: -5.3, y: 0, z: GANESHA.z, yaw: QUARTER_TURN },
   },
   ganesha: {
     label:
@@ -204,7 +214,7 @@ export const SLOTS: Readonly<Record<SlotId, SlotSpec>> = {
     texture: { full: 1024, lite: 512 },
     fit: { axis: "y", size: 0.71 },
     origin: "bottom",
-    place: { x: -5.375, y: 0.75, z: 52, yaw: QUARTER_TURN },
+    place: { x: -5.375, y: 0.75, z: GANESHA.z, yaw: QUARTER_TURN },
   },
   kund: {
     label:
@@ -255,6 +265,19 @@ export const SLOTS: Readonly<Record<SlotId, SlotSpec>> = {
     fit: { axis: "y", size: 0.32 },
     origin: "top",
   },
+  "post-lamp": {
+    label:
+      "A small brass standing oil lamp for the shelf on each path bell post, without a flame (the flame is drawn in code above its top centre)",
+    kind: "instanced",
+    priority: "P2",
+    sacred: false,
+    maxTriangles: 800,
+    copies: { full: 8, lite: 8 },
+    maxDraws: 1,
+    texture: { full: 512, lite: 256 },
+    fit: { axis: "y", size: 0.28 },
+    origin: "bottom",
+  },
   mat: {
     label: "A plain woven floor mat, 0.7 m wide (x) and 0.8 m deep (z); no sacred symbols",
     kind: "instanced",
@@ -267,7 +290,24 @@ export const SLOTS: Readonly<Record<SlotId, SlotSpec>> = {
     fit: { axis: "x", size: 0.7 },
     origin: "bottom",
   },
+  avatar: {
+    label:
+      "The devotee figure every visitor appears as (spec 02 § Avatar), rigged to the bones in scene/avatar.ts: meshes body0-high, body0-low, body1-high, body1-low with vertex colours, the shawl as its own material (a grey shade the code tints)",
+    kind: "rig",
+    priority: "P0",
+    sacred: false,
+    // The near (high) level of detail, the larger of the two bodies (spec 11 LOD0).
+    maxTriangles: 6_000,
+    // The code merges each body into one skinned mesh: one draw call per visitor.
+    maxDraws: 1,
+    texture: { full: 512, lite: 256 },
+    fit: { axis: "y", size: 1.68 },
+    origin: "bottom",
+  },
 };
+
+/** Far (low) avatar detail, at most (spec 11 LOD1). */
+export const AVATAR_LOW_TRIANGLES = 1_500;
 
 /**
  * Models from all slots together, counting every copy, may use at most this many triangles:

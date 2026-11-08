@@ -12,7 +12,6 @@ interface Net {
   instance: number | null;
   you: { id: string; name: { key: string; n: number } } | null;
   remotes: { id: string; x?: number; z?: number; pose?: number; mat?: number }[];
-  footwear: number;
   gestures: Record<string, string>;
   events: { kind: string; from: string; at: number }[];
 }
@@ -102,10 +101,9 @@ test("two visitors see each other walk and greet (spec 12 scenario 2)", async ({
   const aId = a.you?.id ?? "";
   const bId = b.you?.id ?? "";
 
-  // Each sees the other, and one more pair of footwear at the gate.
+  // Each sees the other.
   await expect.poll(async () => (await net(other.page)).remotes.map((r) => r.id)).toContain(aId);
   await expect.poll(async () => (await net(page)).remotes.map((r) => r.id)).toContain(bId);
-  expect((await net(page)).footwear).toBe(2);
   await expect(page.getByRole("button", { name: "2 here" })).toBeVisible();
 
   // A walks a few steps; B sees A move while A is still walking, and arrive where A did.

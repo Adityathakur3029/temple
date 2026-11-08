@@ -1,0 +1,11 @@
+Model Information:
+* title:	Ganesha Statue
+* source:	https://sketchfab.com/3d-models/ganesha-statue-4b19fcb66db049a89bf8d1dd3b0c733c
+* author:	Arodin (https://sketchfab.com/Arodin)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Ganesha Statue" (https://sketchfab.com/3d-models/ganesha-statue-4b19fcb66db049a89bf8d1dd3b0c733c) by Arodin (https://sketchfab.com/Arodin) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

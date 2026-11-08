@@ -19,15 +19,15 @@ Triangle counts are per instance. Texture sizes are given as Full / Lite.
 | Mandapa (pillars, beams, roof, plinth) | ≤ 30k | Shares the shrine trim sheets | 12 pillars |
 | Mats ×40 | ≤ 100 each | Shared 256² | Instanced |
 | Bells ×11 + chains | ≤ 800 each | Shared brass 512² | Swing animation in code |
+| Post lamps ×8 (small brass standing lamps on the path posts) | ≤ 800 each | Shared brass 512² | Flames, shelves and posts in code |
 | Deepa stand (108 cups) | ≤ 15k | 1K / 512 | Flames are instanced sprites (spec 10) |
 | Aarti plate, lota, matchbox, mala, prasad | ≤ 3k each | Shared props atlas 1K / 512 | |
 | Kund (stepped tank) | ≤ 8k | Stone trim + simple water shader | |
 | Path, steps, walls, gate (modular kit) | ≤ 40k total | Stone trim sheets | The gate (torana) is its own slot, ≤ 15k of the 40k |
-| Deodar trees ×3 variants | LOD0 ≤ 5k, LOD1 ≤ 1k, impostor 2 | 1K / 512 per variant | Up to 300 instances (120 in Lite mode and on Low phones). Until tree LODs exist (M5), the `tree` slot takes one model of ≤ 120 triangles, the same as the greybox tree; solid low-poly foliage is cheaper than alpha-cut leaves |
+| Deodar trees ×3 variants | LOD0 ≤ 5k, LOD1 ≤ 1k, impostor 2 | 1K / 512 per variant | Up to 180 instances (90 in Lite mode and on Low phones). Until tree LODs exist (M5), the 24 trees nearest the paths (12 in Lite mode and on Low phones) are the `near-tree` slot, one model of ≤ 1,600 triangles with cut-out (never see-through) foliage, and the rest are the `tree` slot, one model of ≤ 120 triangles, the same as the greybox tree; solid low-poly foliage is cheaper than alpha-cut leaves |
 | Rocks, ferns, moss kit | ≤ 2k each | Shared 1K / 512 | Instanced |
 | Sky and far mountains | Shader + 1 panorama | 4096×1024 / 2048×512 | Snow peaks, no recognisable real mountain |
-| Footwear rack, today board, lanterns | ≤ 3k each | Props atlas | The today board text is rendered in code, not baked |
-| Footwear pair (one per visitor present) | ≤ 300 | Props atlas 512 / 256 | Plain chappals; instanced on the rack shelves |
+| Today board, lanterns | ≤ 3k each | Props atlas | The today board text is rendered in code, not baked |
 | UI icon set | SVG | — | Original: shikhara, diya, bell, mala, joined hands, a bowing figure with joined hands raised, people (for "Who's here"), eye, settings (sliders). **No deity faces** |
 | App icon, favicon, social image | PNG/SVG | — | Shikhara silhouette at dawn, or a diya. No deity image |
 | Fonts | — | — | Noto Sans, Noto Sans Devanagari, Tiro Devanagari Hindi (OFL); subset WOFF2 |
@@ -68,30 +68,30 @@ Coordinates are metres with +y up and the linga at the origin. +z points from th
 
 | Slot | What goes there | Fitted to | Placed at (origin point) | Triangles / draws | Priority |
 |---|---|---|---|---|---|
-| `gate` | The torana: two pillars, the lintel and its small tower (not the walls); no carved deity figures | 5.6 m wide (x) | Bottom centre at (0, 0, 58) | 15k / 2 | P0 |
-| `footwear-rack` | Wooden rack outside the gate, shelves at 0.08, 0.36, 0.64 and 0.92 m | 3.6 m wide | Bottom centre at (−3, 0, 61) | 3k / 1 | P0 |
-| `today-board` | The painted board, blank (its text is drawn in code) | 2.02 m tall | Bottom centre at (3, 0, 56), front turned to −x (the path) | 3k / 1 | P0 |
-| `footwear` | One pair of plain chappals side by side, toes to +z | 0.23 m wide | Bottom centre; one pair on the rack per visitor present | 300 / 1 | P0 |
-| `tree` | A deodar | 10.4 m tall | Base centre; up to 300 placed in code (120 in Lite mode and on Low phones) | 120 / 2 | P0 |
+| `gate` | The torana: two pillars, the lintel and its small tower (not the walls); no carved deity figures | 5.6 m wide (x) | Bottom centre at (0, 0, 46) | 15k / 2 | P0 |
+| `today-board` | The painted board, blank (its text is drawn in code) | 2.02 m tall | Bottom centre at (3, 0, 44.4), front turned to −x (the path) | 3k / 1 | P0 |
+| `tree` | A deodar | 10.4 m tall | Base centre; the 156 trees beyond the near trees, placed in code nearest the temple first (78 in Lite mode and on Low phones) | 120 / 2 | P0 |
+| `near-tree` | A more detailed deodar or pine with cut-out foliage, for the trees nearest the paths | 5.2 m wide, the greybox tree's spread, so no branch reaches over a path | Base centre; the 24 trees closest to the walkable area, placed in code, closest first (12 in Lite mode and on Low phones) | 1,600 / 2 | P1 |
 | `shrine` | Garbhagriha, antarala and shikhara with amalaka and kalasha, and the somasutra spout. Hollow and empty sanctum (no linga, murti or Nandi inside, no carved deity figures), door to +z, floor at 0.45 m | 16.1 m tall | Bottom centre at (0, 0, 1.26) | 45k / 3 | P1 |
 | `linga` | Linga on its yoni pitha, in plain dark stone: aniconic, no face, eyes or painted marks, a few bilva leaves or flowers at most. No dharapatra (it would change the fitted height; it comes later as its own piece). Its front (+z) is the spout | 0.92 m tall | Bottom centre on the sanctum floor (0, 0.465, 0), spout turned north (+x) | 6k / 2 | P1, `sacred` |
 | `nandi` | Nandi: a traditional seated bull with natural proportions, calm, no cartoon style, no rider; the figure only | 1.6 m long (z) | Bottom centre on the platform (0, 0.5, 22.05), turned to face the sanctum (−z) | 8k / 2 | P1, `sacred` |
 | `mandapa` | Open hall: plinth at 0.45 m, steps to +z, 12 pillars, beams, stepped roof; no carved deity figures, no sacred symbols on floors or steps | 15.2 m wide | Bottom centre at (0, 0, 12.1) | 30k / 3 | P1 |
-| `ganesha-shrine` | Small open-fronted shrine, pedestal top at 0.75 m, empty (no murti), opening to +z | 3.9 m tall | Bottom centre at (−5.3, 0, 52), opening turned to +x | 4k / 2 | P1 |
-| `ganesha` | A small traditional seated Ganesha murti, facing +z; not cartoon, "cute", toy-like or modern stylised | 0.71 m tall | Bottom centre on the pedestal (−5.375, 0.75, 52), turned to face +x | 6k / 2 | P1, `sacred` |
+| `ganesha-shrine` | Small open-fronted shrine, pedestal top at 0.75 m, empty (no murti), opening to +z | 3.9 m tall | Bottom centre at (−5.3, 0, 42.4), opening turned to +x | 4k / 2 | P1 |
+| `ganesha` | A small traditional seated Ganesha murti, facing +z; not cartoon, "cute", toy-like or modern stylised | 0.71 m tall | Bottom centre on the pedestal (−5.375, 0.75, 42.4), turned to face +x | 6k / 2 | P1, `sacred` |
 | `kund` | Square stepped tank: rim at ground level, three 0.6 m steps each 0.25 m lower; no sacred symbols | 10 m wide | Top centre at (16, 0.04, 32) | 8k / 2 | P1 |
 | `deepa-stand` | Tall brass stand in tiers (the flames are drawn in code) | 2.35 m tall | Bottom centre at (−8.5, 0, 25) | 15k / 2 | P2 |
 | `aarti-plate` | Wooden stand with a brass aarti plate | 0.89 m tall | Bottom centre at (2.2, 0, 20.5) | 3k / 1 | P2 |
 | `bell` | A brass bell, hanging from its top (the chain is drawn in code) | 0.32 m tall | Top centre; hung at the 11 bell points, larger at the gate and in the mandapa | 800 / 1 | P2 |
+| `post-lamp` | A small brass standing oil lamp without its flame (the flame is drawn in code above the top centre) | 0.28 m tall | Bottom centre; one on the shelf of each of the 8 path bell posts (top at 1.46 m), front turned to the path | 800 / 1 | P2 |
 | `mat` | A plain woven mat, 0.7 m wide (x) and 0.8 m deep (z); no sacred symbols | 0.7 m wide | Bottom centre; one at each of the 40 mat spots | 100 / 1 | P2 |
 
-Textures follow the asset list above: 2K / 1K for the shrine, mandapa, kund and gate; 512 / 256 for the bell and footwear; 256 for mats; 1K / 512 for the rest.
+Textures follow the asset list above: 2K / 1K for the shrine, mandapa, kund and gate; 512 / 256 for the bell and post lamp; 256 for mats; 1K / 512 for the rest.
 
 - **Fitting:** with `fit: "auto"` (the default) the build turns the model by `rotate`, scales it evenly so its bounding box measures the "Fitted to" size, moves the origin point of the box (bottom or top centre) to the model's origin, then applies `scale` and `offset`. Use `fit: "none"` for models made in metres to this table.
 - **Walking doesn't change:** where visitors can walk, sit and stand comes from `world.ts` (spec 02), whatever a model looks like. A model has to line up with it, for example the mandapa's pillars with the 12 pillar positions and its floor at 0.45 m, or it will look wrong.
-- **Stays in code:** the ground, paving, paths, kerbs and walls, the Nandi platform, the somasutra channel and bridge, the kund water, lamps with their brackets and flames, bell chains and posts, the far mountains, the sky and the avatars. The avatar isn't a slot yet, because it needs the clips in the asset list.
-- **Draw calls:** a single slot's model is drawn on its own, one draw call per material. An instanced slot's model replaces the greybox instanced mesh's geometry, so all its copies together cost one draw call per material. The draw budgets above add up to 28, which keeps the Low tier within spec 10 with 50 avatars. A transparent double-sided material is drawn in one pass, so it also costs one.
-- **All models together:** `npm run check` adds up every model's triangles times its copies, and every texture's GPU memory, per tier, against what spec 10 leaves for models (`MODEL_TRIANGLES`, `MODEL_TEXTURE_BYTES` in `slots.ts`).
+- **Stays in code:** the ground, paving, paths, kerbs and walls, the Nandi platform, the somasutra channel and bridge, the kund water, the other lamps with their brackets, every flame, bell chains and posts with their lamp shelves, the far mountains, the sky and the avatars. The avatar isn't a slot yet, because it needs the clips in the asset list.
+- **Draw calls:** a single slot's model is drawn on its own, one draw call per material. An instanced slot's model replaces the greybox instanced mesh's geometry, so all its copies together cost one draw call per material. The draw budgets above add up to 31, which keeps the Low tier within spec 10 with 50 avatars. A transparent double-sided material is drawn in one pass, so it also costs one.
+- **All models together:** `npm run check` adds up every model's triangles times its copies, and every texture's GPU memory, per tier, against what spec 10 leaves for models (`MODEL_TRIANGLES`, `MODEL_TEXTURE_BYTES` in `slots.ts`). That check on the built models is the limit: with every slot filled to its own budget the Full total would be about 237k, over the 220k, until the tree LODs (M5) replace the `tree` and `near-tree` budgets.
 - **Taps:** tap-to-walk tests the greybox shapes as first built, not the models, so a tap stays cheap.
 - **Loading:** by priority (spec 10 § Loading priority), after the scene code. A model replaces its greybox shape as soon as it arrives.
 

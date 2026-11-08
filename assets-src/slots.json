@@ -1,3 +1,131 @@
 {
-  "slots": {}
+  "slots": {
+    "gate": {
+      "file": "models/gate/gate.glb",
+      "licence": "own",
+      "credit": "Gate modelled for Sannidhi by Claude (AI)",
+      "interim": true,
+      "ai": true,
+      "fit": "none",
+      "notes": "Made for Sannidhi by Claude (AI) in Blender 5.2 with make_gate.py in the same folder; run that script in Blender to rebuild and re-export gate.glb. Built to the slot in metres (5.6 m wide, origin at the bottom centre, front to +z), so fit is none. Thick pillars (about 0.6 m across) at x = +/-2 inside the 0.45 m GATE_PILLAR_RADIUS circles, lintel underside at 3.3 m where the gate bell chain hangs, and a stone shelf under each gate lamp. A marigold garland (108 flowers) across the front of the lintel, above the bell. Plain geometric mouldings, no deity figures or sacred symbols. One material with vertex colours from the greybox stone palette, lightly weathered; no textures. 7,332 triangles"
+    },
+    "today-board": {
+      "file": "models/today-board/today-board.glb",
+      "licence": "own",
+      "credit": "Today board modelled for Sannidhi by Claude (AI)",
+      "interim": true,
+      "ai": true,
+      "fit": "none",
+      "notes": "Made for Sannidhi by Claude (AI) in Blender 5.2 with make_today_board.py in the same folder; run that script in Blender to rebuild and re-export. Built to the slot in metres (exactly 2.02 m tall, origin at the bottom centre, front to +z), so fit is none. A deodar board on two posts with stone footings, under a small slate roof with a carved fringe at the eaves. Below 1.82 m it stays inside the today-board obstacle (1.6 m wide, 0.4 m deep); only the roof reaches 0.9 m out. The painted panel, where the code draws the day's counts, is left blank: its face is 6.5 cm in front of the centre, 1.44 m wide and 1.06 to 1.79 m up, as in the greybox, cream with a thin saffron border. No text, symbol or figure. One material with vertex colours; no textures. 1,384 triangles"
+    },
+    "shrine": {
+      "file": "models/shrine/shrine.glb",
+      "licence": "own",
+      "credit": "Shrine modelled for Sannidhi by Claude (AI)",
+      "interim": true,
+      "ai": true,
+      "fit": "none",
+      "notes": "Made for Sannidhi by Claude (AI) in Blender 5.2 with make_shrine.py in the same folder; run that script in Blender to rebuild and re-export shrine.glb. Built to the slot in metres with its origin at world (0, 0, 1.26), so fit is none: 16.1 m to the kalasha tip. Lines up with world.ts and ground.ts: the garbhagriha is 5.2 m square in a pancharatha plan (corner, recessed and central offsets on every side), with a moulded base, walls in courses, a band at 3.3 m and a cornice to 4.7 m; below 3.3 m nothing reaches past the 2.6 m square, and nothing anywhere past the camera box (2.9 m). The door is 1.5 m wide from the floor at 0.45 m to 2.85 m, in a stepped stone frame with a plain dark wooden inner frame, a raised threshold and a half-moon step; no figure on the lintel or jambs. The sanctum is hollow and empty: inner walls at 2.2 m, a dark floor with its top at 0.465 m where the linga stands, a dark ceiling at 4.3 m. A curved shikhara in seven storeys marked by ribbed corner stones, a ribbed amalaka and a brass kalasha. The antarala has a floor at 0.45 m with the paler aisle on the Nandi axis, moulded plinth sides within the plinth-edge strips, low walls between pilasters and a roof from 3.7 to 4.0 m, so the darshan view stays clear; above it a plain gabled front (sukanasa) with a blank horseshoe arch. The somasutra spout on the north wall at z 0, over a catch stone that meets the channel at x 3.45 m. Marigold garlands (166 flowers, each a 12-triangle double cone): on the door frame, two loops across the lintel under its cap, lowest at 2.93 m (above the opening), and a strand down each outer jamb to 1.85 m; and four strands hanging flat against the front wall on either side of the door (x +/-1.56 and +/-2.25, 3.26 to 1.6 m). Nothing hangs in the doorway or on the axis, so the darshan view stays clear. No carved figures or sacred symbols. One material with vertex colours; no textures. 19,759 triangles, under the Lite target of 22,500, so the Lite build keeps every flower"
+    },
+    "bell": {
+      "file": "models/bell/bell-only.gltf",
+      "licence": "CC-BY-4.0",
+      "credit": "\"Temple Bell\" by Srinuart, CC BY 4.0",
+      "interim": true,
+      "ai": false,
+      "notes": "bell-only.gltf is scene.gltf (the Sketchfab download) with the 2.4 m chain and hook removed: the chain is drawn in code. Bell, clapper, yoke and top shackle kept"
+    },
+    "linga": {
+      "file": "models/linga/linga-plain.gltf",
+      "licence": "CC-BY-4.0",
+      "credit": "\"Shivling 3D Models\" by MANISH 3D MASTER, CC BY 4.0",
+      "interim": true,
+      "ai": false,
+      "rotate": [
+        0,
+        90,
+        0
+      ],
+      "offset": [
+        0,
+        0,
+        0.137
+      ],
+      "notes": "linga-plain.gltf is scene.gltf (the Sketchfab download) with the white tripundra faces given the shaft's stone material (they are cut from the shaft surface and flush with it, so deleting them would leave a hole) and the red dot (a separate bead) removed: spec 08, no marks. Recoloured from pure black to the greybox stone colours. The spout points -x in the download, so it turns 90 degrees to face +z; the spout makes the box off-centre, so the offset moves the linga back to the slot's centre"
+    },
+    "ganesha": {
+      "file": "models/ganesha/scene.gltf",
+      "licence": "CC-BY-4.0",
+      "credit": "\"Ganesha Statue\" by Arodin, CC BY 4.0",
+      "interim": true,
+      "ai": false,
+      "rotate": [
+        0,
+        90,
+        0
+      ],
+      "notes": "The Sketchfab download as it is. It faces -x, so it turns 90 degrees to face +z. Its texture is dark stone with red-orange patches; check in the temple that it reads as sindoor, not glowing embers"
+    },
+    "near-tree": {
+      "file": "models/near-tree/pine-cutout.gltf",
+      "licence": "CC-BY-4.0",
+      "credit": "\"Pine tree\" by Andriy Shekh, CC BY 4.0",
+      "interim": true,
+      "ai": false,
+      "notes": "pine-cutout.gltf is scene.gltf (the Sketchfab download) with the leaves material changed from see-through (BLEND) to cut-out (MASK, cutoff 0.5): see-through leaves cost more on phones and draw in the wrong order when instanced. 2,173 triangles; its separate leaf cards stop the build simplifying much below 1,500, which is why it is the near-tree slot and not the tree slot. Hand-made in Blender, Substance and Photoshop (2020), not a scan or AI"
+    },
+    "post-lamp": {
+      "file": "models/post-lamp/lamp-no-flame.gltf",
+      "licence": "CC-BY-4.0",
+      "credit": "\"Golden Oil Lamp\" by biswajit3dcreator, made with Meshy (AI), CC BY 4.0",
+      "interim": true,
+      "ai": true,
+      "notes": "AI-made (Meshy), allowed for a non-sacred prop and disclosed in the credit. lamp-no-flame.gltf is scene.gltf (the Sketchfab download) with: the flame cut off (every triangle above the wick neck, y > 0.662 and within 0.07 of the axis: 6,545 of 262,366), since the flame is drawn in code; the base-colour texture baked into vertex colours and the dark-blue wick recoloured to the average brass; the three meshes joined and welded by position, with UVs and all textures dropped. The texture's many UV seams stopped the build simplifying below 1,364 triangles; welded, it reaches 759"
+    },
+    "deepa-stand": {
+      "file": "models/deepa-stand/deepa-stand.glb",
+      "licence": "own",
+      "credit": "Deepa stand and diyas modelled for Sannidhi by Claude (AI)",
+      "interim": true,
+      "ai": true,
+      "fit": "none",
+      "notes": "AI-made stand-in approved by the owner on 2026-11-08 and listed in spec 08 (AI-made lamps row) for the advisor. Made for Sannidhi by Claude (AI) in Blender 5.2 with make_deepa_stand.py in the same folder; run that script in Blender to rebuild and re-export. Exactly 2.35 m tall with its origin at the bottom centre, so fit is none; the stone base is 0.78 m in radius, inside the 0.8 m obstacle. Four brass trays (floors at 0.72, 1.17, 1.62 and 2.02 m; rims at 0.72, 0.585, 0.45 and 0.31 m radius) carrying 36, 30, 24 and 18 plain clay diyas, 108 in all, spouts outward; the script says where each spout tip is, for the flames in M3. Plain brass and clay, no figure, bird or symbol. One material with vertex colours; no textures. 8,636 triangles"
+    },
+    "mandapa": {
+      "file": "models/mandapa/mandapa.glb",
+      "licence": "own",
+      "credit": "Mandapa modelled for Sannidhi by Claude (AI)",
+      "interim": true,
+      "ai": true,
+      "fit": "none",
+      "notes": "Made for Sannidhi by Claude (AI) in Blender 5.2 with make_mandapa.py in the same folder; run that script in Blender to rebuild and re-export. Built to the slot in metres with its origin at world (0, 0, 12.1), so fit is none: 15.2 m wide (the eave), 7.9 m to the kalasha tip. Lines up with world.ts and ground.ts: floor at 0.45 m over x -7 to 7, z 5 to 19 in square slabs, the paler aisle on the Nandi axis; two steps on the east side with tops at 0.30 and 0.15 m; the 12 pillars at MANDAPA_PILLARS, 0.44 m across, capitals ending at 4.2 m; beams under a flat ceiling at 4.42 m, where the mandapa bell chains end. Moulded plinth sides within the plinth-edge obstacles, and a low wall (to 1.05 m) along the north, south and west edges between the pillars; the east side is open. Stepped stone roof with four tiers, a ribbed crown and a brass kalasha; a plain coffered panel and pendant in the middle of the ceiling, above 4.15 m, so the darshan view stays clear. No carved figures or sacred symbols; plain stone on the floor and steps. One material with vertex colours; no textures. 10,000 triangles"
+    },
+    "ganesha-shrine": {
+      "file": "models/ganesha-shrine/ganesha-shrine.glb",
+      "licence": "own",
+      "credit": "Ganesha shrine modelled for Sannidhi by Claude (AI)",
+      "interim": true,
+      "ai": true,
+      "fit": "none",
+      "notes": "The shrine only: the Ganesha murti is its own sacred slot and is not part of this model. Made for Sannidhi by Claude (AI) in Blender 5.2 with make_ganesha_shrine.py in the same folder; run that script in Blender to rebuild and re-export. Built to the slot in metres (exactly 3.9 m tall, origin at the bottom centre, opening to +z), so fit is none. Below 2.04 m it stays inside the ganesha-shrine obstacle (2.2 m across, 2 m deep); only the eave and tower overhang, by at most 0.15 m. A 0.4 m plinth with a step at the front, back and side walls on a base course, two moulded front pilasters and a plain lintel over an opening 1.6 m wide and 1.5 m high, a projecting eave, a small curved tower with ribbed corner stones, a ribbed amalaka and a brass kalasha. Inside, the empty pedestal with its top at exactly 0.75 m, and two small stone stands with flat tops at 0.785 m under the two lamp flames drawn in code. A marigold garland (38 flowers, each a 12-triangle double cone) across the front: two loops on the lintel dipping to 1.88 m, well above the murti (top 1.46 m), and a short strand down each pilaster; nothing hangs in front of the murti, and the flowers stay inside the obstacle. The tower is kept lean (5 courses, 8-sided corner stones, 16-sided amalaka, 8-sided kalasha) so the whole model fits the Lite target. No carved figures or sacred symbols. One material with vertex colours; no textures. 1,988 triangles, under the Lite target of 2,000, so the Lite build is the same model and keeps every flower"
+    },
+    "kund": {
+      "file": "models/kund/kund.glb",
+      "licence": "own",
+      "credit": "Kund modelled for Sannidhi by Claude (AI)",
+      "interim": true,
+      "ai": true,
+      "fit": "none",
+      "notes": "Made for Sannidhi by Claude (AI) in Blender 5.2 with make_kund.py in the same folder; run that script in Blender to rebuild and re-export. Built to the slot in metres with its origin at the top centre, world (16, 0.04, 32), so fit is none: 10 m wide, 1.64 m deep. Lines up with world.ts and ground.ts: a flat rim 1 m wide all round at 0.04 m (paving slabs outside, darker coping with rounded edges at the tank's edge); three steps down on every side, 0.6 m deep, with tops at -0.25, -0.5 and -0.75 m; the riser below the second step stands at the water's edge (KUND_WATER), and the third step lies under the water at -0.68 m, which stays in code; a sheer wall below it to the floor at -1.6 m. Dressed stone, darker and green towards the water, with damp in the inside corners and moss on the forest side of the rim. No carvings, symbols or figures. One material with vertex colours; no textures. 2,168 triangles"
+    },
+    "avatar": {
+      "file": "models/avatar/avatar.glb",
+      "licence": "own",
+      "credit": "Devotee figure modelled for Sannidhi by Claude (AI)",
+      "interim": true,
+      "ai": true,
+      "fit": "none",
+      "notes": "Made for Sannidhi by Claude (AI) in Blender 5.2 with make_avatar.py in the same folder; run that script in Blender to rebuild and re-export (it also lays out posed copies for checking, which are not exported). Rigged to the 17 bones of scene/avatar.ts at the same rest positions (armatures rig0 and rig1, bones b<body>-<bone>), each vertex on one bone, so the code animates it. Four meshes: body0 (kurta and dhoti) and body1 (kurta and salwar, hair in a bun), each at near (high) and far (low) detail, in the avatar's own space and unscaled (the code scales body1 by 0.96). About 1.68 m. Kurta with a band collar and three buttons, a wool shawl over both shoulders with a darker border, bare feet, ears, a soft nose and hair; no eyes, mouth, tilak, sacred thread or other caste, sect or regional sign. Two materials with vertex colours only: avatar-body, and avatar-shawl, a grey shade the code multiplies by the visitor's shawl colour. Near 3,816 / 3,928 triangles, far 970 / 1,014"
+    }
+  }
 }

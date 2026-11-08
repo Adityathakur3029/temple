@@ -6,7 +6,7 @@ The physical temple: layout, sacred zones, light, camera, controls and the visit
 
 ## Setting
 
-A fictional small stone temple on a forested Himalayan ridge at about 2,000 m. Deodar cedars, mossy rocks and a spring-fed kund surround it, with snow peaks far behind. The style is North Indian Nagara: a square garbhagriha under a curved stone shikhara topped by an amalaka and kalasha, a short antarala, and an open pillared mandapa. The palette is weathered grey-brown stone, deodar green, saffron and marigold accents, and brass. The temple must not resemble any specific real temple closely enough to be mistaken for it (see [08](08-cultural-guidelines.md)).
+A fictional small stone temple on a forested Himalayan ridge at about 2,000 m. Deodar cedars, mossy rocks and a spring-fed kund surround it, with snow peaks far behind. The forest grows the way a hillside forest does, not in even rows: 180 deodars (90 in Lite mode) in groves with open ground between them, along both sides of the gate path and round the compound, with a few on their own. Most are grown trees; some are young and slender, and a few broad old giants stand at least 12 m back from where visitors walk. No branch reaches over the paths, the gate walls, the bell posts with their lamps or the notice board, and the Ganesha shrine stands against open forest: no trunk within 3 m of it and no branch within 1 m. Every visitor sees the same forest. The style is North Indian Nagara: a square garbhagriha under a curved stone shikhara topped by an amalaka and kalasha, a short antarala, and an open pillared mandapa. The palette is weathered grey-brown stone, deodar green, saffron and marigold accents, and brass. The temple must not resemble any specific real temple closely enough to be mistaken for it (see [08](08-cultural-guidelines.md)).
 
 ## Layout
 
@@ -24,11 +24,10 @@ A fictional small stone temple on a forested Himalayan ridge at about 2,000 m. D
 | Aarti plate stand (after aarti) | (2.2, 20.5) | Where visitors "take aarti" after the service |
 | Pradakshina path | loop at x ±10.5, z −8 … 24 | Stone path around the shrine and mandapa; see [Pradakshina](#pradakshina-path) |
 | Kund | centre (16, 32), 8 × 8 m | Stepped tank, not swimmable; the steps are walkable down to the second step |
-| Path from the gate | z 30 … 58, winding | Lined with 8 hanging bells (`path-1` … `path-8`) and deodars |
-| Ganesha shrine (small, open-fronted) | (−5, 52), facing +x | Small murti; visitors may bow here (pranam is the only action) |
-| Gate (torana) with gate bell | (0, 58) | Spawn area just inside the gate |
-| Footwear rack | (−3, 61), outside the gate | Shows a pair of chappals for each visitor present (decorative) |
-| Temple-wide "today" board | (3, 56) | Painted wooden board: diyas lit, malas completed, parikramas today |
+| Path from the gate | z 30 … 46, straight along the axis (x = 0) | Lined with 8 hanging bells (`path-1` … `path-8`) and deodars. Each bell hangs from a wooden post just off the path, with a small brass oil lamp on a shelf facing the path |
+| Ganesha shrine (small, open-fronted) | (−5, 42.4), just inside the gate, facing +x | Small murti; visitors may bow here (pranam is the only action) |
+| Gate (torana) with gate bell | (0, 46) | Visitors arrive on the paved approach outside the gate, far enough out to see the whole torana, and walk in |
+| Temple-wide "today" board | (3, 44.4) | Painted wooden board: diyas lit, malas completed, parikramas today |
 
 These positions are the defaults for the greybox (M1). Final art MAY adjust them by up to 2 m without a spec change. Larger moves update this table and `packages/protocol/src/world.ts`.
 
@@ -55,7 +54,7 @@ The M1 greybox fixes these details in `world.ts`. Like the layout table, final a
 
 | Item | Value |
 |---|---|
-| Walkable area | The compound inside the forest edge (x −14.7 … 14.7, z −12.2 … 30); a 1 m surround of the kund (x 11 … 21, z 27 … 37); the gate path, 3.6 m wide, along (0, 57.2) → (0.5, 54) → (−1.5, 49) → (1.5, 43) → (−1, 37) → (0, 30); the space in front of the Ganesha shrine; and the area just inside the gate (x −2.6 … 2.6, z 54.4 … 58.3) |
+| Walkable area | The compound inside the forest edge (x −14.7 … 14.7, z −12.2 … 30); a 1 m surround of the kund (x 11 … 21, z 27 … 37); the gate path, 3.6 m wide, straight along x = 0 from z 45.2 to z 30; the space in front of the Ganesha shrine (x −4.3 … −0.5, z 41 … 43.8); the area just inside the gate (x −2.6 … 2.6, z 42.4 … 46.3); and the approach outside the gate (x −1.8 … 1.8, z 46 … 55) |
 | Raised plinth | The mandapa, antarala and sanctum share a 0.45 m plinth. The only way up is the steps along the mandapa's east side (z 19 … 20). Its other edges are blocked |
 | Sanctum door | 1.5 m wide, centred on the axis in the east wall (z 2.6) |
 | Antarala | x −2.6 … 2.6, z 2.6 … 5. Walkable only beside the axis (x 1.2 … 2.6 and −2.6 … −1.2) |
@@ -63,12 +62,12 @@ The M1 greybox fixes these details in `world.ts`. Like the layout table, final a
 | Mats | Two blocks of 20 either side of the aisle: columns at x ±2.4, ±3.4, ±4.4, ±5.4 and rows at z 8.2, 9.6, 11, 12.4, 13.8. Mats 0–19 are the north block (+x) and 20–39 the south block, row by row from the front, inner column first. A seated visitor faces the linga |
 | Jal spot | (1.9, 3.4), at the threshold on the north side of the door |
 | Diya spots | 1.6 m north, east, south and west of the deepa stand's centre, each facing the stand |
-| Path bells | `path-1` (−0.8, 55), `path-2` (0.7, 51.5), `path-3` (−2.2, 48), `path-4` (2, 44.5), `path-5` (−0.5, 41), `path-6` (0.4, 37.5), `path-7` (−1.8, 34), `path-8` (1.1, 30.5). The gate bell hangs in the torana at (0, 58) |
-| Spawn | (0, 56.5), facing the temple (−z) |
+| Path bells | `path-1` (−1.2, 44.4), `path-2` (1.2, 42.4), `path-3` (−1.2, 40.4), `path-4` (1.2, 38.4), `path-5` (−1.2, 36.4), `path-6` (1.2, 34.4), `path-7` (−1.2, 32.4), `path-8` (1.2, 30.4), 2 m apart on alternating sides, 1.2 m off the centre line. The gate bell hangs in the torana at (0, 46) |
+| Spawn | (0, 53.5), on the approach 7.5 m outside the gate, facing it and the temple (−z); the camera starts straight behind the visitor |
 | Kund steps | Each step is 0.6 m wide, so the water zone starts 1.2 m in from the rim: x 13.2 … 18.8, z 29.2 … 34.8 |
 | Somasutra | A 0.7 m blocking strip along z = 0 from the north wall (x 2.6) to the forest edge (x 14.7). In `full` mode the bridge covers it at x 9.3 … 11.7 |
 | Diya spots order | Spot 0 is north of the stand, then east, south and west |
-| Other obstacles | Nandi's platform (x −1 … 1, z 21 … 23); the deepa stand (radius 0.8 m); the aarti plate stand (radius 0.3 m); the Ganesha shrine (x −6.3 … −4.3, z 50.9 … 53.1); the today board (x 2.8 … 3.2, z 55.2 … 56.8); the two gate pillars (radius 0.3 m at x ±2); and the plinth edges, 0.4 m strips outside the mandapa's north, south and west sides (from z 4.6) and the antarala's sides |
+| Other obstacles | Nandi's platform (x −1 … 1, z 21 … 23); the deepa stand (radius 0.8 m); the aarti plate stand (radius 0.3 m); the Ganesha shrine (x −6.3 … −4.3, z 41.3 … 43.5); the today board (x 2.8 … 3.2, z 43.6 … 45.2); the two gate pillars (radius 0.45 m at x ±2, the thick stone bases); and the plinth edges, 0.4 m strips outside the mandapa's north, south and west sides (from z 4.6) and the antarala's sides |
 
 The server checks each step, the segment from a visitor's last accepted position to the new one, against these shapes ([05 § Movement rule](05-server.md#movement-rule-pos)). Every shape includes its edges, and where a walkable area meets a blocked one, the shared edge is blocked. The client keeps a 0.25 m body radius (`BODY_RADIUS`) clear of them, so a client that follows its own collision is never corrected.
 
@@ -85,7 +84,7 @@ The server checks each step, the segment from a visitor's last accepted position
 
   Each transition blends over the 10 minutes after the phase starts. Seasonal sunrise/sunset tables are a later option.
 - **Preview:** `?ist=HH:MM` in the page URL shows the scene at that IST time, for review. It changes only the visitor's own view.
-- **Lamps:** the deepa stand, sanctum lamps and lanterns use emissive materials and glow sprites. At most **4 real-time point lights** are active (sanctum, deepa stand, mandapa, gate). Lit diyas don't each get a light.
+- **Lamps:** the deepa stand, sanctum lamps, path post lamps and lanterns use emissive materials and glow sprites. At most **4 real-time point lights** are active (sanctum, deepa stand, mandapa, gate). Lit diyas don't each get a light.
 - **Shadows:** a single directional light with a small shadow map on High tier only. Baked ambient occlusion in textures on all tiers.
 - **Weather:** clear by default. Seasonal snow (Dec–Feb) and monsoon mist (Jul–Sep) are a stretch goal (see Open decisions).
 

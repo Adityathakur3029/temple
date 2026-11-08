@@ -53,8 +53,14 @@ describe("gesture poses (spec 03)", () => {
     const bones = a.mesh.skeleton.bones;
     const at = (bone: number, y: number) =>
       new Vector3(0, y, 0).applyMatrix4(bones[bone]?.matrixWorld ?? new Matrix4());
-    // Bone order from avatar.ts: 3 head, 5 left forearm, 7 right forearm.
-    const out = { head: at(3, 0.15), left: at(5, -0.27), right: at(7, -0.27) };
+    // Bone order from avatar.ts: 3 head (its middle 18 cm above the neck), 15 left wrist,
+    // 16 right wrist; the palm's middle is 4 cm along the hand, the fingertips 10 cm.
+    const out = {
+      head: at(3, 0.18),
+      left: at(15, -0.04),
+      right: at(16, -0.04),
+      tips: at(15, -0.1),
+    };
     a.dispose();
     return out;
   }
@@ -68,10 +74,12 @@ describe("gesture poses (spec 03)", () => {
   });
 
   it("pranam raises the joined palms to the forehead, in front of the face", () => {
-    const { head, left, right } = pose("pranam");
+    const { head, left, right, tips } = pose("pranam");
     expect(left.distanceTo(right)).toBeLessThan(0.08);
-    const below = head.y - (left.y + right.y) / 2;
+    // The fingertips reach the forehead (the head is big, so the palms sit below its middle).
+    const below = head.y - tips.y;
     expect(below).toBeGreaterThan(-0.08);
     expect(below).toBeLessThan(0.1);
+    expect(tips.z).toBeGreaterThan(head.z);
   });
 });

@@ -36,7 +36,12 @@ import { encodeToKTX2 } from "ktx2-encoder";
 import { MeshoptDecoder, MeshoptEncoder, MeshoptSimplifier } from "meshoptimizer";
 import sharp from "sharp";
 import type { AssetTier } from "../../apps/web/src/assets/manifest";
-import { SLOTS, liteTriangleTarget, type SlotId } from "../../apps/web/src/assets/slots";
+import {
+  AVATAR_LOW_TRIANGLES,
+  SLOTS,
+  liteTriangleTarget,
+  type SlotId,
+} from "../../apps/web/src/assets/slots";
 import type { SlotConfig, Vec3 } from "./config";
 import { fitMatrix, IDENTITY, rotationXYZ, type Bounds, type Mat4 } from "./fit";
 
@@ -269,6 +274,68 @@ async function simplifyTo(
   return tris;
 }
 
+/** The meshes scene/avatar.ts looks for in the avatar file: two bodies, near and far detail. */
+export const RIG_MESHES = ["body0-high", "body0-low", "body1-high", "body1-low"] as const;
+
+/**
+ * The avatar (a `rig` slot): kept as made, with its skin, because the code poses it bone by bone.
+ * Only animations, cameras and non-colour textures go; nothing is fitted, joined or simplified.
+ * The triangle count reported is the near detail; the far detail has its own limit.
+ */
+async function buildRig(slot: SlotId, cfg: SlotConfig, doc: Document): Promise<BuiltSlot> {
+  const spec = SLOTS[slot];
+  const notes: string[] = [];
+  if (cfg.fit !== "none") throw new Error('a rig is used as made: set "fit": "none"');
+  const root = doc.getRoot();
+  if (root.listSkins().length === 0) throw new Error("it has no skin; the avatar must be rigged");
+  if (root.listAnimations().length > 0) notes.push("animations removed (the code animates it)");
+  for (const a of root.listAnimations()) a.dispose();
+  for (const node of root.listNodes()) node.setCamera(null);
+  for (const c of root.listCameras()) c.dispose();
+  keepColourOnly(doc);
+  await doc.transform(prune({ keepLeaves: true }), dedup());
+
+  const tris = new Map<string, number>();
+  for (const node of root.listNodes()) {
+    const mesh = node.getMesh();
+    if (!mesh) continue;
+    let n = 0;
+    for (const prim of mesh.listPrimitives()) {
+      if (prim.getMode() !== Primitive.Mode.TRIANGLES) {
+        throw new Error(`mesh ${node.getName()} has lines or strips; export triangles only`);
+      }
+      n += getGLPrimitiveCount(prim);
+    }
+    tris.set(node.getName(), n);
+  }
+  const missing = RIG_MESHES.filter((name) => !tris.has(name));
+  if (missing.length > 0) throw new Error(`no mesh named ${missing.join(", ")}`);
+  const high = Math.max(tris.get("body0-high") ?? 0, tris.get("body1-high") ?? 0);
+  const low = Math.max(tris.get("body0-low") ?? 0, tris.get("body1-low") ?? 0);
+  if (high > spec.maxTriangles) {
+    throw new Error(`${high} triangles near up close; the slot allows ${spec.maxTriangles}`);
+  }
+  if (low > AVATAR_LOW_TRIANGLES) {
+    throw new Error(`${low} triangles at a distance; the slot allows ${AVATAR_LOW_TRIANGLES}`);
+  }
+  notes.push(`at a distance ${low.toLocaleString("en")} triangles`);
+  const bounds = sceneBounds(doc);
+  notes.push(
+    `size ${round(bounds.max.map((v, i) => v - (bounds.min[i] ?? 0)) as Vec3).join(" × ")} m`,
+  );
+
+  const docs = { full: doc, lite: cloneDocument(doc) };
+  const nodeIO = await makeIO();
+  const tiers = {} as Record<AssetTier, BuiltTier>;
+  for (const tier of ["full", "lite"] as const) {
+    const out = docs[tier];
+    const textures = await encodeTextures(out, spec.texture[tier]);
+    await out.transform(meshopt({ encoder: MeshoptEncoder, level: "medium" }));
+    tiers[tier] = { bytes: await nodeIO.writeBinary(out), triangles: high, textures };
+  }
+  return { tiers, draws: 1, bounds, notes };
+}
+
 function round(v: Vec3): Vec3 {
   return v.map((n) => Math.round(n * 1000) / 1000) as Vec3;
 }
@@ -293,6 +360,7 @@ export async function buildSlot(
     }
     throw new Error(`can't read the file: ${msg}`, { cause: err });
   }
+  if (spec.kind === "rig") return buildRig(slot, cfg, doc);
 
   strip(doc, notes);
   await doc.transform(uninstance(), flatten());

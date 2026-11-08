@@ -33,7 +33,10 @@ const STALE = "the built models are out of date; run `npm run assets:build`";
 export function checkTotals(manifest: AssetManifest): string[] {
   const problems: string[] = [];
   for (const tier of ["full", "lite"] as const) {
-    const files = manifest.files.filter((f) => f.tier === tier && isSlotId(f.slot));
+    // The avatar (a rig slot) has its own share of the budget (spec 10).
+    const files = manifest.files.filter(
+      (f) => f.tier === tier && isSlotId(f.slot) && SLOTS[f.slot].kind !== "rig",
+    );
     const triangles = files.reduce(
       (n, f) => n + f.triangles * (SLOTS[f.slot].copies?.[tier] ?? 1),
       0,

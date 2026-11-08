@@ -29,7 +29,7 @@ import {
   COURTYARD,
   GANESHA,
   GANESHA_BOW_M,
-  INSTANCE_CAPACITY,
+  GATE,
   INTERP_DELAY_MS,
   LITE_INTERP_DELAY_MS,
   MATS,
@@ -64,7 +64,7 @@ import { localStore, sessionStore } from "../platform/storage";
 import { openChannel, RENDER_OWNER_KEY, RenderOwner } from "../platform/tabs";
 import { chooseTier, pixelRatio, readDeviceInfo, type Tier } from "../platform/tier";
 import { loadView, saveView } from "../platform/view";
-import { Avatar, disposeAvatarCache, prebuildAvatarGeometries } from "./avatar";
+import { Avatar, HEAD_HEIGHT, disposeAvatarCache, prebuildAvatarGeometries } from "./avatar";
 import { BellSwings } from "./bells";
 import { CameraRig, clampOrbit, type CameraPose } from "./camera";
 import { Crowd } from "./crowd";
@@ -74,21 +74,20 @@ import { Input } from "./input";
 import { FIRST_VIEW_WAIT_MS, SceneModels } from "./models";
 import { NavGrid } from "./nav";
 import { PerfOverlay } from "./perf";
-import { blendLook, Sky } from "./sky";
+import { blendLook, Sky, SUN_SHADOW_DISTANCE } from "./sky";
 import { Walker, type MoveInput } from "./walker";
 
-/** Lite mode keeps the nearest 120 trees (spec 11). */
-export const LITE_TREES = 120;
+/** Lite mode keeps the nearest 72 trees (spec 11). */
+export const LITE_TREES = 72;
 /** Radians of camera turn per CSS pixel dragged. */
 const LOOK_RAD_PER_PX = 0.005;
 /** Tap-to-walk eases the camera round behind the visitor this long after the last look. */
 const FOLLOW_AFTER_LOOK_MS = 2500;
 const CHECKPOINT_MS = 2000;
 const SKY_UPDATE_MS = 1000;
-const HEAD_STANDING = 1.45;
-const HEAD_SEATED = 0.85;
+const HEAD_STANDING = HEAD_HEIGHT.standing;
+const HEAD_SEATED = HEAD_HEIGHT.seated;
 const MAT_TOP = 0.025;
-const SPAWN_CAMERA_OFFSET = 0.16;
 /** A hidden tab keeps its socket this long, so a quick app switch doesn't drop presence (spec 10). */
 export const HIDDEN_KEEP_MS = 120_000;
 /** A tapped visitor's name shows this long (spec 02 § Avatar). */
@@ -98,7 +97,7 @@ const NAME_TAG_MS = 3000;
 const LIGHTS = {
   sanctum: { color: "#ffb45a", intensity: 14, distance: 8, at: [0, PLINTH + 1.6, 1.5] },
   mandapa: { color: "#ffc27a", intensity: 14, distance: 16, at: [0, 3.8, 12] },
-  gate: { color: "#ffc27a", intensity: 8, distance: 10, at: [0, 2.8, 56.6] },
+  gate: { color: "#ffc27a", intensity: 8, distance: 10, at: [GATE.x, 2.8, GATE.z - 1.4] },
 } as const;
 
 export interface TempleHandle {
@@ -203,15 +202,15 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     top: 20,
     bottom: -20,
     near: 1,
-    far: 100,
+    far: SUN_SHADOW_DISTANCE + 60,
   });
 
-  // Lite mode and Low phones get the lighter scene: 120 trees and Lite models (spec 10, 11).
+  // Lite mode and Low phones get the lighter scene: 72 trees and Lite models (spec 10, 11).
   const lighter = (): boolean => settings.get().lite || tier === "low";
   const greybox = buildGreybox({
     mode: PRADAKSHINA_MODE,
     trees: lighter() ? LITE_TREES : MAX_TREES,
-    footwearPairs: 1, // one pair for each visitor present, updated with presence
+    treeTier: lighter() ? "lite" : "full",
   });
   scene.add(greybox.group);
   const swings = new BellSwings(greybox.bells, greybox.bellHang);
@@ -268,13 +267,13 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     depthWrite: false,
     color: 0xffffff,
   });
-  const blob = new Mesh(new CircleGeometry(0.42, 20), blobMaterial);
+  const blob = new Mesh(new CircleGeometry(0.3, 20), blobMaterial);
   blob.rotation.x = -Math.PI / 2;
   scene.add(blob);
 
   const walker = new Walker(SPAWN);
-  // Slightly off the axis, so the gate bell doesn't hide the shikhara from the first view.
-  const rig = new CameraRig({ yaw: SPAWN.yaw + SPAWN_CAMERA_OFFSET });
+  // Straight behind the visitor, so the first view looks through the middle of the gate.
+  const rig = new CameraRig({ yaw: SPAWN.yaw });
   /** The mat the visitor sits on, or −1. Online, only after the server's `sit.ok`. */
   let mat = -1;
   /** The visitor sits on a mat the server hasn't confirmed yet (after a reconnect). */
@@ -644,7 +643,6 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     const s = session;
     crowd.sync();
     const others = [...s.presence.remotes.values()].map((r) => r.visitor);
-    greybox.footwear.count = Math.min(INSTANCE_CAPACITY, 1 + others.length);
     const hall = s.hall;
     hud.setHall(
       hall && s.online ? { id: hall, number: Number(hall.slice(5)) } : null,
@@ -695,13 +693,8 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     renderer.setPixelRatio(pixelRatio(tier, window.devicePixelRatio));
     resize();
     const lite = settings.get().lite;
-    const trees = Math.min(greybox.treesAvailable, lighter() ? LITE_TREES : MAX_TREES);
     models.setTier(lighter() ? "lite" : "full");
-    if (greybox.trees.count !== trees) {
-      greybox.trees.count = trees;
-      // Bounds are cached per count; a stale sphere could cull every tree at once.
-      greybox.trees.boundingSphere = null;
-    }
+    greybox.setTrees(lighter() ? LITE_TREES : MAX_TREES, lighter() ? "lite" : "full");
     const shadows = tier === "high" && !lite;
     if (renderer.shadowMap.enabled !== shadows) {
       renderer.shadowMap.enabled = shadows;
@@ -1030,7 +1023,6 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
           instance: ss.instance,
           you: ss.you,
           remotes,
-          footwear: greybox.footwear.count,
           gestures: crowdGestures(),
           events: recentEvents.slice(),
         };

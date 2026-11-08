@@ -65,7 +65,7 @@ The temple is interactive after P0. Later priorities load in the background and 
 
 **Models in asset slots** (spec 11 § Slots), summed over every copy, stay within 100k triangles and 60 MB of GPU textures with Lite models, and 220k triangles and 100 MB with Full models. The rest of each budget is for avatars, the greybox, the sky and shadows. `npm run check` adds them up from the asset manifest; GPU memory is estimated at 8 bits per pixel with mipmaps.
 
-**The lighter scene:** Lite mode and Low phones get Lite models and the nearest 120 trees. Texture decoding uses 1 worker on Low and 2 elsewhere, and the decoders are freed once every model has loaded.
+**The lighter scene:** Lite mode and Low phones get Lite models and 90 trees: the 12 nearest the paths (the `near-tree` slot) and the 78 others nearest the temple. Texture decoding uses 1 worker on Low and 2 elsewhere, and the decoders are freed once every model has loaded.
 
 ### Techniques the budgets assume
 

@@ -321,12 +321,13 @@ describe("checkManifest", () => {
   });
 
   it("adds up every copy's triangles and the GPU textures per tier", () => {
-    // 300 trees at 120 triangles is 36,000; at 800 it would be 240,000.
+    // 156 far trees at 120 triangles is 18,720; at 1,500 it would be 234,000.
+    expect(SLOTS.tree.copies?.full).toBe(156);
     const tree = (triangles: number, gpu = 0): ManifestFile =>
       file({ slot: "tree", src: "models/tree.glb", priority: "P0", triangles, gpuBytes: gpu });
     expect(checkTotals({ release: "r", inputs: "i", files: [tree(120)] })).toEqual([]);
-    expect(checkTotals({ release: "r", inputs: "i", files: [tree(800)] }).join()).toMatch(
-      /full models: 240,000 triangles/,
+    expect(checkTotals({ release: "r", inputs: "i", files: [tree(1500)] }).join()).toMatch(
+      /full models: 234,000 triangles/,
     );
     expect(
       checkTotals({ release: "r", inputs: "i", files: [tree(100, 150_000_000)] }).join(),

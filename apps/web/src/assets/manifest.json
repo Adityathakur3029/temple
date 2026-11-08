@@ -1,5 +1,570 @@
 {
-  "release": null,
-  "inputs": "a7567a65ee64a3eb",
-  "files": []
+  "release": "ff4ec74c",
+  "inputs": "c6b0def0f553b5bf",
+  "files": [
+    {
+      "src": "models/gate.glb",
+      "slot": "gate",
+      "tier": "full",
+      "sha256": "b5e120d7a8e33c58c3e0814f440e1f0c3f607a09acdcded29563258732a333cc",
+      "bytes": 85888,
+      "priority": "P0",
+      "tags": [
+        "gate",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Gate modelled for Sannidhi by Claude (AI)",
+      "triangles": 7332,
+      "draws": 1,
+      "textures": [],
+      "gpuBytes": 0,
+      "path": "/v/ff4ec74c/full/models/gate.glb"
+    },
+    {
+      "src": "models/gate.glb",
+      "slot": "gate",
+      "tier": "lite",
+      "sha256": "b5e120d7a8e33c58c3e0814f440e1f0c3f607a09acdcded29563258732a333cc",
+      "bytes": 85888,
+      "priority": "P0",
+      "tags": [
+        "gate",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Gate modelled for Sannidhi by Claude (AI)",
+      "triangles": 7332,
+      "draws": 1,
+      "textures": [],
+      "gpuBytes": 0,
+      "path": "/v/ff4ec74c/lite/models/gate.glb"
+    },
+    {
+      "src": "models/today-board.glb",
+      "slot": "today-board",
+      "tier": "full",
+      "sha256": "31173c7883f5a3516de8ae5e9ffe065943aa04135729e0f58ca8d0a1b3f765a0",
+      "bytes": 20772,
+      "priority": "P0",
+      "tags": [
+        "today-board",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Today board modelled for Sannidhi by Claude (AI)",
+      "triangles": 1384,
+      "draws": 1,
+      "textures": [],
+      "gpuBytes": 0,
+      "path": "/v/ff4ec74c/full/models/today-board.glb"
+    },
+    {
+      "src": "models/today-board.glb",
+      "slot": "today-board",
+      "tier": "lite",
+      "sha256": "31173c7883f5a3516de8ae5e9ffe065943aa04135729e0f58ca8d0a1b3f765a0",
+      "bytes": 20772,
+      "priority": "P0",
+      "tags": [
+        "today-board",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Today board modelled for Sannidhi by Claude (AI)",
+      "triangles": 1384,
+      "draws": 1,
+      "textures": [],
+      "gpuBytes": 0,
+      "path": "/v/ff4ec74c/lite/models/today-board.glb"
+    },
+    {
+      "src": "models/near-tree.glb",
+      "slot": "near-tree",
+      "tier": "full",
+      "sha256": "3d706bf9557b6e8ee97d535ec35563c196015d429e1f6fbd2f89a73eb5b0e268",
+      "bytes": 158016,
+      "priority": "P1",
+      "tags": [
+        "near-tree",
+        "interim"
+      ],
+      "licence": "CC-BY-4.0",
+      "credit": "\"Pine tree\" by Andriy Shekh, CC BY 4.0",
+      "triangles": 1526,
+      "draws": 2,
+      "textures": [
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "gpuBytes": 699051,
+      "path": "/v/ff4ec74c/full/models/near-tree.glb"
+    },
+    {
+      "src": "models/near-tree.glb",
+      "slot": "near-tree",
+      "tier": "lite",
+      "sha256": "5385ce28e3630aa8d7a75f827a85abba948539878378b072de7da2ba5e926bef",
+      "bytes": 147908,
+      "priority": "P1",
+      "tags": [
+        "near-tree",
+        "interim"
+      ],
+      "licence": "CC-BY-4.0",
+      "credit": "\"Pine tree\" by Andriy Shekh, CC BY 4.0",
+      "triangles": 1227,
+      "draws": 2,
+      "textures": [
+        [
+          512,
+          512
+        ],
+        [
+          512,
+          512
+        ]
+      ],
+      "gpuBytes": 699051,
+      "path": "/v/ff4ec74c/lite/models/near-tree.glb"
+    },
+    {
+      "src": "models/shrine.glb",
+      "slot": "shrine",
+      "tier": "full",
+      "sha256": "585bdacc0be2e64ba6251395cab9e47acbcdf22b6b35a5e0b8115a9dbcb1183d",
+      "bytes": 307736,
+      "priority": "P1",
+      "tags": [
+        "shrine",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Shrine modelled for Sannidhi by Claude (AI)",
+      "triangles": 19759,
+      "draws": 1,
+      "textures": [],
+      "gpuBytes": 0,
+      "path": "/v/ff4ec74c/full/models/shrine.glb"
+    },
+    {
+      "src": "models/shrine.glb",
+      "slot": "shrine",
+      "tier": "lite",
+      "sha256": "585bdacc0be2e64ba6251395cab9e47acbcdf22b6b35a5e0b8115a9dbcb1183d",
+      "bytes": 307736,
+      "priority": "P1",
+      "tags": [
+        "shrine",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Shrine modelled for Sannidhi by Claude (AI)",
+      "triangles": 19759,
+      "draws": 1,
+      "textures": [],
+      "gpuBytes": 0,
+      "path": "/v/ff4ec74c/lite/models/shrine.glb"
+    },
+    {
+      "src": "models/linga.glb",
+      "slot": "linga",
+      "tier": "full",
+      "sha256": "47be777a03ab02b8d0b332770f9a72a908952e045e1428cb5bc8a23f459e4f5d",
+      "bytes": 20380,
+      "priority": "P1",
+      "tags": [
+        "linga",
+        "sacred",
+        "interim"
+      ],
+      "licence": "CC-BY-4.0",
+      "credit": "\"Shivling 3D Models\" by MANISH 3D MASTER, CC BY 4.0",
+      "triangles": 2490,
+      "draws": 1,
+      "textures": [
+        [
+          8,
+          4
+        ]
+      ],
+      "gpuBytes": 43,
+      "path": "/v/ff4ec74c/full/models/linga.glb"
+    },
+    {
+      "src": "models/linga.glb",
+      "slot": "linga",
+      "tier": "lite",
+      "sha256": "47be777a03ab02b8d0b332770f9a72a908952e045e1428cb5bc8a23f459e4f5d",
+      "bytes": 20380,
+      "priority": "P1",
+      "tags": [
+        "linga",
+        "sacred",
+        "interim"
+      ],
+      "licence": "CC-BY-4.0",
+      "credit": "\"Shivling 3D Models\" by MANISH 3D MASTER, CC BY 4.0",
+      "triangles": 2490,
+      "draws": 1,
+      "textures": [
+        [
+          8,
+          4
+        ]
+      ],
+      "gpuBytes": 43,
+      "path": "/v/ff4ec74c/lite/models/linga.glb"
+    },
+    {
+      "src": "models/mandapa.glb",
+      "slot": "mandapa",
+      "tier": "full",
+      "sha256": "4e1c77bba10b0c34fd6b5c2043e2663cee3c304ca51be750f900ce749e419370",
+      "bytes": 126628,
+      "priority": "P1",
+      "tags": [
+        "mandapa",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Mandapa modelled for Sannidhi by Claude (AI)",
+      "triangles": 10000,
+      "draws": 1,
+      "textures": [],
+      "gpuBytes": 0,
+      "path": "/v/ff4ec74c/full/models/mandapa.glb"
+    },
+    {
+      "src": "models/mandapa.glb",
+      "slot": "mandapa",
+      "tier": "lite",
+      "sha256": "4e1c77bba10b0c34fd6b5c2043e2663cee3c304ca51be750f900ce749e419370",
+      "bytes": 126628,
+      "priority": "P1",
+      "tags": [
+        "mandapa",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Mandapa modelled for Sannidhi by Claude (AI)",
+      "triangles": 10000,
+      "draws": 1,
+      "textures": [],
+      "gpuBytes": 0,
+      "path": "/v/ff4ec74c/lite/models/mandapa.glb"
+    },
+    {
+      "src": "models/ganesha-shrine.glb",
+      "slot": "ganesha-shrine",
+      "tier": "full",
+      "sha256": "37a8098fbfd5cd4f34abd6025d3c69a818f9706f95123ef1aad539e725176ca8",
+      "bytes": 33952,
+      "priority": "P1",
+      "tags": [
+        "ganesha-shrine",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Ganesha shrine modelled for Sannidhi by Claude (AI)",
+      "triangles": 1988,
+      "draws": 1,
+      "textures": [],
+      "gpuBytes": 0,
+      "path": "/v/ff4ec74c/full/models/ganesha-shrine.glb"
+    },
+    {
+      "src": "models/ganesha-shrine.glb",
+      "slot": "ganesha-shrine",
+      "tier": "lite",
+      "sha256": "37a8098fbfd5cd4f34abd6025d3c69a818f9706f95123ef1aad539e725176ca8",
+      "bytes": 33952,
+      "priority": "P1",
+      "tags": [
+        "ganesha-shrine",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Ganesha shrine modelled for Sannidhi by Claude (AI)",
+      "triangles": 1988,
+      "draws": 1,
+      "textures": [],
+      "gpuBytes": 0,
+      "path": "/v/ff4ec74c/lite/models/ganesha-shrine.glb"
+    },
+    {
+      "src": "models/ganesha.glb",
+      "slot": "ganesha",
+      "tier": "full",
+      "sha256": "5bcb90473f48d6fb91c73e6111e11b6b49cebb91c808f8d94e55e191563e29dc",
+      "bytes": 175636,
+      "priority": "P1",
+      "tags": [
+        "ganesha",
+        "sacred",
+        "interim"
+      ],
+      "licence": "CC-BY-4.0",
+      "credit": "\"Ganesha Statue\" by Arodin, CC BY 4.0",
+      "triangles": 5698,
+      "draws": 1,
+      "textures": [
+        [
+          1024,
+          1024
+        ]
+      ],
+      "gpuBytes": 1398101,
+      "path": "/v/ff4ec74c/full/models/ganesha.glb"
+    },
+    {
+      "src": "models/ganesha.glb",
+      "slot": "ganesha",
+      "tier": "lite",
+      "sha256": "70c611ad85992eb136a5eab3f145bea3abc71872806257c0f6249cf8b5459b37",
+      "bytes": 95140,
+      "priority": "P1",
+      "tags": [
+        "ganesha",
+        "sacred",
+        "interim"
+      ],
+      "licence": "CC-BY-4.0",
+      "credit": "\"Ganesha Statue\" by Arodin, CC BY 4.0",
+      "triangles": 5698,
+      "draws": 1,
+      "textures": [
+        [
+          512,
+          512
+        ]
+      ],
+      "gpuBytes": 349525,
+      "path": "/v/ff4ec74c/lite/models/ganesha.glb"
+    },
+    {
+      "src": "models/kund.glb",
+      "slot": "kund",
+      "tier": "full",
+      "sha256": "3b688aa74a987bd5fa448f9915c7f4a5525c80dca2ee75706ba8629703d8f14a",
+      "bytes": 38104,
+      "priority": "P1",
+      "tags": [
+        "kund",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Kund modelled for Sannidhi by Claude (AI)",
+      "triangles": 2168,
+      "draws": 1,
+      "textures": [],
+      "gpuBytes": 0,
+      "path": "/v/ff4ec74c/full/models/kund.glb"
+    },
+    {
+      "src": "models/kund.glb",
+      "slot": "kund",
+      "tier": "lite",
+      "sha256": "3b688aa74a987bd5fa448f9915c7f4a5525c80dca2ee75706ba8629703d8f14a",
+      "bytes": 38104,
+      "priority": "P1",
+      "tags": [
+        "kund",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Kund modelled for Sannidhi by Claude (AI)",
+      "triangles": 2168,
+      "draws": 1,
+      "textures": [],
+      "gpuBytes": 0,
+      "path": "/v/ff4ec74c/lite/models/kund.glb"
+    },
+    {
+      "src": "models/deepa-stand.glb",
+      "slot": "deepa-stand",
+      "tier": "full",
+      "sha256": "2b86cb6af2e2aa98f028ed5cbb45f647b542509d0ba5270cf9a6717f4102368e",
+      "bytes": 101568,
+      "priority": "P2",
+      "tags": [
+        "deepa-stand",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Deepa stand and diyas modelled for Sannidhi by Claude (AI)",
+      "triangles": 8636,
+      "draws": 1,
+      "textures": [],
+      "gpuBytes": 0,
+      "path": "/v/ff4ec74c/full/models/deepa-stand.glb"
+    },
+    {
+      "src": "models/deepa-stand.glb",
+      "slot": "deepa-stand",
+      "tier": "lite",
+      "sha256": "997395ecd115aa1d4dfc550ef7f53c9fd6d9f8df81cd3eef8828404bd4142af1",
+      "bytes": 90896,
+      "priority": "P2",
+      "tags": [
+        "deepa-stand",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Deepa stand and diyas modelled for Sannidhi by Claude (AI)",
+      "triangles": 7124,
+      "draws": 1,
+      "textures": [],
+      "gpuBytes": 0,
+      "path": "/v/ff4ec74c/lite/models/deepa-stand.glb"
+    },
+    {
+      "src": "models/bell.glb",
+      "slot": "bell",
+      "tier": "full",
+      "sha256": "2b2a1c5afdb004e5264b43b29f3b6539d0c37a93bf851525ccda182ea33fcf7b",
+      "bytes": 46296,
+      "priority": "P2",
+      "tags": [
+        "bell",
+        "interim"
+      ],
+      "licence": "CC-BY-4.0",
+      "credit": "\"Temple Bell\" by Srinuart, CC BY 4.0",
+      "triangles": 760,
+      "draws": 1,
+      "textures": [
+        [
+          512,
+          512
+        ]
+      ],
+      "gpuBytes": 349525,
+      "path": "/v/ff4ec74c/full/models/bell.glb"
+    },
+    {
+      "src": "models/bell.glb",
+      "slot": "bell",
+      "tier": "lite",
+      "sha256": "4385a03394b3bf2c178fa09c3585148f125b400934b93ef9fe9c5b7d3fe271e1",
+      "bytes": 19952,
+      "priority": "P2",
+      "tags": [
+        "bell",
+        "interim"
+      ],
+      "licence": "CC-BY-4.0",
+      "credit": "\"Temple Bell\" by Srinuart, CC BY 4.0",
+      "triangles": 376,
+      "draws": 1,
+      "textures": [
+        [
+          256,
+          256
+        ]
+      ],
+      "gpuBytes": 87381,
+      "path": "/v/ff4ec74c/lite/models/bell.glb"
+    },
+    {
+      "src": "models/post-lamp.glb",
+      "slot": "post-lamp",
+      "tier": "full",
+      "sha256": "b4eccee309d3b68f03796bceaaf639e3ee46d690df9bbead709cf7558dc7652a",
+      "bytes": 9068,
+      "priority": "P2",
+      "tags": [
+        "post-lamp",
+        "interim",
+        "ai"
+      ],
+      "licence": "CC-BY-4.0",
+      "credit": "\"Golden Oil Lamp\" by biswajit3dcreator, made with Meshy (AI), CC BY 4.0",
+      "triangles": 759,
+      "draws": 1,
+      "textures": [],
+      "gpuBytes": 0,
+      "path": "/v/ff4ec74c/full/models/post-lamp.glb"
+    },
+    {
+      "src": "models/post-lamp.glb",
+      "slot": "post-lamp",
+      "tier": "lite",
+      "sha256": "73bf13ce2c2717aab36b2cacfc80842e938587ebd4fe819d261d9aed8d81dc16",
+      "bytes": 5776,
+      "priority": "P2",
+      "tags": [
+        "post-lamp",
+        "interim",
+        "ai"
+      ],
+      "licence": "CC-BY-4.0",
+      "credit": "\"Golden Oil Lamp\" by biswajit3dcreator, made with Meshy (AI), CC BY 4.0",
+      "triangles": 379,
+      "draws": 1,
+      "textures": [],
+      "gpuBytes": 0,
+      "path": "/v/ff4ec74c/lite/models/post-lamp.glb"
+    },
+    {
+      "src": "models/avatar.glb",
+      "slot": "avatar",
+      "tier": "full",
+      "sha256": "1dfb029c9dac3a7c93f835d15bb6f3e4de3960f9ca49c22254fd86eb6abf1896",
+      "bytes": 101336,
+      "priority": "P0",
+      "tags": [
+        "avatar",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Devotee figure modelled for Sannidhi by Claude (AI)",
+      "triangles": 4066,
+      "draws": 1,
+      "textures": [],
+      "gpuBytes": 0,
+      "path": "/v/ff4ec74c/full/models/avatar.glb"
+    },
+    {
+      "src": "models/avatar.glb",
+      "slot": "avatar",
+      "tier": "lite",
+      "sha256": "1dfb029c9dac3a7c93f835d15bb6f3e4de3960f9ca49c22254fd86eb6abf1896",
+      "bytes": 101336,
+      "priority": "P0",
+      "tags": [
+        "avatar",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Devotee figure modelled for Sannidhi by Claude (AI)",
+      "triangles": 4066,
+      "draws": 1,
+      "textures": [],
+      "gpuBytes": 0,
+      "path": "/v/ff4ec74c/lite/models/avatar.glb"
+    }
+  ]
 }

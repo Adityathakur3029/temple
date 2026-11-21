@@ -53,6 +53,7 @@ These documents define what Sannidhi is and how it works. They are the source of
 | 2026-11-04 | The owner supplies the recordings (ambience, aartis, bells) and a 24-hour schedule of what plays when. Each file still needs a traceable licence (specs 06, 11) | Decided by owner |
 | 2026-11-05 | Build the swappable asset slots now, during M2, so models downloaded from the internet can stand in until artists' models replace them in M5 (specs 11, 13) | Decided by owner |
 | 2026-11-05 | Downloaded models made by people MAY stand in for the linga, Nandi and Ganesha too, if licensed, following spec 08 § Depiction, copying no real temple's murti, and marked `interim`; never AI-made; listed for the advisor, who reviews them before launch (spec 08 § Depiction) | Decided by owner |
+| 2026-11-08 | Temporary: AI-made test models of the linga, Nandi and Ganesha MAY be tried on the owner's own computer, to work out the size and decoration to ask a human maker for. Never deployed: `npm run deploy:web` refuses them. Ends with the human-made versions (M5) or when the owner ends it (spec 08 § Depiction) | Decided by owner |
 | 2026-11-05 | KTX2 textures are encoded with `ktx2-encoder` (WebAssembly) instead of the KTX-Software `toktx` tool, so the asset build needs nothing installed on Windows (spec 11) | Default |
 | 2026-11-05 | Until the lighting pass (M5), models use matte lighting like the greybox and keep only colour textures (spec 11 § Formats) | Default |
 

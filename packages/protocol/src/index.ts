@@ -6,3 +6,4 @@ export * from "./world";
 export * from "./names";
 export * from "./limits";
 export * from "./wire";
+export * from "./trees";

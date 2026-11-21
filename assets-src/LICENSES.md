@@ -43,6 +43,17 @@ Template for a downloaded model:
 - Not a scan or copy of a real temple's murti: simple modelled shapes with no scan data; the page names no temple or place
 - Modified: white tripundra faces given the shaft's stone material, red dot removed, recoloured from pure black to dark stone (linga-plain.gltf), then fitted, simplified and re-encoded for Sannidhi
 
+## models/nandi.glb
+- TEST MODEL, for the owner's computer only; never deployed (spec 08 § Depiction, "AI-made test models", decided by the owner 2026-11-08). `npm run deploy:web` refuses to run while it is configured
+- Source: own. Made by Claude (AI) in Blender 5.2 on 2026-11-08, with the script assets-src/models/nandi/make_nandi.py, which rebuilds it
+- Author: Claude (Anthropic), for the Sannidhi project
+- Licence: own
+- Credit line: Nandi test model made by Claude (AI), for this computer only
+- Interim: yes (a test model to brief the human maker; the final Nandi is made by people, M5)
+- AI-made: yes. Allowed only as a local test model of a sacred form, to work out the size and decoration to ask a human maker for; screenshots of it aren't published
+- Not a scan or copy of a real temple's murti: modelled from simple shapes by the script; it follows no particular temple's Nandi
+- Modified: re-encoded by the asset build
+
 ## models/ganesha.glb
 - Source: https://sketchfab.com/3d-models/ganesha-statue-4b19fcb66db049a89bf8d1dd3b0c733c
 - Author: Arodin (https://sketchfab.com/Arodin)
@@ -56,24 +67,31 @@ Template for a downloaded model:
 - Modified: fitted, simplified and re-encoded for Sannidhi
 
 ## models/tree.glb
-- Source: https://sketchfab.com/3d-models/conifer-tree-050e3864cbaa4348b4e1da1fce4ecdce
-- Author: Yurisaki3D (https://sketchfab.com/Yurisaki3D)
-- Licence: CC-BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
-- Downloaded: 2026-11-05
-- Credit line: "Conifer Tree" by Yurisaki3D, CC BY 4.0
-- Interim: yes (a stand-in until final art in M5)
-- AI-made: no (made in Blender, 62 triangles)
-- Modified: fitted and re-encoded for Sannidhi
+- Source: own. Made for Sannidhi by Claude (AI) in Blender 5.2 on 2026-11-08, with the script assets-src/models/tree/make_tree.py, which rebuilds it
+- Author: Claude (Anthropic), for the Sannidhi project
+- Licence: own
+- Credit line: Far deodar modelled for Sannidhi by Claude (AI)
+- Interim: yes (until final art in M5, or until it is accepted as final)
+- AI-made: yes. Allowed because it is a non-sacred prop with no text, deity figure or sacred symbol (spec 11 § AI-generated content); disclosed in the credit line
+- Modified: Lite simplified and re-encoded by the asset build
 
 ## models/near-tree.glb
-- Source: https://sketchfab.com/3d-models/pine-tree-e52769d653cd4e52a4acff3041961e65
-- Author: Andriy Shekh (https://sketchfab.com/sheh5262)
-- Licence: CC-BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
-- Downloaded: 2026-11-05
-- Credit line: "Pine tree" by Andriy Shekh, CC BY 4.0
-- Interim: yes (a stand-in until final art in M5)
-- AI-made: no (published 2020-10-17, tagged Blender, Substance and Photoshop; description "tried to make it look stylized")
-- Modified: leaves changed from see-through to cut-out (pine-cutout.gltf), then fitted, simplified and re-encoded for Sannidhi
+- Source: own. Made for Sannidhi by Claude (AI) in Blender 5.2 on 2026-11-08, with the script assets-src/models/near-tree/make_near_tree.py, which rebuilds it
+- Author: Claude (Anthropic), for the Sannidhi project
+- Licence: own
+- Credit line: Deodar modelled for Sannidhi by Claude (AI)
+- Interim: yes (until final art in M5, or until it is accepted as final)
+- AI-made: yes. Allowed because it is a non-sacred prop with no text, deity figure or sacred symbol (spec 11 § AI-generated content); disclosed in the credit line
+- Modified: Lite simplified and re-encoded by the asset build
+
+## models/oak.glb
+- Source: own. Made for Sannidhi by Claude (AI) in Blender 5.2 on 2026-11-08, with the script assets-src/models/oak/make_oak.py, which rebuilds it
+- Author: Claude (Anthropic), for the Sannidhi project
+- Licence: own
+- Credit line: Himalayan oak modelled for Sannidhi by Claude (AI)
+- Interim: yes (until final art in M5, or until it is accepted as final)
+- AI-made: yes. Allowed because it is a non-sacred prop with no text, deity figure or sacred symbol (spec 11 § AI-generated content); disclosed in the credit line
+- Modified: Lite simplified and re-encoded by the asset build
 
 ## models/post-lamp.glb
 - Source: https://sketchfab.com/3d-models/golden-oil-lamp-1fba4e5a5ac8410ca7235673a3f269ba

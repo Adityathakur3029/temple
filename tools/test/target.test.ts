@@ -1,6 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { REALTIME_URLS, parseTarget } from "../deploy/target";
+import { REALTIME_URLS, aiSacredSlots, parseTarget } from "../deploy/target";
+
+describe("aiSacredSlots", () => {
+  it("finds AI-made sacred forms, which deploy:web refuses", () => {
+    const file = (slot: string, tags: string[]) => ({ slot, tags });
+    const files = [
+      file("nandi", ["nandi", "sacred", "interim", "ai"]),
+      file("nandi", ["nandi", "sacred", "interim", "ai"]),
+      file("linga", ["linga", "sacred", "interim"]),
+      file("gate", ["gate", "interim", "ai"]),
+    ];
+    expect(aiSacredSlots({ files })).toEqual(["nandi"]);
+    expect(aiSacredSlots({ files: files.slice(2) })).toEqual([]);
+  });
+});
 
 describe("parseTarget", () => {
   it("accepts --env staging|production in both forms", () => {

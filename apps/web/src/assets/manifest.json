@@ -1,6 +1,6 @@
 {
-  "release": "ff4ec74c",
-  "inputs": "c6b0def0f553b5bf",
+  "release": "28c4547b",
+  "inputs": "3d5efc4cc0b3f35e",
   "files": [
     {
       "src": "models/gate.glb",
@@ -20,7 +20,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/ff4ec74c/full/models/gate.glb"
+      "path": "/v/28c4547b/full/models/gate.glb"
     },
     {
       "src": "models/gate.glb",
@@ -40,7 +40,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/ff4ec74c/lite/models/gate.glb"
+      "path": "/v/28c4547b/lite/models/gate.glb"
     },
     {
       "src": "models/today-board.glb",
@@ -60,7 +60,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/ff4ec74c/full/models/today-board.glb"
+      "path": "/v/28c4547b/full/models/today-board.glb"
     },
     {
       "src": "models/today-board.glb",
@@ -80,63 +80,127 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/ff4ec74c/lite/models/today-board.glb"
+      "path": "/v/28c4547b/lite/models/today-board.glb"
+    },
+    {
+      "src": "models/tree.glb",
+      "slot": "tree",
+      "tier": "full",
+      "sha256": "69e11688c4fae763db1939f7e903672b6e9c7650b773abb4da73ea719a034da2",
+      "bytes": 3452,
+      "priority": "P0",
+      "tags": [
+        "tree",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Far deodar modelled for Sannidhi by Claude (AI)",
+      "triangles": 110,
+      "draws": 1,
+      "textures": [],
+      "gpuBytes": 0,
+      "path": "/v/28c4547b/full/models/tree.glb"
+    },
+    {
+      "src": "models/tree.glb",
+      "slot": "tree",
+      "tier": "lite",
+      "sha256": "a7db9e7b836710ffa3ede9a4419ddcdd82d7a4d948730cfacc54f74b09344bcf",
+      "bytes": 2924,
+      "priority": "P0",
+      "tags": [
+        "tree",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Far deodar modelled for Sannidhi by Claude (AI)",
+      "triangles": 57,
+      "draws": 1,
+      "textures": [],
+      "gpuBytes": 0,
+      "path": "/v/28c4547b/lite/models/tree.glb"
     },
     {
       "src": "models/near-tree.glb",
       "slot": "near-tree",
       "tier": "full",
-      "sha256": "3d706bf9557b6e8ee97d535ec35563c196015d429e1f6fbd2f89a73eb5b0e268",
-      "bytes": 158016,
+      "sha256": "09c9ad00735b671a387dbb66954bd012904cb25d74d1eea94363b436ab317e9e",
+      "bytes": 12020,
       "priority": "P1",
       "tags": [
         "near-tree",
-        "interim"
+        "interim",
+        "ai"
       ],
-      "licence": "CC-BY-4.0",
-      "credit": "\"Pine tree\" by Andriy Shekh, CC BY 4.0",
-      "triangles": 1526,
-      "draws": 2,
-      "textures": [
-        [
-          512,
-          512
-        ],
-        [
-          512,
-          512
-        ]
-      ],
-      "gpuBytes": 699051,
-      "path": "/v/ff4ec74c/full/models/near-tree.glb"
+      "licence": "own",
+      "credit": "Deodar modelled for Sannidhi by Claude (AI)",
+      "triangles": 1130,
+      "draws": 1,
+      "textures": [],
+      "gpuBytes": 0,
+      "path": "/v/28c4547b/full/models/near-tree.glb"
     },
     {
       "src": "models/near-tree.glb",
       "slot": "near-tree",
       "tier": "lite",
-      "sha256": "5385ce28e3630aa8d7a75f827a85abba948539878378b072de7da2ba5e926bef",
-      "bytes": 147908,
+      "sha256": "3d0562a0b5344c1c332f032423daab458d1c3a788a408f7ba332773d706597c6",
+      "bytes": 9092,
       "priority": "P1",
       "tags": [
         "near-tree",
-        "interim"
+        "interim",
+        "ai"
       ],
-      "licence": "CC-BY-4.0",
-      "credit": "\"Pine tree\" by Andriy Shekh, CC BY 4.0",
-      "triangles": 1227,
-      "draws": 2,
-      "textures": [
-        [
-          512,
-          512
-        ],
-        [
-          512,
-          512
-        ]
+      "licence": "own",
+      "credit": "Deodar modelled for Sannidhi by Claude (AI)",
+      "triangles": 760,
+      "draws": 1,
+      "textures": [],
+      "gpuBytes": 0,
+      "path": "/v/28c4547b/lite/models/near-tree.glb"
+    },
+    {
+      "src": "models/oak.glb",
+      "slot": "oak",
+      "tier": "full",
+      "sha256": "6f23453b69bbaab2b48d6a126ebe8bab256ef95d96b1294e4ba1fe4cd8e9cf16",
+      "bytes": 8408,
+      "priority": "P1",
+      "tags": [
+        "oak",
+        "interim",
+        "ai"
       ],
-      "gpuBytes": 699051,
-      "path": "/v/ff4ec74c/lite/models/near-tree.glb"
+      "licence": "own",
+      "credit": "Himalayan oak modelled for Sannidhi by Claude (AI)",
+      "triangles": 742,
+      "draws": 1,
+      "textures": [],
+      "gpuBytes": 0,
+      "path": "/v/28c4547b/full/models/oak.glb"
+    },
+    {
+      "src": "models/oak.glb",
+      "slot": "oak",
+      "tier": "lite",
+      "sha256": "240c84f22e325a0441b8d9e26ddc7f8aeb8b2ab7c43bd62c7af99d2f59abcddd",
+      "bytes": 5744,
+      "priority": "P1",
+      "tags": [
+        "oak",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Himalayan oak modelled for Sannidhi by Claude (AI)",
+      "triangles": 380,
+      "draws": 1,
+      "textures": [],
+      "gpuBytes": 0,
+      "path": "/v/28c4547b/lite/models/oak.glb"
     },
     {
       "src": "models/shrine.glb",
@@ -156,7 +220,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/ff4ec74c/full/models/shrine.glb"
+      "path": "/v/28c4547b/full/models/shrine.glb"
     },
     {
       "src": "models/shrine.glb",
@@ -176,7 +240,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/ff4ec74c/lite/models/shrine.glb"
+      "path": "/v/28c4547b/lite/models/shrine.glb"
     },
     {
       "src": "models/linga.glb",
@@ -201,7 +265,7 @@
         ]
       ],
       "gpuBytes": 43,
-      "path": "/v/ff4ec74c/full/models/linga.glb"
+      "path": "/v/28c4547b/full/models/linga.glb"
     },
     {
       "src": "models/linga.glb",
@@ -226,7 +290,49 @@
         ]
       ],
       "gpuBytes": 43,
-      "path": "/v/ff4ec74c/lite/models/linga.glb"
+      "path": "/v/28c4547b/lite/models/linga.glb"
+    },
+    {
+      "src": "models/nandi.glb",
+      "slot": "nandi",
+      "tier": "full",
+      "sha256": "9ad57e4fb0d892122874619220c5dd2e8f25f5a9d6c27c6706f0a6925fb4bbcf",
+      "bytes": 69696,
+      "priority": "P1",
+      "tags": [
+        "nandi",
+        "sacred",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Nandi test model made by Claude (AI), for this computer only",
+      "triangles": 7898,
+      "draws": 1,
+      "textures": [],
+      "gpuBytes": 0,
+      "path": "/v/28c4547b/full/models/nandi.glb"
+    },
+    {
+      "src": "models/nandi.glb",
+      "slot": "nandi",
+      "tier": "lite",
+      "sha256": "9ad57e4fb0d892122874619220c5dd2e8f25f5a9d6c27c6706f0a6925fb4bbcf",
+      "bytes": 69696,
+      "priority": "P1",
+      "tags": [
+        "nandi",
+        "sacred",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Nandi test model made by Claude (AI), for this computer only",
+      "triangles": 7898,
+      "draws": 1,
+      "textures": [],
+      "gpuBytes": 0,
+      "path": "/v/28c4547b/lite/models/nandi.glb"
     },
     {
       "src": "models/mandapa.glb",
@@ -246,7 +352,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/ff4ec74c/full/models/mandapa.glb"
+      "path": "/v/28c4547b/full/models/mandapa.glb"
     },
     {
       "src": "models/mandapa.glb",
@@ -266,7 +372,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/ff4ec74c/lite/models/mandapa.glb"
+      "path": "/v/28c4547b/lite/models/mandapa.glb"
     },
     {
       "src": "models/ganesha-shrine.glb",
@@ -286,7 +392,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/ff4ec74c/full/models/ganesha-shrine.glb"
+      "path": "/v/28c4547b/full/models/ganesha-shrine.glb"
     },
     {
       "src": "models/ganesha-shrine.glb",
@@ -306,7 +412,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/ff4ec74c/lite/models/ganesha-shrine.glb"
+      "path": "/v/28c4547b/lite/models/ganesha-shrine.glb"
     },
     {
       "src": "models/ganesha.glb",
@@ -331,7 +437,7 @@
         ]
       ],
       "gpuBytes": 1398101,
-      "path": "/v/ff4ec74c/full/models/ganesha.glb"
+      "path": "/v/28c4547b/full/models/ganesha.glb"
     },
     {
       "src": "models/ganesha.glb",
@@ -356,7 +462,7 @@
         ]
       ],
       "gpuBytes": 349525,
-      "path": "/v/ff4ec74c/lite/models/ganesha.glb"
+      "path": "/v/28c4547b/lite/models/ganesha.glb"
     },
     {
       "src": "models/kund.glb",
@@ -376,7 +482,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/ff4ec74c/full/models/kund.glb"
+      "path": "/v/28c4547b/full/models/kund.glb"
     },
     {
       "src": "models/kund.glb",
@@ -396,7 +502,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/ff4ec74c/lite/models/kund.glb"
+      "path": "/v/28c4547b/lite/models/kund.glb"
     },
     {
       "src": "models/deepa-stand.glb",
@@ -416,7 +522,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/ff4ec74c/full/models/deepa-stand.glb"
+      "path": "/v/28c4547b/full/models/deepa-stand.glb"
     },
     {
       "src": "models/deepa-stand.glb",
@@ -436,7 +542,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/ff4ec74c/lite/models/deepa-stand.glb"
+      "path": "/v/28c4547b/lite/models/deepa-stand.glb"
     },
     {
       "src": "models/bell.glb",
@@ -460,7 +566,7 @@
         ]
       ],
       "gpuBytes": 349525,
-      "path": "/v/ff4ec74c/full/models/bell.glb"
+      "path": "/v/28c4547b/full/models/bell.glb"
     },
     {
       "src": "models/bell.glb",
@@ -484,7 +590,7 @@
         ]
       ],
       "gpuBytes": 87381,
-      "path": "/v/ff4ec74c/lite/models/bell.glb"
+      "path": "/v/28c4547b/lite/models/bell.glb"
     },
     {
       "src": "models/post-lamp.glb",
@@ -504,7 +610,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/ff4ec74c/full/models/post-lamp.glb"
+      "path": "/v/28c4547b/full/models/post-lamp.glb"
     },
     {
       "src": "models/post-lamp.glb",
@@ -524,14 +630,14 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/ff4ec74c/lite/models/post-lamp.glb"
+      "path": "/v/28c4547b/lite/models/post-lamp.glb"
     },
     {
       "src": "models/avatar.glb",
       "slot": "avatar",
       "tier": "full",
-      "sha256": "1dfb029c9dac3a7c93f835d15bb6f3e4de3960f9ca49c22254fd86eb6abf1896",
-      "bytes": 101336,
+      "sha256": "333ab6e35a3b39a75839bb49adf365bfb6d9fdccec5195e95be3b474c9b00b98",
+      "bytes": 85972,
       "priority": "P0",
       "tags": [
         "avatar",
@@ -540,18 +646,18 @@
       ],
       "licence": "own",
       "credit": "Devotee figure modelled for Sannidhi by Claude (AI)",
-      "triangles": 4066,
+      "triangles": 3494,
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/ff4ec74c/full/models/avatar.glb"
+      "path": "/v/28c4547b/full/models/avatar.glb"
     },
     {
       "src": "models/avatar.glb",
       "slot": "avatar",
       "tier": "lite",
-      "sha256": "1dfb029c9dac3a7c93f835d15bb6f3e4de3960f9ca49c22254fd86eb6abf1896",
-      "bytes": 101336,
+      "sha256": "333ab6e35a3b39a75839bb49adf365bfb6d9fdccec5195e95be3b474c9b00b98",
+      "bytes": 85972,
       "priority": "P0",
       "tags": [
         "avatar",
@@ -560,11 +666,11 @@
       ],
       "licence": "own",
       "credit": "Devotee figure modelled for Sannidhi by Claude (AI)",
-      "triangles": 4066,
+      "triangles": 3494,
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/ff4ec74c/lite/models/avatar.glb"
+      "path": "/v/28c4547b/lite/models/avatar.glb"
     }
   ]
 }

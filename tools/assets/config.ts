@@ -16,7 +16,10 @@ export interface SlotConfig {
   credit: string | null;
   /** A stand-in (usually downloaded) until final art replaces it in M5. */
   interim: boolean;
-  /** Made with an AI tool. Never allowed for sacred slots (spec 11 § AI-generated content). */
+  /**
+   * Made with an AI tool. In a sacred slot only as a local test model, which deploy:web refuses
+   * (spec 08 § Depiction, spec 11 § AI-generated content).
+   */
   ai: boolean;
   /** `auto` scales and moves the model to the slot's size and origin; `none` keeps it as made. */
   fit: "auto" | "none";
@@ -125,17 +128,19 @@ export function parseConfig(
     }
     const ai = v.ai ?? false;
     if (typeof ai !== "boolean") problems.push(`${where}.ai: true or false`);
-    if (ai === true && SLOTS[id].sacred) {
-      problems.push(`${where}.ai: AI-made models are never used for sacred forms (spec 08)`);
-    }
     if (SLOTS[id].sacred) {
       // Spec 08 § Depiction: say so explicitly; many shared models are AI-made and not labelled.
-      if (v.ai !== false) {
-        problems.push(`${where}.ai: sacred forms need an explicit "ai": false (spec 08)`);
+      if (v.ai === undefined) {
+        problems.push(
+          `${where}.ai: sacred forms say "ai" explicitly: false, or true for a local test model (spec 08)`,
+        );
       }
-      // Only work made for Sannidhi can be final; anything downloaded stays a stand-in.
-      if (licence !== "own" && v.interim !== true) {
-        problems.push(`${where}.interim: a downloaded sacred form is always a stand-in (spec 08)`);
+      // Only work made for Sannidhi by people can be final. Anything downloaded stays a stand-in,
+      // and an AI-made one is a local test model that deploy:web refuses (spec 08 § Depiction).
+      if ((licence !== "own" || ai === true) && v.interim !== true) {
+        problems.push(
+          `${where}.interim: a downloaded or AI-made sacred form is always a stand-in (spec 08)`,
+        );
       }
     }
     if (ai === true && credit === null) {

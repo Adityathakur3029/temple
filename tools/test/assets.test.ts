@@ -87,17 +87,20 @@ describe("parseConfig", () => {
     expect(problems.some((p) => p.includes('"## models/mat.glb"'))).toBe(true);
   });
 
-  it("allows a downloaded model in a sacred slot but never an AI-made one", () => {
+  it("allows a downloaded sacred form, and an AI-made one only as a test stand-in", () => {
     const nandi = { ...good, file: "models/nandi/nandi.glb", ai: false };
     expect(parseConfig({ slots: { nandi } }, env).problems).toEqual([]);
-    const ai = parseConfig({ slots: { nandi: { ...nandi, ai: true } } }, env).problems;
-    expect(ai.some((p) => p.startsWith("slots.nandi.ai"))).toBe(true);
+    // A local test model (spec 08 § Depiction); deploy:web refuses it.
+    const test = { ...nandi, ai: true, licence: "own", credit: "Test Nandi made with an AI tool" };
+    expect(parseConfig({ slots: { nandi: test } }, env).problems).toEqual([]);
+    const final = parseConfig({ slots: { nandi: { ...test, interim: false } } }, env).problems;
+    expect(final.some((p) => p.startsWith("slots.nandi.interim"))).toBe(true);
   });
 
-  it("needs an explicit ai: false, and keeps a downloaded sacred form interim", () => {
+  it("needs an explicit ai flag, and keeps a downloaded sacred form interim", () => {
     const nandi = { ...good, file: "models/nandi/nandi.glb" };
     const silent = parseConfig({ slots: { nandi } }, env).problems;
-    expect(silent.some((p) => p.includes('explicit "ai": false'))).toBe(true);
+    expect(silent.some((p) => p.includes('say "ai" explicitly'))).toBe(true);
     const final = parseConfig({ slots: { nandi: { ...nandi, ai: false, interim: false } } }, env);
     expect(final.problems.some((p) => p.startsWith("slots.nandi.interim"))).toBe(true);
     const own = { ...nandi, ai: false, interim: false, licence: "own", credit: undefined };

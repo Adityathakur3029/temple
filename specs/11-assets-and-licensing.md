@@ -80,7 +80,6 @@ Coordinates are metres with +y up and the linga at the origin. +z points from th
 | `ganesha` | A small traditional seated Ganesha murti, facing +z; not cartoon, "cute", toy-like or modern stylised | 0.71 m tall | Bottom centre on the pedestal (−5.375, 0.75, 42.4), turned to face +x | 6k / 2 | P1, `sacred` |
 | `kund` | Square stepped tank: rim at ground level, three 0.6 m steps each 0.25 m lower; no sacred symbols | 10 m wide | Top centre at (16, 0.04, 32) | 8k / 2 | P1 |
 | `deepa-stand` | Tall brass stand in tiers (the flames are drawn in code) | 2.35 m tall | Bottom centre at (−8.5, 0, 25) | 15k / 2 | P2 |
-| `aarti-plate` | Wooden stand with a brass aarti plate | 0.89 m tall | Bottom centre at (2.2, 0, 20.5) | 3k / 1 | P2 |
 | `bell` | A brass bell, hanging from its top (the chain is drawn in code) | 0.32 m tall | Top centre; hung at the 11 bell points, larger at the gate and in the mandapa | 800 / 1 | P2 |
 | `post-lamp` | A small brass standing oil lamp without its flame (the flame is drawn in code above the top centre) | 0.28 m tall | Bottom centre; one on the shelf of each of the 8 path bell posts (top at 1.46 m), front turned to the path | 800 / 1 | P2 |
 | `mat` | A plain woven mat, 0.7 m wide (x) and 0.8 m deep (z); no sacred symbols | 0.7 m wide | Bottom centre; one at each of the 40 mat spots | 100 / 1 | P2 |
@@ -143,11 +142,12 @@ The client loads assets only through the manifest. No asset URL is written into 
 
 Commissioned work needs a written licence that covers a perpetual, worldwide right to use it on the website and in promotion, including while the site accepts donations.
 
-**Downloaded models** (from Sketchfab, Poly Haven and similar sites) are allowed as stand-ins when the licence is CC0 or CC-BY 4.0. Record the source page, author, licence and date in `assets-src/LICENSES.md` before configuring the model; the build fails without that entry. Mark the model `interim` until final art replaces it. This includes the linga, Nandi and Ganesha, on the conditions in spec 08 § Depiction: for these the config must say `"ai": false`, and the build refuses one that isn't `interim` unless its licence is `own`.
+**Downloaded models** (from Sketchfab, Poly Haven and similar sites) are allowed as stand-ins when the licence is CC0 or CC-BY 4.0. Record the source page, author, licence and date in `assets-src/LICENSES.md` before configuring the model; the build fails without that entry. Mark the model `interim` until final art replaces it. This includes the linga, Nandi and Ganesha, on the conditions in spec 08 § Depiction: for these the config must say `"ai"` explicitly (`false` for a downloaded stand-in, `true` only for a local test model), and the build refuses one that isn't `interim` unless its licence is `own` and it isn't AI-made.
 
 **AI-generated content:**
 - MAY be used only for non-sacred textures and props, where the tool's terms allow this use. It is disclosed in the credits.
-- MUST NOT be used for the linga, Nandi, Ganesha, sacred symbols, the aarti or mantra audio.
+- MUST NOT be used for the linga, Nandi, Ganesha, sacred symbols, the aarti or mantra audio in anything deployed.
+- The one exception is a test model of the linga, Nandi or Ganesha on the owner's own computer, to work out the size and decoration to ask a human maker for (temporary, decided by the owner on 2026-11-08; spec 08 § Depiction). It is `interim` and tagged `ai`, and `npm run deploy:web` refuses to deploy it.
 
 ### `assets-src/LICENSES.md` entry format
 
@@ -180,8 +180,9 @@ The in-app credits screen (spec 07) is generated from the manifest's `credit` fi
   - an asset exceeds its triangle, draw or size budget;
   - a built file doesn't match its manifest entry, or `assets-src/` changed since the last build;
   - a configured model has no `LICENSES.md` entry, or a CC-BY model has no credit;
-  - a sacred slot's config doesn't say `"ai": false`, or a downloaded sacred form isn't `interim`;
+  - a sacred slot's config doesn't say `"ai"` explicitly, or a downloaded or AI-made sacred form isn't `interim`;
   - web code outside the scene loads the manifest or a model, or names a built model's path (spec 08). The favicon and app icon are checked by review.
+- `npm run deploy:web` refuses to run while the manifest has a model tagged both `sacred` and `ai` (a local test model, spec 08 § Depiction).
 - A slot without a model, or whose model fails to load, shows its greybox shape.
 - Lite-tier scene bytes ≤ 5 MB and Full-tier ≤ 12 MB (spec 10).
 

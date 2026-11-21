@@ -5,7 +5,7 @@
  *
  * Plain data with no three.js import, so the Node asset tools can share it.
  */
-import { AARTI_PLATE, DEEPA_STAND, GANESHA, GATE, TODAY_BOARD } from "@sannidhi/protocol";
+import { DEEPA_STAND, GANESHA, GATE, TODAY_BOARD } from "@sannidhi/protocol";
 import { PLINTH } from "../scene/ground";
 
 export const SLOT_IDS = [
@@ -22,7 +22,6 @@ export const SLOT_IDS = [
   "ganesha",
   "kund",
   "deepa-stand",
-  "aarti-plate",
   "bell",
   "post-lamp",
   "mat",
@@ -240,18 +239,6 @@ export const SLOTS: Readonly<Record<SlotId, SlotSpec>> = {
     fit: { axis: "y", size: 2.35 },
     origin: "bottom",
     place: { x: DEEPA_STAND.x, y: 0, z: DEEPA_STAND.z, yaw: 0 },
-  },
-  "aarti-plate": {
-    label: "Wooden stand with a brass aarti plate on top",
-    kind: "single",
-    priority: "P2",
-    sacred: false,
-    maxTriangles: 3_000,
-    maxDraws: 1,
-    texture: { full: 1024, lite: 512 },
-    fit: { axis: "y", size: 0.89 },
-    origin: "bottom",
-    place: { x: AARTI_PLATE.x, y: 0, z: AARTI_PLATE.z, yaw: 0 },
   },
   bell: {
     label: "A brass temple bell, hanging from its top (the chain is drawn in code)",

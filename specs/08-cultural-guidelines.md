@@ -39,7 +39,13 @@ Where Hindu practice varies by region or tradition, this document picks a defaul
   - The tripundra (three ash lines) on the linga is **check with advisor**.
 - **Nandi:** seated and calm, facing the sanctum, with a traditional form and no exaggerated or cartoon proportions. Never animated.
 - **Ganesha:** a small traditional seated murti in an open shrine near the gate. Never animated, never stylised as a mascot.
-- **Human-made:** all three (linga, Nandi, Ganesha) are made by people, never AI-generated. The final versions are made for Sannidhi and reviewed by the advisor (M5). See spec 11.
+- **Human-made:** all three (linga, Nandi, Ganesha) are made by people, never AI-generated, in anything deployed. The final versions are made for Sannidhi and reviewed by the advisor (M5). See spec 11.
+- **AI-made test models (temporary, decided by the owner, 2026-11-08):** to work out what size and decoration to ask a human maker for, an AI-made linga, Nandi or Ganesha MAY be tried in the temple on the owner's own computer. It is never deployed, to staging or production:
+  - the config says `"ai": true` and `"interim": true`, with a credit naming the AI tool, and `LICENSES.md` says it is a test model;
+  - `npm run deploy:web` refuses to run while the asset manifest has a model tagged both `sacred` and `ai`;
+  - the depiction rules above still hold: the linga aniconic, with no face or eyes; Nandi seated, calm and traditional; Ganesha traditional and never a mascot, cartoon or "cute" figure; no copy of a specific real temple's murti, and no damaged form. A test MAY try a decoration that is still an open question for the advisor (for example the tripundra), so the owner can see it before asking;
+  - the result is a brief for the human maker (sizes, decorations, screenshots), not final art. Screenshots of a test model aren't published;
+  - this exception ends when the human-made versions arrive (M5), or sooner if the owner ends it.
 - **Downloaded stand-ins:** until the final versions exist, a model of the linga, Nandi or Ganesha downloaded from the internet MAY stand in, on four conditions (decided by the owner, 2026-11-05):
   - a person made it, and its licence allows our use (spec 11 § Licensing rules). The config says `"ai": false` explicitly, and `LICENSES.md` notes how human authorship was checked;
   - it follows the depiction rules above: the linga aniconic, in plain dark stone, with no face, eyes or painted marks (no tripundra while that item is Off); Nandi seated, calm and traditional; Ganesha traditional and never a mascot, cartoon or "cute" figure. It isn't a copy or scan of a specific real temple's murti;

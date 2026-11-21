@@ -30,6 +30,10 @@ import {
   SOMASUTRA,
   SOMASUTRA_BRIDGE,
   SPAWN,
+  LAWN,
+  TREE_TRUNKS,
+  BELL_POSTS,
+  pathDistance,
   TODAY_BOARD,
   WALKABLE,
   blockedAt,
@@ -218,8 +222,8 @@ describe("sacred and blocked zones", () => {
         expect(isWalkable(x, z, "half-somasutra"), `(${x}, ${z})`).toBe(false);
       }
     }
-    // It reaches the forest edge, so nobody can walk round its end.
-    expect(SOMASUTRA.x1).toBe(COMPOUND.x1);
+    // It reaches the compound wall's inner face, so nobody can walk round its end on the lawn.
+    expect(SOMASUTRA.x1).toBe(Math.max(...LAWN.filter((l) => l.z0 <= 0 && l.z1 >= 0).map((l) => l.x1)));
     for (const s of WALKABLE) {
       const nearChannel = samplesIn(s, 0.25).some((p) => Math.abs(p.z) <= SOMASUTRA.halfWidth);
       if (nearChannel) expect(maxX(s)).toBeLessThanOrEqual(SOMASUTRA.x1);
@@ -361,9 +365,24 @@ describe("segmentBlocked: a step can't hop over a zone (spec 05 § Movement rule
     expect(segmentBlocked(a, b)).toBe(zone);
   });
 
-  it("refuses a step through a pillar or out past the forest edge", () => {
+  it("refuses a step through a pillar or out through the compound wall", () => {
     expect(segmentBlocked({ x: 6.5, z: 9.4 }, { x: 6.5, z: 10.6 })).toBe("pillar");
-    expect(segmentBlocked({ x: 14, z: 5 }, { x: 15.5, z: 5 })).toBe("outside");
+    expect(segmentBlocked({ x: 15.5, z: 5 }, { x: 16.1, z: 5 })).toBe("outside");
+    expect(segmentBlocked({ x: 8, z: 45.8 }, { x: 8, z: 46.3 })).toBe("outside");
+  });
+
+  it("lets visitors walk on the lawn, round its trees and the bell posts", () => {
+    expect(segmentBlocked({ x: 14, z: 5 }, { x: 15.5, z: 5 })).toBeNull();
+    expect(isWalkable(6, 40)).toBe(true);
+    expect(isWalkable(-14, 34)).toBe(true);
+    expect(TREE_TRUNKS.length).toBeGreaterThan(0);
+    for (const t of TREE_TRUNKS) expect(blockedAt(t.x, t.z)).toBe("tree");
+    expect(BELL_POSTS).toHaveLength(8);
+    for (const p of BELL_POSTS) {
+      expect(blockedAt(p.x, p.z)).toBe("bell-post");
+      // The post stands on the lawn, clear of the path.
+      expect(pathDistance(p.x, p.z)).toBeGreaterThan(0.3);
+    }
   });
 
   it("allows ordinary steps, including over the bridge in full mode", () => {

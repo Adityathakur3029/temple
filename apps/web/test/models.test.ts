@@ -18,7 +18,7 @@ import { SLOT_IDS, SLOTS } from "../src/assets/slots";
 import { MeshBuilder, withoutSection } from "../src/scene/builder";
 import { GANESHA_SHRINE, TODAY_BOARD } from "@sannidhi/protocol";
 import {
-  GATE_WALLS,
+  TEMPLE_WALLS,
   MAX_TREES,
   POST_LAMP_OUT,
   TREE_SPREAD,
@@ -129,13 +129,13 @@ describe("the forest", () => {
   const toRect = (r: { x0: number; x1: number; z0: number; z1: number }, x: number, z: number) =>
     Math.hypot(Math.max(r.x0 - x, 0, x - r.x1), Math.max(r.z0 - z, 0, z - r.z1));
 
-  it("keeps its branches out of the Ganesha shrine, the gate walls, the bell posts and the board", () => {
+  it("keeps its branches out of the Ganesha shrine, the compound wall, the bell posts and the board", () => {
     for (const t of forest()) {
       const reach = TREE_SPREAD * t.w;
       // The shrine stands against open forest: its roof overhangs its walls by 0.15 m.
       const shrine = toRect(GANESHA_SHRINE, t.x, t.z) - 0.15;
       expect(shrine).toBeGreaterThanOrEqual(Math.max(reach + 1, 3) - 1e-9);
-      for (const wall of GATE_WALLS) expect(toRect(wall, t.x, t.z)).toBeGreaterThan(reach);
+      for (const wall of TEMPLE_WALLS) expect(toRect(wall, t.x, t.z)).toBeGreaterThan(reach);
       for (const p of pathPosts()) expect(Math.hypot(p.x - t.x, p.z - t.z)).toBeGreaterThan(reach);
       const board = Math.hypot(TODAY_BOARD.x - t.x, TODAY_BOARD.z - t.z) - 0.8;
       expect(board).toBeGreaterThan(reach);

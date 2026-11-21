@@ -98,7 +98,8 @@ export const CAMERA_BLOCKERS: readonly Box[] = [
     const h = PILLAR_HALF_SIZE + 0.05;
     return box(p.x - h, p.x + h, 0, HEIGHTS.pillarTop + 0.2, p.z - h, p.z + h);
   }),
-  box(NANDI_PLATFORM.x0, NANDI_PLATFORM.x1, 0, 1.6, NANDI_PLATFORM.z0, NANDI_PLATFORM.z1),
+  // Nandi to his horn tips: the platform (0.5 m) and the figure (1.3 m), with a little margin.
+  box(NANDI_PLATFORM.x0, NANDI_PLATFORM.x1, 0, 1.85, NANDI_PLATFORM.z0, NANDI_PLATFORM.z1),
   box(
     GANESHA_SHRINE.x0 - 0.15,
     GANESHA_SHRINE.x1 + 0.15,

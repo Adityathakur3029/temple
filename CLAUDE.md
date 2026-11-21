@@ -22,7 +22,7 @@ Sannidhi (सन्निधि, "sacred presence") is a browser-based 3D temple
 - Seated avatars face the sanctum. No pose points feet towards the deity.
 - No dancing, jokes, emotes or playful animations anywhere in the temple.
 - Offerings are symbolic. Money never buys a blessing, a bigger lamp or any in-temple effect.
-- The linga, Nandi and Ganesha are never AI-made. Downloaded stand-ins are allowed until final art if licensed, respectful and marked `interim`.
+- The linga, Nandi and Ganesha are never AI-made in anything deployed. Downloaded stand-ins are allowed until final art if licensed, respectful and marked `interim`. For now (owner, 2026-11-08), AI-made test models MAY be tried locally to brief the human maker; `npm run deploy:web` refuses them (spec 08 § Depiction).
 - No free-text input from visitors anywhere: no chat, no custom names, no messages.
 
 ## Stack and layout (planned; created in milestone M0)

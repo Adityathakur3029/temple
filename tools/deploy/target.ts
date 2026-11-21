@@ -1,5 +1,18 @@
 /** Deploys always name their target: `npm run deploy:<part> -- --env staging|production`. */
 
+/**
+ * Slots whose built model (an asset manifest entry) is an AI-made sacred form. These are local
+ * test models only (spec 08 § Depiction), so deploy:web refuses to run while there are any.
+ */
+export function aiSacredSlots(manifest: {
+  files: readonly { slot: string; tags: readonly string[] }[];
+}): string[] {
+  const slots = manifest.files
+    .filter((f) => f.tags.includes("sacred") && f.tags.includes("ai"))
+    .map((f) => f.slot);
+  return [...new Set(slots)];
+}
+
 export type Target = "staging" | "production";
 
 export function parseTarget(argv: readonly string[]): Target {

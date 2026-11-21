@@ -16,6 +16,7 @@ import {
   BufferGeometry,
   CanvasTexture,
   Color,
+  type ColorRepresentation,
   ConeGeometry,
   CylinderGeometry,
   Float32BufferAttribute,
@@ -41,7 +42,6 @@ import {
 } from "three";
 import {
   ANTARALA,
-  AARTI_PLATE,
   BELLS,
   BELL_IDS,
   circle,
@@ -70,7 +70,11 @@ import {
   SOMASUTRA,
   SOMASUTRA_BRIDGE,
   TODAY_BOARD,
-  WALKABLE,
+  BELL_POSTS,
+  BELL_POST_LAMP_OUT,
+  pathDistance,
+  WALL_LINE,
+  WALL_THICK,
   type BellId,
   type PradakshinaMode,
   type Shape as WorldShape,
@@ -79,13 +83,16 @@ import type { AssetTier } from "../assets/manifest";
 import { SLOTS, type SlotId } from "../assets/slots";
 import { MeshBuilder, placed, withoutSection } from "./builder";
 import { HEIGHTS, KUND_FLOOR_Y, KUND_STEP, KUND_WATER_Y, PAVING, PLINTH } from "./ground";
+import { SlabBuilder, grassTexture, slabTexture } from "./stone-path";
 
 /** Weathered grey-brown stone, deodar green, brass and a few warm accents (spec 02 § Setting). */
 export const COLOURS = {
   forest: "#47502f",
+  lawn: "#5f7d34",
   paving: "#8b8375",
-  path: "#a39a8b",
   court: "#968d7e",
+  carpet: "#8a1c1c",
+  carpetBorder: "#a8873e",
   aisle: "#a59c8c",
   plinth: "#7d7366",
   moulding: "#6b6256",
@@ -136,21 +143,6 @@ export function gatePathX(z: number): number {
     if (z <= a.z && z >= b.z) return a.x + ((b.x - a.x) * (a.z - z)) / (a.z - b.z);
   }
   return 0;
-}
-
-function nearShape(s: WorldShape, x: number, z: number, m: number): boolean {
-  switch (s.kind) {
-    case "rect":
-      return x >= s.x0 - m && x <= s.x1 + m && z >= s.z0 - m && z <= s.z1 + m;
-    case "circle":
-      return Math.hypot(x - s.x, z - s.z) <= s.r + m;
-    case "capsule": {
-      const sx = s.bx - s.ax;
-      const sz = s.bz - s.az;
-      const t = Math.max(0, Math.min(1, ((x - s.ax) * sx + (z - s.az) * sz) / (sx * sx + sz * sz)));
-      return Math.hypot(x - (s.ax + t * sx), z - (s.az + t * sz)) <= s.r + m;
-    }
-  }
 }
 
 /** Box ring between two insets of a rect (kund steps and surrounds). */
@@ -266,7 +258,7 @@ function postLampGeometry(): LatheGeometry {
 /** The top of the lamp shelf on each path post. */
 export const POST_SHELF_TOP = 1.46;
 /** How far each post lamp stands from its post's centre, towards the path. */
-export const POST_LAMP_OUT = 0.18;
+export const POST_LAMP_OUT = BELL_POST_LAMP_OUT;
 
 export interface PathPost {
   /** The bell it holds. */
@@ -277,18 +269,9 @@ export interface PathPost {
   side: number;
 }
 
-/**
- * The posts that hold the path bells: just off the path, with room for the lamp shelf, so the
- * lamp doesn't reach over where visitors walk.
- */
+/** The posts that hold the path bells (world.ts), with the side of the path each stands on. */
 export function pathPosts(): PathPost[] {
-  return BELL_IDS.filter((id) => id.startsWith("path")).map((id) => {
-    const p = BELLS[id];
-    const side = Math.sign(p.x - gatePathX(p.z)) || 1;
-    let x = p.x + side * 0.6;
-    while (WALKABLE.some((s) => nearShape(s, x, p.z, 0.3))) x += side * 0.1;
-    return { id, x, z: p.z, side };
-  });
+  return BELL_POSTS.map((p) => ({ ...p }));
 }
 
 /** Where each bell hangs (its top), and how big it is. */
@@ -346,6 +329,8 @@ export interface GreyboxOptions {
   trees: number;
   /** Which tier's near-tree count to show (default Full). */
   treeTier?: AssetTier;
+  /** Lite draws the path's slab texture at half the detail (default Full). */
+  textureTier?: AssetTier;
 }
 
 /** Every tree, near and far, deodars and oaks (spec 02 § Setting). */
@@ -354,11 +339,22 @@ export const MAX_TREES = 120;
 const NEAR_TREE_MAX_SCALE = 1.1;
 /** The greybox trees' widest branches (deodar and oak) reach this far from the trunk at scale 1. */
 export const TREE_SPREAD = 2.6;
-/** The low walls either side of the torana, with their coping. */
-export const GATE_WALLS = [
-  rect(2.6, 11, GATE.z, GATE.z + 0.4),
-  rect(-11, -2.6, GATE.z, GATE.z + 0.4),
-] as const;
+/** How high the compound wall stands (to the top of its coping); its line is in world.ts. */
+export const WALL_HEIGHT = 1.4;
+export { WALL_LINE };
+/** The wall as boxes, one per straight run; runs overlap at the corners, but stop at the gate. */
+export const TEMPLE_WALLS = WALL_LINE.slice(1).map((c, i) => {
+  const a = WALL_LINE[i] ?? c;
+  const h = WALL_THICK / 2;
+  const ea = i === 0 ? 0 : h; // no overlap into the gate opening
+  const ec = i === WALL_LINE.length - 2 ? 0 : h;
+  if (a.z === c.z) {
+    const [x0, x1] = a.x < c.x ? [a.x - ea, c.x + ec] : [c.x - ec, a.x + ea];
+    return rect(x0, x1, a.z - h, a.z + h);
+  }
+  const [z0, z1] = a.z < c.z ? [a.z - ea, c.z + ec] : [c.z - ec, a.z + ea];
+  return rect(a.x - h, a.x + h, z0, z1);
+});
 
 /**
  * What stands outside the walkable area beside the paths, and how far trees keep from it: their
@@ -377,7 +373,7 @@ export const TREES_KEEP_CLEAR: readonly { shape: WorldShape; gap: number; trunk:
     gap: 1,
     trunk: 3,
   },
-  ...GATE_WALLS.map((shape) => ({ shape, gap: 0.3, trunk: 0 })),
+  ...TEMPLE_WALLS.map((shape) => ({ shape, gap: 0.5, trunk: 0 })), // its pillars stand proud of it
   ...pathPosts().map((p) => ({ shape: circle(p.x, p.z, 0.1), gap: 0.5, trunk: 0 })),
   { shape: circle(TODAY_BOARD.x, TODAY_BOARD.z, 0.8), gap: 0.3, trunk: 0 },
 ];
@@ -400,56 +396,110 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
     glow.push(x, y, z);
   };
 
-  // --- Ground: forest floor with a hole for the kund ---------------------------------------
+  // --- Ground: forest floor outside the wall, a grass lawn inside it ---------------------------
+  // The forest floor has a hole where the lawn lies; the lawn has a hole for the kund. Both are
+  // drawn in (x, -z) and turned flat.
+  const outline = (pts: readonly { x: number; z: number }[], into: Path): Path => {
+    pts.forEach((p, i) => (i === 0 ? into.moveTo(p.x, -p.z) : into.lineTo(p.x, -p.z)));
+    into.closePath();
+    return into;
+  };
   const disc = new Shape();
   disc.absarc(0, 0, 650, 0, TAU, false);
-  const hole = new Path();
-  hole.moveTo(KUND.x0, -KUND.z0);
-  hole.lineTo(KUND.x1, -KUND.z0);
-  hole.lineTo(KUND.x1, -KUND.z1);
-  hole.lineTo(KUND.x0, -KUND.z1);
-  hole.closePath();
-  disc.holes.push(hole);
+  disc.holes.push(outline(WALL_LINE, new Path()));
   const groundGeo = new ShapeGeometry(disc, 48);
   groundGeo.rotateX(-Math.PI / 2);
   b.add(groundGeo, null, C.forest);
+  const lawnShape = outline(WALL_LINE, new Shape()) as Shape;
+  lawnShape.holes.push(
+    outline(
+      [
+        { x: KUND.x0, z: KUND.z0 },
+        { x: KUND.x1, z: KUND.z0 },
+        { x: KUND.x1, z: KUND.z1 },
+        { x: KUND.x0, z: KUND.z1 },
+      ],
+      new Path(),
+    ),
+  );
+  // ShapeGeometry's UVs are the shape's own metres, so the texture repeats every GRASS_TILE m.
+  const lawnGeo = new ShapeGeometry(lawnShape);
+  lawnGeo.rotateX(-Math.PI / 2);
 
   // --- Paving --------------------------------------------------------------------------------
+  // The yard and the courtyard are plain stone; the paths are slate slabs laid across the way
+  // (scene/stone-path.ts), drawn as their own mesh.
   b.box(COMPOUND.x0, COMPOUND.x1, 0, 0.012, COMPOUND.z0, KUND.z0, C.paving);
   b.box(COMPOUND.x0, KUND.x0, 0, 0.012, KUND.z0, COMPOUND.z1, C.paving);
+  b.box(COURTYARD.x0, COURTYARD.x1, 0, PAVING, COURTYARD.z0, COURTYARD.z1, C.court);
+  const slabs = new SlabBuilder();
   const P = PRADAKSHINA;
   const hw = P.halfWidth;
-  b.box(P.x - hw, P.x + hw, 0, PAVING, P.zWest - hw, COURTYARD.z0, C.path);
-  b.box(-P.x - hw, -P.x + hw, 0, PAVING, P.zWest - hw, COURTYARD.z0, C.path);
-  b.box(-P.x + hw, P.x - hw, 0, PAVING, P.zWest - hw, P.zWest + hw, C.path);
-  b.box(COURTYARD.x0, COURTYARD.x1, 0, PAVING, COURTYARD.z0, COURTYARD.z1, C.court);
+  // The loop starts and ends at Nandi. The stone path runs on into the courtyard on both sides
+  // and turns in level with Nandi: one arm ends on Nandi's left, the other on his right, with a
+  // gap round his platform. The arms stay clear of the Nandi axis (x ±1.2, which ends at Nandi).
+  // In the courtyard the stone lies a few millimetres above the courtyard's own paving.
+  const ARM_END = NANDI_PLATFORM.x1 + 0.4;
+  const ARM_HALF = 0.58;
+  const nandiZ = (NANDI_PLATFORM.z0 + NANDI_PLATFORM.z1) / 2;
+  // A red carpet, with a brass-coloured border, lies along the middle of the stone path. It
+  // stops short of the somasutra channel on the north side.
+  const CARPET_HALF = 0.85;
+  const CARPET_BORDER = 0.07;
+  const margin = hw - CARPET_HALF;
+  const carpet = (x0: number, x1: number, z0: number, z1: number, lift = 0): void => {
+    b.box(x0, x1, PAVING, PAVING + 0.008, z0, z1, C.carpetBorder);
+    const e = CARPET_BORDER;
+    b.box(x0 + e, x1 - e, PAVING, PAVING + 0.012 + lift, z0 + e, z1 - e, C.carpet);
+  };
+  const cz0 = P.zWest - CARPET_HALF;
+  const front0 = nandiZ - ARM_HALF;
+  const front1 = nandiZ + ARM_HALF;
+  const gap = SOMASUTRA_BRIDGE.z1 + 0.15;
+  carpet(-P.x - CARPET_HALF, -P.x + CARPET_HALF, cz0, front1);
+  carpet(P.x - CARPET_HALF, P.x + CARPET_HALF, cz0, -gap);
+  carpet(P.x - CARPET_HALF, P.x + CARPET_HALF, gap, front1);
+  // The back stretch and the arms lie a touch higher so they cover the sides' borders.
+  carpet(-P.x, P.x, P.zWest - CARPET_HALF, P.zWest + CARPET_HALF, 0.002);
+  carpet(-P.x, -ARM_END - margin, front0, front1, 0.002);
+  carpet(ARM_END + margin, P.x, front0, front1, 0.002);
+  slabs.box(P.x - hw, P.x + hw, 0, PAVING, P.zWest - hw, COURTYARD.z0);
+  slabs.box(-P.x - hw, -P.x + hw, 0, PAVING, P.zWest - hw, COURTYARD.z0);
+  slabs.box(-P.x + hw, P.x - hw, 0, PAVING, P.zWest - hw, P.zWest + hw, Math.PI / 2);
+  const lip = PAVING + 0.004;
+  const sz0 = front0 - margin;
+  const sz1 = front1 + margin;
+  slabs.box(P.x - hw, P.x + hw, 0, lip, COURTYARD.z0 - 0.01, sz1);
+  slabs.box(-P.x - hw, -P.x + hw, 0, lip, COURTYARD.z0 - 0.01, sz1);
+  slabs.box(-P.x + hw, -ARM_END, 0, lip, sz0, sz1, Math.PI / 2);
+  slabs.box(ARM_END, P.x - hw, 0, lip, sz0, sz1, Math.PI / 2);
   for (let i = 1; i < GATE_PATH.length; i++) {
     const a = GATE_PATH[i - 1];
     const c = GATE_PATH[i];
     if (!a || !c) continue;
     const len = Math.hypot(c.x - a.x, c.z - a.z);
     const yaw = Math.atan2(c.x - a.x, c.z - a.z);
-    b.add(
+    slabs.add(
       new BoxGeometry(GATE_PATH_HALF_WIDTH * 2, PAVING, len),
       placed((a.x + c.x) / 2, PAVING / 2, (a.z + c.z) / 2, yaw),
-      C.court,
+      yaw,
     );
     if (i < GATE_PATH.length - 1) {
-      b.add(
+      slabs.add(
         new CylinderGeometry(GATE_PATH_HALF_WIDTH, GATE_PATH_HALF_WIDTH, PAVING, 20),
         placed(c.x, PAVING / 2, c.z),
-        C.court,
+        yaw,
       );
     }
   }
-  for (const r of [GATE_INSIDE, GANESHA_FRONT]) b.box(r.x0, r.x1, 0, PAVING, r.z0, r.z1, C.court);
+  for (const r of [GATE_INSIDE, GANESHA_FRONT]) slabs.box(r.x0, r.x1, 0, PAVING, r.z0, r.z1);
   // The approach outside the gate, paved on past where visitors may walk.
   const ap = GATE_APPROACH;
-  b.box(ap.x0, ap.x1, 0, PAVING, GATE_INSIDE.z1, GATE.z + 14, C.court);
+  slabs.box(ap.x0, ap.x1, 0, PAVING, GATE_INSIDE.z1, GATE.z + 14);
 
-  // Low kerb along the forest edge (the soft wall, spec 02).
+  // A flat stone edging between the paving and the lawn, flush enough to walk over.
   const kerb = (x0: number, x1: number, z0: number, z1: number): void =>
-    void b.box(x0, x1, 0, 0.22, z0, z1, C.kerb);
+    void b.box(x0, x1, 0, 0.04, z0, z1, C.kerb);
   kerb(COMPOUND.x0 - 0.3, COMPOUND.x1 + 0.3, COMPOUND.z0 - 0.3, COMPOUND.z0);
   kerb(COMPOUND.x0 - 0.3, COMPOUND.x0, COMPOUND.z0, COMPOUND.z1 + 0.3);
   kerb(COMPOUND.x1, COMPOUND.x1 + 0.3, COMPOUND.z0, 26.7);
@@ -659,18 +709,7 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
     b.add(new CylinderGeometry(r, r * 0.92, 0.05, 20), placed(ds.x, y, ds.z), C.brass);
   }
   b.add(new SphereGeometry(0.07, 10, 6), placed(ds.x, 2.28, ds.z), C.brass);
-  b.section("aarti-plate");
-  b.add(
-    new CylinderGeometry(0.12, 0.2, 0.85, 10),
-    placed(AARTI_PLATE.x, 0.425, AARTI_PLATE.z),
-    C.wood,
-  );
-  b.add(
-    new CylinderGeometry(0.24, 0.2, 0.04, 14),
-    placed(AARTI_PLATE.x, 0.87, AARTI_PLATE.z),
-    C.brass,
-  );
-  b.section(null);
+  // The aarti plate stand is hidden for now (owner, 2026-11-21); it returns with take-aarti (M4).
 
   // --- Ganesha shrine (plain stone placeholder murti, facing +x) -------------------------------
   const gs = GANESHA_SHRINE;
@@ -729,10 +768,84 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
     true,
   );
   b.section(null);
-  for (const w of GATE_WALLS) {
-    b.box(w.x0, w.x1, 0, 1.3, w.z0 + 0.05, w.z1 - 0.05, C.stone);
-    b.box(w.x0, w.x1, 1.3, 1.4, w.z0, w.z1, C.stoneDark);
+  // The compound wall, old and weathered: a plinth course, bays of stone each with a raised
+  // panel and a small carved diamond on both faces, a stepped coping, and a carved pillar
+  // between the bays and at every corner. Each bay's stone is a slightly different age.
+  const wallRng = mulberry32(108);
+  const aged = (base: string): Color =>
+    new Color(base).lerp(
+      new Color(wallRng() < 0.35 ? C.forest : C.interior),
+      0.05 + wallRng() * 0.15,
+    );
+  const pillar = (x: number, z: number, s: number): void => {
+    const course = (r: number, y0: number, y1: number, col: ColorRepresentation): void =>
+      void b.box(x - r * s, x + r * s, y0, y1, z - r * s, z + r * s, col);
+    course(0.34, 0, 0.3, C.stoneDark); // base
+    course(0.3, 0.3, 0.38, C.moulding); // base moulding
+    course(0.24, 0.38, 1.6, aged(C.stone)); // shaft
+    course(0.27, 0.9, 0.97, C.moulding); // carved band round the shaft
+    course(0.27, 1.6, 1.67, C.moulding); // neck
+    course(0.33, 1.67, 1.78, C.stoneDark); // capital
+    b.add(
+      tower([
+        [0.2 * s, 0],
+        [0.17 * s, 0.1],
+        [0.1 * s, 0.2],
+        [0.03 * s, 0.28],
+      ]),
+      placed(x, 1.78, z, Math.PI / 4),
+      C.shikhara,
+      true,
+    );
+  };
+  const BAY = 5;
+  const wallBox = (
+    alongX: boolean,
+    line: number,
+    u0: number,
+    u1: number,
+    half: number,
+    y0: number,
+    y1: number,
+    col: ColorRepresentation,
+  ): void =>
+    void (alongX
+      ? b.box(u0, u1, y0, y1, line - half, line + half, col)
+      : b.box(line - half, line + half, y0, y1, u0, u1, col));
+  for (let i = 1; i < WALL_LINE.length; i++) {
+    const a = WALL_LINE[i - 1];
+    const c = WALL_LINE[i];
+    if (!a || !c) continue;
+    const alongX = a.z === c.z;
+    const line = alongX ? a.z : a.x;
+    const [u0, u1] = alongX
+      ? [Math.min(a.x, c.x), Math.max(a.x, c.x)]
+      : [Math.min(a.z, c.z), Math.max(a.z, c.z)];
+    wallBox(alongX, line, u0, u1, 0.27, 0, 0.3, C.stoneDark); // plinth course
+    wallBox(alongX, line, u0, u1, 0.25, 1.22, 1.32, C.stoneDark); // coping
+    wallBox(alongX, line, u0, u1, 0.16, 1.32, WALL_HEIGHT, C.moulding); // coping ridge
+    const bays = Math.max(1, Math.round((u1 - u0) / BAY));
+    const step = (u1 - u0) / bays;
+    for (let k = 0; k < bays; k++) {
+      const t0 = u0 + k * step;
+      const t1 = t0 + step;
+      wallBox(alongX, line, t0, t1, 0.18, 0.3, 1.22, aged(C.stone));
+      if (step > 1.2) {
+        wallBox(alongX, line, t0 + 0.35, t1 - 0.35, 0.2, 0.5, 1.02, aged(C.plinth));
+        const mid = (t0 + t1) / 2;
+        const d = alongX
+          ? new Matrix4().makeRotationZ(Math.PI / 4).setPosition(mid, 0.76, line)
+          : new Matrix4().makeRotationX(Math.PI / 4).setPosition(line, 0.76, mid);
+        b.add(
+          alongX ? new BoxGeometry(0.2, 0.2, 0.43) : new BoxGeometry(0.43, 0.2, 0.2),
+          d,
+          C.stoneDark,
+        );
+      }
+      if (k > 0) pillar(alongX ? t0 : line, alongX ? line : t0, 1);
+    }
   }
+  for (const p of WALL_LINE.slice(1, -1)) pillar(p.x, p.z, 1.25);
 
   const tb = TODAY_BOARD;
   b.section("today-board");
@@ -821,6 +934,20 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   const tapMesh = new Mesh(ground.geometry, worldMat);
   const sections = new Set(runs.keys() as Iterable<SlotId>);
   group.add(ground);
+
+  const slabMap = slabTexture(opts.textureTier === "lite" ? 512 : 1024, mulberry32(46));
+  const stonePath = new Mesh(slabs.build(), new MeshLambertMaterial({ map: slabMap }));
+  stonePath.name = "stone-path";
+  group.add(stonePath);
+
+  // Without a canvas (tests), plain lawn green, still clearly apart from the forest floor.
+  const grassMap = grassTexture(opts.textureTier === "lite" ? 256 : 512, mulberry32(47));
+  const lawn = new Mesh(
+    lawnGeo,
+    new MeshLambertMaterial(grassMap ? { map: grassMap } : { color: C.lawn }),
+  );
+  lawn.name = "lawn";
+  group.add(lawn);
 
   const lampMaterial = new MeshBasicMaterial({ vertexColors: true });
   const lampMesh = new Mesh(lamps.build(), lampMaterial);
@@ -922,7 +1049,7 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
     setTrees,
     lampMaterial,
     glowMaterial,
-    shadowCasters: [ground, trees, nearTrees, oaks, bells, postLamps],
+    shadowCasters: [ground, lawn, stonePath, trees, nearTrees, oaks, bells, postLamps],
     sections,
     hide(slot) {
       if (!sections.delete(slot)) return;
@@ -969,9 +1096,9 @@ function shapeDistance(s: WorldShape, x: number, z: number): number {
   }
 }
 
-type TreeKind = "deodar" | "oak";
+export type TreeKind = "deodar" | "oak";
 
-interface TreeSpot {
+export interface TreeSpot {
   kind: TreeKind;
   x: number;
   z: number;
@@ -1072,21 +1199,22 @@ function oakGeometry(): BufferGeometry {
 /**
  * Deodars and Himalayan oaks outside the walkable area, grown the way a hillside forest grows
  * (spec 02 § Setting): stands of trees at uneven steps and distances round the temple, so the
- * forest is thick one way and opens into clearings another, with trees on their own between them
- * and a few a little way off the paths, on whichever side they fall. Oaks grow together in their
- * own stands; the other stands are mostly deodar. Most are grown trees, some are young and
+ * forest is thick one way and opens into clearings another. Fewer than half grow in those stands:
+ * the rest are scattered at random, on their own across the open ground or a little way off the
+ * paths, on whichever side they fall. Each stand mixes deodars and oaks in its own random share,
+ * and the scattered trees are of either kind. Most are grown trees, some are young and
  * slender, and a few old, broad giants stand back from the paths. The deodars closest to where
  * visitors walk are the near trees (closest first, so Lite keeps the first of them); the other
  * deodars and the oaks are nearest the temple first, so Lite can keep the first of those.
  */
-function buildTrees(): { far: InstancedMesh; near: InstancedMesh; oaks: InstancedMesh } {
+const TREE_CENTRE = { x: 0, z: 24 };
+/** How far a spot is from the paved ways. Trees space themselves from the paths, not the lawn. */
+const toPath = pathDistance;
+
+/** Where every tree grows, and how it looks; nearest the temple first. */
+export function treeSpots(): TreeSpot[] {
   const rng = mulberry32(108);
-  const centre = { x: 0, z: 24 };
-  const toPath = (x: number, z: number): number => {
-    let d = Infinity;
-    for (const s of WALKABLE) d = Math.min(d, shapeDistance(s, x, z));
-    return d;
-  };
+  const centre = TREE_CENTRE;
   const ring = (r0: number, r1: number): { x: number; z: number } => {
     const a = rng() * TAU;
     const r = r0 + Math.sqrt(rng()) * (r1 - r0);
@@ -1102,7 +1230,7 @@ function buildTrees(): { far: InstancedMesh; near: InstancedMesh; oaks: Instance
       const z = centre.z + Math.cos(a) * r * 1.15;
       if (toPath(x, z) < 5) continue;
       const size = 5 + rng() ** 1.5 * 13;
-      groves.push({ x, z, r: size, oak: rng() < 0.4 ? 0.8 : 0.12, weight: size * (0.5 + rng()) });
+      groves.push({ x, z, r: size, oak: 0.1 + rng() * 0.8, weight: size * (0.5 + rng()) });
       break;
     }
   }
@@ -1128,7 +1256,7 @@ function buildTrees(): { far: InstancedMesh; near: InstancedMesh; oaks: Instance
     let oakShare: number;
     let room: number;
     const where = rng();
-    const grove = where < 0.6 ? pickGrove() : undefined;
+    const grove = where < 0.4 ? pickGrove() : undefined;
     if (grove) {
       // Denser towards the middle of the stand, thinning out at its edge; close together.
       const a = rng() * TAU;
@@ -1137,7 +1265,7 @@ function buildTrees(): { far: InstancedMesh; near: InstancedMesh; oaks: Instance
       z = grove.z + Math.cos(a) * d;
       oakShare = grove.oak;
       room = 0.55 + rng() * 0.15;
-    } else if (where < 0.82) {
+    } else if (where < 0.75) {
       // On its own, with room round it.
       ({ x, z } = ring(10, 80));
       oakShare = 0.35;
@@ -1172,7 +1300,9 @@ function buildTrees(): { far: InstancedMesh; near: InstancedMesh; oaks: Instance
     const gap = toPath(x, z);
     // Branches stay off the paths and the compound; the giants stand well back.
     if (gap < reach + 0.3 || (old && gap < 12)) continue;
-    if (TREES_KEEP_CLEAR.some((k) => shapeDistance(k.shape, x, z) < Math.max(reach + k.gap, k.trunk)))
+    if (
+      TREES_KEEP_CLEAR.some((k) => shapeDistance(k.shape, x, z) < Math.max(reach + k.gap, k.trunk))
+    )
       continue;
     if (
       spots.some(
@@ -1181,13 +1311,30 @@ function buildTrees(): { far: InstancedMesh; near: InstancedMesh; oaks: Instance
     )
       continue;
     const tint = young ? 0.95 + rng() * 0.15 : old ? 0.78 + rng() * 0.15 : 0.85 + rng() * 0.2;
-    spots.push({ kind, x, z, w, d, h, yaw: rng() * TAU, lean, leanDir, tint, warmth: rng() * 2 - 1 });
+    spots.push({
+      kind,
+      x,
+      z,
+      w,
+      d,
+      h,
+      yaw: rng() * TAU,
+      lean,
+      leanDir,
+      tint,
+      warmth: rng() * 2 - 1,
+    });
     grown[kind]++;
   }
   spots.sort(
     (p, q) =>
       Math.hypot(p.x - centre.x, p.z - centre.z) - Math.hypot(q.x - centre.x, q.z - centre.z),
   );
+  return spots;
+}
+
+function buildTrees(): { far: InstancedMesh; near: InstancedMesh; oaks: InstancedMesh } {
+  const spots = treeSpots();
   const deodars = spots.filter((p) => p.kind === "deodar");
   const byPath = deodars
     .map((p, i) => ({ i, d: toPath(p.x, p.z) }))

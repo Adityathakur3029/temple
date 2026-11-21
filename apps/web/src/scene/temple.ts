@@ -211,6 +211,7 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     mode: PRADAKSHINA_MODE,
     trees: lighter() ? LITE_TREES : MAX_TREES,
     treeTier: lighter() ? "lite" : "full",
+    textureTier: lighter() ? "lite" : "full",
   });
   scene.add(greybox.group);
   const swings = new BellSwings(greybox.bells, greybox.bellHang);

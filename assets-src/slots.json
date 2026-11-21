@@ -53,6 +53,15 @@
       ],
       "notes": "linga-plain.gltf is scene.gltf (the Sketchfab download) with the white tripundra faces given the shaft's stone material (they are cut from the shaft surface and flush with it, so deleting them would leave a hole) and the red dot (a separate bead) removed: spec 08, no marks. Recoloured from pure black to the greybox stone colours. The spout points -x in the download, so it turns 90 degrees to face +z; the spout makes the box off-centre, so the offset moves the linga back to the slot's centre"
     },
+    "nandi": {
+      "file": "models/nandi/nandi.glb",
+      "licence": "own",
+      "credit": "Nandi test model made by Claude (AI), for this computer only",
+      "interim": true,
+      "ai": true,
+      "fit": "none",
+      "notes": "TEST MODEL for the owner's computer only (spec 08 § Depiction, AI-made test models, owner 2026-11-08): it is here to work out the size and decoration to ask a human maker for, and npm run deploy:web refuses to deploy while it is configured. Put the downloaded stand-in or the greybox back before any deploy. Made by Claude (AI) in Blender 5.2 with make_nandi.py in the same folder; run that script in Blender to rebuild and re-export. Built to the slot in metres with its origin at the bottom centre and the front to +z, so fit is none: 1.6 m long from the back of the base slab to the muzzle, 1.06 m wide, 1.30 m to the horn tips (1.8 m above the ground on his 0.5 m platform; the camera box in ground.ts goes to 1.85 m). A traditional seated bull, calm, head up and looking ahead: zebu hump, deep dewlap, short horns, long drooping ears; right foreleg drawn up with the hoof planted, left folded under, hind legs folded at the sides, tail curled round the left hind leg. Carved in the same stone: a forehead band with a flower medallion and a short drop of beads between the eyes, a collar with seven bells at the throat, a girth band with bosses behind the hump. A marigold garland of 46 flowers round the neck (GARLAND in the script). Old dark stone in vertex colours: mottled, faint water streaks, darker oiled patches where hands touch (muzzle, forehead, ears, hump, back), pale dust in hollows, a little lichen low down; weathered, not chipped. On a low moulded base slab 7 cm high. No rider, no face paint, no sacred symbol, not a copy of any real temple's Nandi. One material with vertex colours; no textures. 7,898 triangles (the slot allows 8,000, and Lite keeps all of a sacred form)"
+    },
     "ganesha": {
       "file": "models/ganesha/scene.gltf",
       "licence": "CC-BY-4.0",
@@ -66,13 +75,32 @@
       ],
       "notes": "The Sketchfab download as it is. It faces -x, so it turns 90 degrees to face +z. Its texture is dark stone with red-orange patches; check in the temple that it reads as sindoor, not glowing embers"
     },
-    "near-tree": {
-      "file": "models/near-tree/pine-cutout.gltf",
-      "licence": "CC-BY-4.0",
-      "credit": "\"Pine tree\" by Andriy Shekh, CC BY 4.0",
+    "tree": {
+      "file": "models/tree/tree.glb",
+      "licence": "own",
+      "credit": "Far deodar modelled for Sannidhi by Claude (AI)",
       "interim": true,
-      "ai": false,
-      "notes": "pine-cutout.gltf is scene.gltf (the Sketchfab download) with the leaves material changed from see-through (BLEND) to cut-out (MASK, cutoff 0.5): see-through leaves cost more on phones and draw in the wrong order when instanced. 2,173 triangles; its separate leaf cards stop the build simplifying much below 1,500, which is why it is the near-tree slot and not the tree slot. Hand-made in Blender, Substance and Photoshop (2020), not a scan or AI"
+      "ai": true,
+      "fit": "none",
+      "notes": "Made for Sannidhi by Claude (AI) in Blender 5.2 with make_tree.py in the same folder; run that script in Blender to rebuild and re-export. Built to the slot in metres (exactly 10.4 m tall, origin at the bottom centre of the trunk), so fit is none; nothing reaches more than 2.6 m from the trunk (TREE_SPREAD in greybox.ts). The near-tree deodar cut down for the far forest: a five-sided trunk and five tiers, each a drooping skirt with five branch ends, the top one rising to a leading shoot that bends over a little. Solid foliage, smooth-shaded so the Lite build can simplify it. The same colours as the near-tree model; the code tints each tree. One material with colours per vertex; no textures. 110 triangles"
+    },
+    "near-tree": {
+      "file": "models/near-tree/near-tree.glb",
+      "licence": "own",
+      "credit": "Deodar modelled for Sannidhi by Claude (AI)",
+      "interim": true,
+      "ai": true,
+      "fit": "none",
+      "notes": "Made for Sannidhi by Claude (AI) in Blender 5.2 with make_near_tree.py in the same folder; run that script in Blender to rebuild and re-export (the downloaded pine, pine-cutout.gltf, is still in the folder if it is wanted back). Built to the slot in metres (10.4 m to the tip of the leading shoot, origin at the bottom centre of the trunk), so fit is none; nothing reaches more than 2.6 m from the trunk (TREE_SPREAD in greybox.ts), so with the code's scale cap no branch reaches over a path. A Himalayan cedar: a straight grey-brown trunk with a slight root flare, nine tiers of level branches with drooping ends cut unevenly into seven branch ends each, a short spray of branches to one side between most of the lower tiers, and a leading shoot bending over at the top. Solid foliage (no leaf cards, nothing see-through), smooth-shaded so the Lite build can simplify it. One material with colours per vertex; no textures. 1,130 triangles"
+    },
+    "oak": {
+      "file": "models/oak/oak.glb",
+      "licence": "own",
+      "credit": "Himalayan oak modelled for Sannidhi by Claude (AI)",
+      "interim": true,
+      "ai": true,
+      "fit": "none",
+      "notes": "Made for Sannidhi by Claude (AI) in Blender 5.2 with make_oak.py in the same folder; run that script in Blender to rebuild and re-export. Built to the slot in metres (about 7.3 m tall, origin at the bottom centre of the trunk), so fit is none; nothing reaches more than 2.6 m from the trunk (TREE_SPREAD in greybox.ts), widest at about 4.9 m up, below the 5.2 m greybox.ts reckons an oak's lean from. A banj oak: a short, thick grey-brown trunk forking into three limbs under a broad, dense, lumpy crown (one large ball and four clumps), dark green above and silvery grey-green underneath, darker in the hollows, speckled. Solid foliage (no leaf cards, nothing see-through), smooth-shaded so the Lite build can simplify it. One material with colours per vertex; no textures. 742 triangles"
     },
     "post-lamp": {
       "file": "models/post-lamp/lamp-no-flame.gltf",

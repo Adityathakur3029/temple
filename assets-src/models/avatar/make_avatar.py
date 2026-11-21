@@ -10,9 +10,12 @@ With PREVIEW set it also lays out posed copies (idle, walk, sit, namaste, pranam
 visual check; those are never exported.
 
 An original, short and rounded devotee, about 1.17 m and a little over three heads tall: a big
-round head, a round tummy, short legs, stubby arms, and round hands and feet. A kurta with a
-dhoti (body 0) or a salwar (body 1), a wool shawl over both shoulders, and bare feet. Hair, ears
-and a small nose, and no eyes, mouth, tilak or other marker; body 1 wears its hair in a bun.
+round head resting on a soft gumdrop body, short legs, stubby arms, and round mitten hands and
+feet. Kept deliberately simple (owner, 2026-11-21): even colours with no folds, borders,
+collar, buttons or shoulder caps, so the figure reads as one compact shape. A kurta with a
+dhoti (body 0) or a salwar (body 1), a plain wool shawl over both shoulders, and bare feet.
+Hair and small ears, and no nose, eyes, mouth, tilak or other marker; body 1 wears its hair in
+a bun.
 It isn't a deity, sadhu, priest or child-monk look (no shaven head, robe or sash), and carries
 no caste, sect or regional sign.
 
@@ -297,22 +300,16 @@ class Builder:
         return fs
 
 
-def flat(c, jitter=0.03):
+def flat(c, jitter=0.0):
     k = 1 + random.uniform(-jitter, jitter)
     c = tuple(v * k for v in c)
     return lambda p, m: c
 
 
-def folds(c, at, n=7, depth=0.05, jitter=0.02):
-    """Cloth with soft vertical folds around an axis through `at`."""
-    k = 1 + random.uniform(-jitter, jitter)
-
-    def fn(p, m):
-        th = math.atan2(p[0] - at[0], p[2] - at[2])
-        s = 1 - depth * (0.5 + 0.5 * math.sin(n * th + 15 * p[1]))
-        return tuple(v * k * s for v in c)
-
-    return fn
+def folds(c, at, n=7, depth=0.05, jitter=0.0):
+    """Cloth colour. Plain on purpose: one even tone over torso, arms and legs, so the figure
+    reads as one soft shape rather than separate parts (owner, 2026-11-21)."""
+    return lambda p, m: c
 
 
 def scale(c, k):
@@ -326,10 +323,12 @@ Y_TOP = NECK + 0.012  # the shawl's top edge round the neck
 CHEST = HIP_HEIGHT + 0.23
 
 # Torso (kurta) rings: y, rx, rz, cz. A round tummy and soft, sloping shoulders.
+# One soft gumdrop: wide enough at the top that the shoulder joints sit inside it, so the arms
+# come out from under the shawl with no separate shoulder shape, and the head rests on it.
 TORSO = [
-    (0.36, 0.130, 0.115, 0.0), (0.44, 0.140, 0.124, 0.006), (0.52, 0.146, 0.13, 0.014),
-    (0.60, 0.143, 0.124, 0.012), (0.68, 0.146, 0.114, 0.006), (0.74, 0.140, 0.102, 0.0),
-    (0.775, 0.112, 0.086, -0.004), (0.80, 0.070, 0.062, -0.004), (0.815, 0.045, 0.045, 0.0),
+    (0.36, 0.138, 0.12, 0.0), (0.45, 0.152, 0.132, 0.008), (0.55, 0.16, 0.134, 0.012),
+    (0.65, 0.164, 0.126, 0.008), (0.72, 0.166, 0.114, 0.002), (0.77, 0.152, 0.1, -0.003),
+    (0.80, 0.118, 0.082, -0.004), (0.82, 0.072, 0.056, -0.002), (0.83, 0.035, 0.03, 0.0),
 ]
 # Body 1: a little wider at the hips, narrower at the chest and shoulders.
 TORSO_X1 = [(0.36, 1.04), (0.44, 1.04), (0.52, 0.97), (0.60, 0.94), (0.68, 0.93), (0.815, 0.95)]
@@ -382,28 +381,19 @@ def build(bi, detail):
     lower = body["lower"]
     T = torso_rows(bi)
 
-    # Torso in the kurta, with a band collar and (near detail) three small buttons.
+    # Torso in the kurta: plain, no collar or buttons.
     rows = thin(T)
     P(lathe(rows, seg(16, 8), (0, 0, 0), ring_centre(rows[0]), ring_centre(rows[-1])),
-      "spine", folds(KURTA, (0, 0, 0), n=5, depth=0.03))
-    collar = [(NECK - 0.006, 0.056, 0.052, 0, -0.002), (NECK + 0.022, 0.051, 0.048, 0, -0.002)]
-    P(lathe(collar, seg(12, 6), (0, 0, 0), ring_centre(collar[0]), ring_centre(collar[1])),
-      "spine", flat(scale(KURTA, 0.92)))
-    if hi:
-        for y in (0.73, 0.685, 0.64):
-            rx, rz, cz = interp(T, y)
-            z = cz + rz
-            r = 0.0065
-            P(hull([(0, y + r, z - 0.002), (0, y - r, z - 0.002), (r, y, z - 0.002),
-                    (-r, y, z - 0.002), (0, y, z + 0.004)]), "spine", flat(BUTTON, 0), closed=True)
+      "spine", flat(KURTA))
 
-    # Kurta hem, on the skirt bone (the code squashes it when seated). It ends above the knees;
-    # the top ring tucks inside the torso, so there is no ledge where they meet.
-    hem = ([(0.27, 0.162, 0.148), (0.31, 0.155, 0.139), (0.37, 0.147, 0.13), (0.42, 0.142, 0.126),
-            (0.46, 0.13, 0.112)]
+    # Kurta hem, on the skirt bone (the code squashes it when seated). Long and a little flared,
+    # just over the knees, so only short legs show below it and the figure stays compact; the
+    # front has room for the knee when walking. The top ring tucks inside the torso.
+    hem = ([(0.215, 0.178, 0.165), (0.26, 0.17, 0.155), (0.32, 0.16, 0.142), (0.39, 0.15, 0.132),
+            (0.46, 0.135, 0.116)]
            if bi == 0 else
-           [(0.245, 0.176, 0.162), (0.29, 0.166, 0.15), (0.36, 0.152, 0.134), (0.42, 0.146, 0.128),
-            (0.46, 0.134, 0.114)])
+           [(0.205, 0.186, 0.172), (0.25, 0.176, 0.162), (0.32, 0.164, 0.146), (0.39, 0.153, 0.134),
+            (0.46, 0.138, 0.118)])
     hem = thin(hem)
 
     def hem_fn(u, row, d):
@@ -420,26 +410,34 @@ def build(bi, detail):
         P(grid(lambda u, r: hem_fn(u, r, 0.0), ring_us(8), hem, True), "skirt", hem_col)
 
     # The shawl: over both shoulders and round the back to the tummy, its two ends hanging down
-    # the chest either side of a strip of kurta, with a darker woven border.
+    # the chest either side of a narrow strip of kurta. The front ends are rounded and it hangs
+    # low at the back, so it reads as soft draped cloth rather than a vest.
     chest = interp(T, CHEST)
-    y_low = 0.53
+    y_low = 0.44
 
     def shawl_r(y):
         rx, rz, cz = interp(T, y)
         if y < CHEST:  # hangs straight down from the chest over the tummy
             rx, rz = max(rx, chest[0] * 0.99), max(rz, chest[1] * 1.04)
+        # Rounds out over the shoulders, so it covers the tops of the arms in one smooth line.
+        sh = W["upperL"].y
+        t = (y - sh) / (0.12 if y < sh else 0.08)
+        rx += 0.052 * max(0.0, 1 - t * t)
         return rx, rz, cz
 
     def phi(s):
         d = 0.016 + 0.008 * s ** 4
         rx = shawl_r(lerp(y_low, Y_TOP, s))[0] + d
-        return math.asin(min(0.97, lerp(0.07, 0.05, s) / rx))
+        return math.asin(min(0.97, lerp(0.056, 0.045, s) / rx))
 
     def shawl_fn(u, s, d):
         f = phi(s)
         th = f + u * (2 * math.pi - 2 * f)
         a = th if th <= math.pi else 2 * math.pi - th  # angle from the front
-        yb = y_low + 0.04 * math.sin(a) ** 2 - 0.03 * max(0.0, math.cos(a)) ** 2
+        # A stole, not a vest: two ends hang down the front (rounded at the tips), it sweeps up
+        # high under each arm so the kurta shows at the sides, and dips again across the back.
+        yb = (0.50 + 0.18 * math.exp(-((a - 1.6) / 0.42) ** 2)
+              - 0.06 * max(0.0, 1 - (a - f) / 0.7) + 0.025 * max(0.0, 1 - (a - f) / 0.25) ** 2)
         y = yb + (Y_TOP - yb) * s
         rx, rz, cz = shawl_r(y)
         dd = d + 0.008 * s ** 4  # a soft roll where it lies round the neck
@@ -454,19 +452,10 @@ def build(bi, detail):
         srows = [0.0, 0.5, 1.0]
     n_us = len(us)
 
-    def shawl_col(p, m):
-        if not m:
-            return (SHAWL_MAIN,) * 3
-        if m[0] == "in":
+    def shawl_col(p, m):  # one even shade, no border stripe or folds
+        if m and m[0] in ("in", "edge"):
             return (SHAWL_INSIDE,) * 3
-        if m[0] == "edge":
-            return (SHAWL_BORDER,) * 3
-        i, j = m[-2], m[-1]
-        border = hi and (j == 0 or i == 0 or i == n_us - 2)
-        th = math.atan2(p[0], p[2])
-        fold = 1 - 0.07 * (0.5 + 0.5 * math.sin(9 * th + 8 * p[1])) * (CHEST + 0.04 - p[1]) / 0.2
-        k = (SHAWL_BORDER if border else SHAWL_MAIN) * min(1.0, max(0.85, fold))
-        return (k,) * 3
+        return (SHAWL_MAIN,) * 3
 
     if hi:
         P(shell(shawl_fn, us, srows, False, 0.016, 0.006), "spine", shawl_col, mat=1, closed=True)
@@ -474,59 +463,20 @@ def build(bi, detail):
         P(grid(lambda u, s: shawl_fn(u, s, 0.016), us, srows, False), "spine",
           lambda p, m: (SHAWL_MAIN,) * 3, mat=1)
 
-    # Arms: the shawl over each shoulder, short kurta sleeves, round hands with the palms to the
-    # sides.
+    # Arms: smooth, even kurta sleeves to the wrist (their tops tucked under the shawl) and soft
+    # round mitten hands with the palms to the sides. No shoulder caps, cuffs or thumbs.
     for side, upper, fore, hand_bone in ((1, "upperL", "foreL", "handL"), (-1, "upperR", "foreR", "handR")):
         J = W[upper]
-
-        def cap_fn(u, v, d, J=J, side=side):
-            lon = 2 * math.pi * u
-            out_ = math.sin(lon) * side  # 1 on the outside of the arm, -1 towards the body
-            r = 0.046 + d
-            if v < 0.5:  # falls lowest on the outside of the arm, barely at all on the inside
-                yb = -0.04 - 0.035 * out_
-                y = yb * (1 - v / 0.5)
-                rr = r * (1 - 0.06 * (1 - v / 0.5))
-            else:  # a low dome, level with the shawl's shoulder line
-                la = (v - 0.5) / 0.5 * (math.pi / 2)
-                y = math.sin(la) * r * 0.6
-                rr = math.cos(la) * r
-            return (J.x + rr * math.sin(lon), J.y + y, J.z + rr * math.cos(lon))
-
-        cap_rows = [0.0, 0.08, 0.35, 0.6, 0.8] if hi else [0.0, 0.5, 0.8]
-        top = lambda d, J=J: (J.x, J.y + (0.046 + d) * 0.6, J.z)
-
-        def cap_col(p, m):
-            if m and m[0] == "in":
-                return (SHAWL_INSIDE,) * 3
-            if m and m[0] == "edge":
-                return (SHAWL_BORDER,) * 3
-            j = m[-1] if m else 1
-            return ((SHAWL_BORDER if hi and j == 0 else SHAWL_MAIN),) * 3
-
-        if hi:
-            P(shell(cap_fn, ring_us(10), cap_rows, True, 0.009, 0.003, pole1=top), upper, cap_col,
-              mat=1, closed=True)
-        else:
-            P(grid(lambda u, v: cap_fn(u, v, 0.009), ring_us(6), cap_rows, True, None, top(0.009)),
-              upper, cap_col, mat=1)
-
-        sleeve = thin([(-0.165, 0.036, 0.035), (-0.12, 0.039, 0.038), (-0.06, 0.042, 0.04),
-                       (-0.02, 0.042, 0.04), (0.008, 0.036, 0.034)])
-        P(lathe(sleeve, seg(10, 6), J, (0, -0.195, 0), (0, 0.022, 0)), upper,
-          folds(KURTA, J, n=3, depth=0.04))
+        sleeve = thin([(-0.19, 0.04, 0.039), (-0.14, 0.043, 0.042), (-0.07, 0.045, 0.044),
+                       (-0.02, 0.043, 0.042), (0.0, 0.032, 0.031)])
+        P(lathe(sleeve, seg(10, 6), J, (0, -0.205, 0), (0, 0.015, 0)), upper, flat(KURTA))
         F = W[fore]
-        forearm = thin([(-0.145, 0.034, 0.033), (-0.13, 0.034, 0.033), (-0.11, 0.031, 0.031),
-                        (-0.05, 0.035, 0.034), (0.0, 0.037, 0.036)])
-        P(lathe(forearm, seg(10, 6), F, (0, -0.145, 0), (0, 0.03, 0)), fore,
-          folds(KURTA, F, n=3, depth=0.04))
+        forearm = thin([(-0.145, 0.034, 0.034), (-0.1, 0.038, 0.037), (-0.04, 0.041, 0.04),
+                        (0.0, 0.041, 0.04), (0.02, 0.037, 0.036)])
+        P(lathe(forearm, seg(10, 6), F, (0, -0.16, 0), (0, 0.036, 0)), fore, flat(KURTA))
         H = W[hand_bone]
-        hand = thin([(-0.085, 0.015, 0.03, 0, -0.002), (-0.065, 0.021, 0.038), (-0.04, 0.022, 0.04, 0, 0.002),
-                     (-0.015, 0.02, 0.031), (0.015, 0.021, 0.025)])
-        P(lathe(hand, seg(8, 5), H, (0, -0.1, -0.003), (0, 0.015, 0)), hand_bone, flat(SKIN, 0.01))
-        if hi:
-            P(ellipsoid((H.x - side * 0.005, H.y - 0.035, H.z + 0.033), (0.011, 0.02, 0.011), 6, 3),
-              hand_bone, flat(SKIN, 0.01))
+        P(ellipsoid((H.x, H.y - 0.038, H.z + 0.004), (0.022, 0.044, 0.034), seg(10, 6), seg(5, 3)),
+          hand_bone, flat(SKIN))
 
     # Legs: the dhoti (body 0) or salwar (body 1), and bare feet.
     for side, thigh, shin, foot in ((1, "thighL", "shinL", "footL"), (-1, "thighR", "shinR", "footR")):
@@ -540,21 +490,20 @@ def build(bi, detail):
           folds(lower, J, n=5, depth=0.06))
         S = W[shin]
         if body["salwar"]:
-            rows = [(-0.175, 0.04, 0.042), (-0.16, 0.042, 0.044), (-0.15, 0.04, 0.042),
-                    (-0.09, 0.05, 0.052), (-0.03, 0.06, 0.063), (0.01, 0.065, 0.068)]
+            # Gathered softly at the ankle, no cuff ridge.
+            rows = [(-0.168, 0.042, 0.044), (-0.13, 0.048, 0.05), (-0.07, 0.057, 0.06),
+                    (-0.02, 0.064, 0.067), (0.01, 0.066, 0.069)]
             ankle_top = -0.16
-            cuff = -0.15
         else:
-            rows = [(-0.16, 0.064, 0.066), (-0.145, 0.062, 0.064), (-0.09, 0.057, 0.059),
-                    (-0.03, 0.058, 0.061), (0.01, 0.06, 0.063)]
+            # Loose and even, a touch wider at the bottom, no cuff ridge.
+            rows = [(-0.155, 0.067, 0.069), (-0.1, 0.066, 0.068), (-0.04, 0.065, 0.067),
+                    (0.01, 0.064, 0.066)]
             ankle_top = -0.14
-            cuff = -0.145
         rows = thin(rows)
         leg_col = folds(lower, S, n=5, depth=0.06)
-        P(lathe(rows, seg(12, 6), S, (0, rows[0][0], 0), (0, 0.035, 0)), shin,
-          lambda p, m, S=S, cuff=cuff: scale(leg_col(p, m), 0.9) if p[1] - S.y < cuff + 0.002 else leg_col(p, m))
-        ank = [(-0.19, 0.028, 0.032, 0, 0.004), (-0.175, 0.026, 0.028), (ankle_top, 0.027, 0.029)]
-        P(lathe(ank, seg(8, 5), S, (0, -0.2, 0.005), (0, ankle_top, 0)), shin, flat(SKIN, 0.01))
+        P(lathe(rows, seg(12, 6), S, (0, rows[0][0], 0), (0, 0.035, 0)), shin, leg_col)
+        ank = [(-0.19, 0.03, 0.033, 0, 0.004), (-0.175, 0.03, 0.031), (ankle_top, 0.03, 0.031)]
+        P(lathe(ank, seg(8, 5), S, (0, -0.2, 0.005), (0, ankle_top, 0)), shin, flat(SKIN))
 
         # A round foot along +z from its bone: (z, half width, top, sole), the toes turned a little in.
         Fp = W[foot]
@@ -573,26 +522,23 @@ def build(bi, detail):
             return (Fp.x + cx + w * math.cos(a), Fp.y + y, Fp.z + z)
 
         P(grid(foot_fn, ring_us(seg(10, 6)), fr, True, (Fp.x, Fp.y - 0.008, Fp.z - 0.077),
-               (Fp.x - side * 0.006, Fp.y - 0.012, Fp.z + 0.112)), foot, flat(SKIN, 0.01))
+               (Fp.x - side * 0.006, Fp.y - 0.012, Fp.z + 0.112)), foot, flat(SKIN))
 
-    # Neck and head: ears, a small nose and hair; no eyes, mouth, tilak or other marks.
-    neck = thin([(NECK - 0.01, 0.045, 0.045), (NECK + 0.01, 0.043, 0.043, 0, 0.003),
-                 (NECK + 0.035, 0.042, 0.043, 0, 0.005), (NECK + 0.05, 0.04, 0.042, 0, 0.005)])
+    # Head: a smooth round face with small soft ears and hair, resting on the body with no neck
+    # showing; no nose, eyes, mouth, tilak or other marks.
+    neck = thin([(NECK - 0.01, 0.05, 0.05), (NECK + 0.02, 0.05, 0.05, 0, 0.003),
+                 (NECK + 0.045, 0.048, 0.048, 0, 0.005)])
     P(lathe(neck, seg(10, 6), (0, 0, 0), ring_centre(neck[0]), ring_centre(neck[-1])), "head",
-      flat(SKIN, 0.01))
+      flat(SKIN))
     lat_n = seg(12, 7)
     lats = [-math.pi / 2 + math.pi * (j + 1) / (lat_n + 1) for j in range(lat_n)]
     P(grid(lambda u, la: head_pt(la, 2 * math.pi * u), ring_us(seg(18, 10)), lats, True,
-           head_pt(-math.pi / 2, 0), head_pt(math.pi / 2, 0)), "head", flat(SKIN, 0.01))
+           head_pt(-math.pi / 2, 0), head_pt(math.pi / 2, 0)), "head", flat(SKIN))
     hx, hy, hz = HEAD_C
-    nz = hz + HEAD_R[2]  # the face, straight ahead of the centre
-    P(hull([(0, hy - 0.004, nz - 0.006), (0, hy - 0.026, nz + 0.012), (0.012, hy - 0.032, nz - 0.003),
-            (-0.012, hy - 0.032, nz - 0.003), (0, hy - 0.034, nz - 0.008)]), "head",
-      flat(scale(SKIN, 0.97), 0), closed=True)
     if hi:
         for s in (1, -1):
-            P(ellipsoid((s * (HEAD_R[0] - 0.004), hy - 0.01, hz - 0.012), (0.016, 0.032, 0.024), 6, 3),
-              "head", flat(scale(SKIN, 0.95), 0))
+            P(ellipsoid((s * (HEAD_R[0] - 0.008), hy - 0.012, hz - 0.01), (0.014, 0.026, 0.02), 6, 3),
+              "head", flat(SKIN))
     hl = (0.45, 0.1, -0.45) if bi == 0 else (0.42, -0.05, -0.62)
     infl = 0.009 if bi == 0 else 0.012
     hrows = [k / seg(6, 3) * 0.9 for k in range(seg(6, 3) + 1)]

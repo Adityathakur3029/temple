@@ -33,7 +33,6 @@ import {
   Sphere,
   SphereGeometry,
   Vector3,
-  type Material,
   type Object3D,
 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";

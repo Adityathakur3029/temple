@@ -32,16 +32,14 @@ Template for a downloaded model:
 - Modified: chain and hook removed (bell-only.gltf), then fitted, simplified and re-encoded for Sannidhi
 
 ## models/linga.glb
-- Source: https://sketchfab.com/3d-models/shivling-3d-models-11acada5a1e04bc9bf2f63c4bf158e03
-- Author: MANISH 3D MASTER (https://sketchfab.com/Tigermrmanish2511)
-- Licence: CC-BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
-- Downloaded: 2026-11-05
-- Credit line: "Shivling 3D Models" by MANISH 3D MASTER, CC BY 4.0
-- Interim: yes (a stand-in until final art in M5)
-- AI-made: no
-- How human authorship was checked: built from Blender primitives (a "Cylinder" object, Blender's default material names), 2,614 triangles with plain colours and no textures
-- Not a scan or copy of a real temple's murti: simple modelled shapes with no scan data; the page names no temple or place
-- Modified: white tripundra faces given the shaft's stone material, red dot removed, recoloured from pure black to dark stone (linga-plain.gltf), then fitted, simplified and re-encoded for Sannidhi
+- TEST MODEL, for the owner's computer only; never deployed (spec 08 § Depiction, "AI-made test models", decided by the owner 2026-11-08). `npm run deploy:web` refuses to run while it is configured. The downloaded stand-in's entry is kept in assets-src/models/linga/RESTORE-STAND-IN.md
+- Source: own. Made by Claude (AI) in Blender 5.2 on 2026-11-21, with the script assets-src/models/linga/make_linga.py, which rebuilds it
+- Author: Claude (Anthropic), for the Sannidhi project
+- Licence: own
+- Credit line: Linga test model made by Claude (AI), for this computer only
+- Interim: yes (a test model to brief the human maker; the final linga is made by people, M5)
+- AI-made: yes. Allowed only as a local test model of a sacred form, to work out the size and decoration to ask a human maker for; screenshots of it aren't published
+- Not a scan or copy of a real temple's linga: modelled from simple shapes by the script; it follows no particular temple
 
 ## models/nandi.glb
 - TEST MODEL, for the owner's computer only; never deployed (spec 08 § Depiction, "AI-made test models", decided by the owner 2026-11-08). `npm run deploy:web` refuses to run while it is configured

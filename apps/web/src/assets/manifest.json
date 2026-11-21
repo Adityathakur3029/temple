@@ -1,6 +1,6 @@
 {
-  "release": "28c4547b",
-  "inputs": "3d5efc4cc0b3f35e",
+  "release": "16cab6c4",
+  "inputs": "e64605da8f0c2915",
   "files": [
     {
       "src": "models/gate.glb",
@@ -20,7 +20,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/28c4547b/full/models/gate.glb"
+      "path": "/v/16cab6c4/full/models/gate.glb"
     },
     {
       "src": "models/gate.glb",
@@ -40,7 +40,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/28c4547b/lite/models/gate.glb"
+      "path": "/v/16cab6c4/lite/models/gate.glb"
     },
     {
       "src": "models/today-board.glb",
@@ -60,7 +60,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/28c4547b/full/models/today-board.glb"
+      "path": "/v/16cab6c4/full/models/today-board.glb"
     },
     {
       "src": "models/today-board.glb",
@@ -80,7 +80,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/28c4547b/lite/models/today-board.glb"
+      "path": "/v/16cab6c4/lite/models/today-board.glb"
     },
     {
       "src": "models/tree.glb",
@@ -100,7 +100,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/28c4547b/full/models/tree.glb"
+      "path": "/v/16cab6c4/full/models/tree.glb"
     },
     {
       "src": "models/tree.glb",
@@ -120,7 +120,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/28c4547b/lite/models/tree.glb"
+      "path": "/v/16cab6c4/lite/models/tree.glb"
     },
     {
       "src": "models/near-tree.glb",
@@ -140,7 +140,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/28c4547b/full/models/near-tree.glb"
+      "path": "/v/16cab6c4/full/models/near-tree.glb"
     },
     {
       "src": "models/near-tree.glb",
@@ -160,7 +160,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/28c4547b/lite/models/near-tree.glb"
+      "path": "/v/16cab6c4/lite/models/near-tree.glb"
     },
     {
       "src": "models/oak.glb",
@@ -180,7 +180,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/28c4547b/full/models/oak.glb"
+      "path": "/v/16cab6c4/full/models/oak.glb"
     },
     {
       "src": "models/oak.glb",
@@ -200,7 +200,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/28c4547b/lite/models/oak.glb"
+      "path": "/v/16cab6c4/lite/models/oak.glb"
     },
     {
       "src": "models/shrine.glb",
@@ -220,7 +220,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/28c4547b/full/models/shrine.glb"
+      "path": "/v/16cab6c4/full/models/shrine.glb"
     },
     {
       "src": "models/shrine.glb",
@@ -240,57 +240,49 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/28c4547b/lite/models/shrine.glb"
+      "path": "/v/16cab6c4/lite/models/shrine.glb"
     },
     {
       "src": "models/linga.glb",
       "slot": "linga",
       "tier": "full",
-      "sha256": "47be777a03ab02b8d0b332770f9a72a908952e045e1428cb5bc8a23f459e4f5d",
-      "bytes": 20380,
+      "sha256": "427fc6e6dd14ac47d9bce00a79eac20c5a411431ed9af482772558b7b291a02b",
+      "bytes": 117040,
       "priority": "P1",
       "tags": [
         "linga",
         "sacred",
-        "interim"
+        "interim",
+        "ai"
       ],
-      "licence": "CC-BY-4.0",
-      "credit": "\"Shivling 3D Models\" by MANISH 3D MASTER, CC BY 4.0",
-      "triangles": 2490,
+      "licence": "own",
+      "credit": "Linga test model made by Claude (AI), for this computer only",
+      "triangles": 5346,
       "draws": 1,
-      "textures": [
-        [
-          8,
-          4
-        ]
-      ],
-      "gpuBytes": 43,
-      "path": "/v/28c4547b/full/models/linga.glb"
+      "textures": [],
+      "gpuBytes": 0,
+      "path": "/v/16cab6c4/full/models/linga.glb"
     },
     {
       "src": "models/linga.glb",
       "slot": "linga",
       "tier": "lite",
-      "sha256": "47be777a03ab02b8d0b332770f9a72a908952e045e1428cb5bc8a23f459e4f5d",
-      "bytes": 20380,
+      "sha256": "427fc6e6dd14ac47d9bce00a79eac20c5a411431ed9af482772558b7b291a02b",
+      "bytes": 117040,
       "priority": "P1",
       "tags": [
         "linga",
         "sacred",
-        "interim"
+        "interim",
+        "ai"
       ],
-      "licence": "CC-BY-4.0",
-      "credit": "\"Shivling 3D Models\" by MANISH 3D MASTER, CC BY 4.0",
-      "triangles": 2490,
+      "licence": "own",
+      "credit": "Linga test model made by Claude (AI), for this computer only",
+      "triangles": 5346,
       "draws": 1,
-      "textures": [
-        [
-          8,
-          4
-        ]
-      ],
-      "gpuBytes": 43,
-      "path": "/v/28c4547b/lite/models/linga.glb"
+      "textures": [],
+      "gpuBytes": 0,
+      "path": "/v/16cab6c4/lite/models/linga.glb"
     },
     {
       "src": "models/nandi.glb",
@@ -311,7 +303,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/28c4547b/full/models/nandi.glb"
+      "path": "/v/16cab6c4/full/models/nandi.glb"
     },
     {
       "src": "models/nandi.glb",
@@ -332,7 +324,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/28c4547b/lite/models/nandi.glb"
+      "path": "/v/16cab6c4/lite/models/nandi.glb"
     },
     {
       "src": "models/mandapa.glb",
@@ -352,7 +344,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/28c4547b/full/models/mandapa.glb"
+      "path": "/v/16cab6c4/full/models/mandapa.glb"
     },
     {
       "src": "models/mandapa.glb",
@@ -372,7 +364,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/28c4547b/lite/models/mandapa.glb"
+      "path": "/v/16cab6c4/lite/models/mandapa.glb"
     },
     {
       "src": "models/ganesha-shrine.glb",
@@ -392,7 +384,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/28c4547b/full/models/ganesha-shrine.glb"
+      "path": "/v/16cab6c4/full/models/ganesha-shrine.glb"
     },
     {
       "src": "models/ganesha-shrine.glb",
@@ -412,7 +404,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/28c4547b/lite/models/ganesha-shrine.glb"
+      "path": "/v/16cab6c4/lite/models/ganesha-shrine.glb"
     },
     {
       "src": "models/ganesha.glb",
@@ -437,7 +429,7 @@
         ]
       ],
       "gpuBytes": 1398101,
-      "path": "/v/28c4547b/full/models/ganesha.glb"
+      "path": "/v/16cab6c4/full/models/ganesha.glb"
     },
     {
       "src": "models/ganesha.glb",
@@ -462,7 +454,7 @@
         ]
       ],
       "gpuBytes": 349525,
-      "path": "/v/28c4547b/lite/models/ganesha.glb"
+      "path": "/v/16cab6c4/lite/models/ganesha.glb"
     },
     {
       "src": "models/kund.glb",
@@ -482,7 +474,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/28c4547b/full/models/kund.glb"
+      "path": "/v/16cab6c4/full/models/kund.glb"
     },
     {
       "src": "models/kund.glb",
@@ -502,7 +494,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/28c4547b/lite/models/kund.glb"
+      "path": "/v/16cab6c4/lite/models/kund.glb"
     },
     {
       "src": "models/deepa-stand.glb",
@@ -522,7 +514,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/28c4547b/full/models/deepa-stand.glb"
+      "path": "/v/16cab6c4/full/models/deepa-stand.glb"
     },
     {
       "src": "models/deepa-stand.glb",
@@ -542,7 +534,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/28c4547b/lite/models/deepa-stand.glb"
+      "path": "/v/16cab6c4/lite/models/deepa-stand.glb"
     },
     {
       "src": "models/bell.glb",
@@ -566,7 +558,7 @@
         ]
       ],
       "gpuBytes": 349525,
-      "path": "/v/28c4547b/full/models/bell.glb"
+      "path": "/v/16cab6c4/full/models/bell.glb"
     },
     {
       "src": "models/bell.glb",
@@ -590,7 +582,7 @@
         ]
       ],
       "gpuBytes": 87381,
-      "path": "/v/28c4547b/lite/models/bell.glb"
+      "path": "/v/16cab6c4/lite/models/bell.glb"
     },
     {
       "src": "models/post-lamp.glb",
@@ -610,7 +602,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/28c4547b/full/models/post-lamp.glb"
+      "path": "/v/16cab6c4/full/models/post-lamp.glb"
     },
     {
       "src": "models/post-lamp.glb",
@@ -630,7 +622,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/28c4547b/lite/models/post-lamp.glb"
+      "path": "/v/16cab6c4/lite/models/post-lamp.glb"
     },
     {
       "src": "models/avatar.glb",
@@ -650,7 +642,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/28c4547b/full/models/avatar.glb"
+      "path": "/v/16cab6c4/full/models/avatar.glb"
     },
     {
       "src": "models/avatar.glb",
@@ -670,7 +662,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/28c4547b/lite/models/avatar.glb"
+      "path": "/v/16cab6c4/lite/models/avatar.glb"
     }
   ]
 }

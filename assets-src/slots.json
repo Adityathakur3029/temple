@@ -36,22 +36,13 @@
       "notes": "bell-only.gltf is scene.gltf (the Sketchfab download) with the 2.4 m chain and hook removed: the chain is drawn in code. Bell, clapper, yoke and top shackle kept"
     },
     "linga": {
-      "file": "models/linga/linga-plain.gltf",
-      "licence": "CC-BY-4.0",
-      "credit": "\"Shivling 3D Models\" by MANISH 3D MASTER, CC BY 4.0",
+      "file": "models/linga/linga.glb",
+      "licence": "own",
+      "credit": "Linga test model made by Claude (AI), for this computer only",
       "interim": true,
-      "ai": false,
-      "rotate": [
-        0,
-        90,
-        0
-      ],
-      "offset": [
-        0,
-        0,
-        0.137
-      ],
-      "notes": "linga-plain.gltf is scene.gltf (the Sketchfab download) with the white tripundra faces given the shaft's stone material (they are cut from the shaft surface and flush with it, so deleting them would leave a hole) and the red dot (a separate bead) removed: spec 08, no marks. Recoloured from pure black to the greybox stone colours. The spout points -x in the download, so it turns 90 degrees to face +z; the spout makes the box off-centre, so the offset moves the linga back to the slot's centre"
+      "ai": true,
+      "fit": "none",
+      "notes": "TEST MODEL for the owner's computer only (spec 08 § Depiction, AI-made test models, owner 2026-11-08): it is here to work out the size and decoration to ask a human maker for, and npm run deploy:web refuses to deploy while it is configured. Put the downloaded stand-in back before any deploy (models/linga/RESTORE-STAND-IN.md). Made by Claude (AI) in Blender 5.2 with make_linga.py in the same folder; run that script in Blender to rebuild and re-export. Built to the slot in metres, origin at the bottom centre, spout to +z, so fit is none: 0.92 m to the top of the linga (0.927 m to the bilva leaf on top), pitha 0.92 m across, spout lip 0.83 m from the centre. Aniconic, plain dark oiled stone: square chamfered base slab, round moulded pedestal, yoni pitha with a raised rim and a grooved spout that falls to its lip, and a smooth shaft 0.31 m across with a tall rounded top. No face or eyes. TRIAL dharapatra (owner, 2026-11-21; DHARAPATRA in the script): a copper pot hung on three thin chains from a slim brass tripod on the sanctum floor (feet 0.70 m out at 90, -30 and -150 degrees, clear of the spout; apex 1.615 m), its drip point 17 cm above the linga, with a thin pale stream of water (6-8 mm across, opaque, one material) falling onto the top of the linga and a small splash there (STREAM in the script). Spec 11 keeps the dharapatra out of the linga slot because fitting would change; this model is not fitted, so it is included here for the trial. TRIAL tripundra (owner, 2026-11-21; spec 08 lists it as check with advisor, default Off): three white ash lines across the face that looks out of the door, 1.6 cm thick at 0.62/0.65/0.68 m, wrapping about 104 degrees round the shaft and thinning at the ends, with a round kumkum-red dot 2.9 cm across on the middle line, centred (TRIPUNDRA and DOT in the script). Offerings: one bilva sprig (three leaflets) on top, one on the door-facing side above the tripundra (stalk at 0.80 m, leaflets hanging down, clear of the lines and dot; FACE_BILVA in the script), two in the basin, four small white flowers in the basin, none in the groove. Not a copy of any real temple's linga. One material with vertex colours; no textures. 5,346 triangles (the slot allows 6,000)"
     },
     "nandi": {
       "file": "models/nandi/nandi.glb",

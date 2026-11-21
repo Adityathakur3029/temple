@@ -59,11 +59,12 @@ function expectNeverBlocked(states: State[]): void {
 
 test.describe.configure({ timeout: 120_000 });
 
-test("arrives just inside the gate, with the HUD ready", async ({ page }) => {
+test("arrives on the approach outside the gate, with the HUD ready", async ({ page }) => {
   await open(page);
   const s = await state(page);
+  // SPAWN in packages/protocol/src/world.ts (spec 02): 7.5 m outside the gate, facing it.
   expect(s.x).toBeCloseTo(0, 1);
-  expect(s.z).toBeCloseTo(56.5, 1);
+  expect(s.z).toBeCloseTo(53.5, 1);
   expect(s.blocked).toBeNull();
   await expect(page.getByRole("button", { name: "Darshan" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Settings" })).toBeVisible();
@@ -84,13 +85,16 @@ test("walks with the keyboard and with a tap on the path", async ({ page }) => {
 
   // Right of the path, so no hanging bell is between the camera and the tap: a tap on a bell
   // in reach rings it instead of walking (spec 03 § Ring a bell).
-  const target = await page.evaluate(() => window.__sannidhi?.screenPoint(1.0, 0.03, 52.5));
-  await page.evaluate(() => window.__sannidhi?.setTimeScale(8));
+  // 4 m ahead of the spawn (z 53.5), on the approach and well short of the gate bell at z 46.
+  const target = await page.evaluate(() => window.__sannidhi?.screenPoint(1.0, 0.03, 49.5));
   await page.mouse.click(target?.x ?? 0, target?.y ?? 0);
+  // Fast-forward only once the walk is seen: at 8x a throttled mobile run can start and finish
+  // the 4 m between two polls.
   await expect.poll(async () => (await state(page)).walking, { timeout: 5000 }).toBe(true);
+  await page.evaluate(() => window.__sannidhi?.setTimeScale(8));
   await expect.poll(async () => (await state(page)).walking, { timeout: 60_000 }).toBe(false);
   const end = await state(page);
-  expect(Math.hypot(end.x - 1.0, end.z - 52.5)).toBeLessThan(1.5);
+  expect(Math.hypot(end.x - 1.0, end.z - 49.5)).toBeLessThan(1.5);
 });
 
 test("no tap or key puts the visitor in the garbhagriha or on the Nandi axis (spec 12 scenario 3)", async ({

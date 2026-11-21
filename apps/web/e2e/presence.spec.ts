@@ -107,12 +107,13 @@ test("two visitors see each other walk and greet (spec 12 scenario 2)", async ({
   await expect(page.getByRole("button", { name: "2 here" })).toBeVisible();
 
   // A walks a few steps; B sees A move while A is still walking, and arrive where A did.
-  await page.evaluate(() => window.__sannidhi?.walkTo(0.4, 53.5));
+  // 3 m towards the gate from the spawn at z 53.5.
+  await page.evaluate(() => window.__sannidhi?.walkTo(0.4, 50.5));
   await expect
     .poll(async () => (await net(other.page)).remotes.find((r) => r.id === aId)?.z ?? 99, {
       timeout: 5000,
     })
-    .toBeLessThan(56.2);
+    .toBeLessThan(53.2);
   expect((await state(page)).walking).toBe(true);
   await expect.poll(async () => (await state(page)).walking, { timeout: 30_000 }).toBe(false);
   const end = await state(page);
@@ -217,7 +218,8 @@ test("rings a bell in reach, and others see it swing", async ({ page, browser })
   const a = await open(page, "hall-16");
   const other = await visitor(browser);
   await open(other.page, "hall-16");
-  // The gate bell is 1.5 m from the spawn.
+  // The gate bell (0, 46) is 7.5 m from the spawn, beyond reach: walk to 1.5 m in front of it.
+  await walkTo(page, 0, 47.5);
   await expect(page.getByRole("button", { name: "Ring bell" })).toBeVisible();
   await page.keyboard.press("KeyE");
   await expect

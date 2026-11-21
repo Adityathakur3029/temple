@@ -1,0 +1,113 @@
+{
+  "asset": {
+    "generator": "glTF-Transform v4.5.1",
+    "version": "2.0",
+    "extras": {
+      "author": "biswajit3dcreator (https://sketchfab.com/biswajit3dcreator)",
+      "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+      "source": "https://sketchfab.com/3d-models/golden-oil-lamp-1fba4e5a5ac8410ca7235673a3f269ba",
+      "title": "Golden Oil Lamp"
+    }
+  },
+  "accessors": [
+    {
+      "type": "VEC3",
+      "componentType": 5126,
+      "count": 127944,
+      "max": [
+        0.5497329831123352,
+        0.6635100245475769,
+        0.5495309829711914
+      ],
+      "min": [
+        -0.5496780276298523,
+        -0.9520450234413147,
+        -0.5496079921722412
+      ],
+      "bufferView": 0,
+      "byteOffset": 0
+    },
+    {
+      "type": "VEC3",
+      "componentType": 5126,
+      "count": 127944,
+      "bufferView": 0,
+      "byteOffset": 12
+    },
+    {
+      "type": "VEC4",
+      "componentType": 5126,
+      "count": 127944,
+      "bufferView": 0,
+      "byteOffset": 24
+    },
+    {
+      "type": "SCALAR",
+      "componentType": 5125,
+      "count": 767463,
+      "bufferView": 1,
+      "byteOffset": 0
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 5117760,
+      "byteStride": 40,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 5117760,
+      "byteLength": 3069852,
+      "target": 34963
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "lamp-no-flame.bin",
+      "byteLength": 8187612
+    }
+  ],
+  "materials": [
+    {
+      "name": "brass",
+      "doubleSided": true,
+      "pbrMetallicRoughness": {
+        "metallicFactor": 0
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "name": "lamp",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "COLOR_0": 2
+          },
+          "mode": 4,
+          "material": 0,
+          "indices": 3
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "name": "lamp",
+      "mesh": 0
+    }
+  ],
+  "scenes": [
+    {
+      "name": "lamp",
+      "nodes": [
+        0
+      ]
+    }
+  ]
+}

@@ -2,7 +2,8 @@
  * The temple: the greybox world, the visitor's avatar, orbit and darshan cameras, tap-to-walk and
  * keyboard walking, day and night on IST, device tiers and Lite mode, one rendering tab, idle and
  * calm modes and view restore (M1), and presence (M2): other visitors, namaste, pranam, bells,
- * mats, the hall list and "Who's here".
+ * mats, the hall list and "Who's here". Models in asset slots replace greybox shapes as they load
+ * (scene/models.ts, spec 11).
  * Without a connection the temple keeps working alone, as in M1.
  */
 import {
@@ -18,6 +19,7 @@ import {
   Vector3,
   WebGLRenderer,
   type Material,
+  type Texture,
 } from "three";
 import {
   BELL_COOLDOWN_MS,
@@ -27,7 +29,7 @@ import {
   COURTYARD,
   GANESHA,
   GANESHA_BOW_M,
-  INSTANCE_CAPACITY,
+  GATE,
   INTERP_DELAY_MS,
   LITE_INTERP_DELAY_MS,
   MATS,
@@ -62,30 +64,30 @@ import { localStore, sessionStore } from "../platform/storage";
 import { openChannel, RENDER_OWNER_KEY, RenderOwner } from "../platform/tabs";
 import { chooseTier, pixelRatio, readDeviceInfo, type Tier } from "../platform/tier";
 import { loadView, saveView } from "../platform/view";
-import { Avatar, disposeAvatarCache, prebuildAvatarGeometries } from "./avatar";
+import { Avatar, HEAD_HEIGHT, disposeAvatarCache, prebuildAvatarGeometries } from "./avatar";
 import { BellSwings } from "./bells";
 import { CameraRig, clampOrbit, type CameraPose } from "./camera";
 import { Crowd } from "./crowd";
 import { PLINTH, groundY } from "./ground";
 import { buildGreybox, MAX_TREES } from "./greybox";
 import { Input } from "./input";
+import { FIRST_VIEW_WAIT_MS, SceneModels } from "./models";
 import { NavGrid } from "./nav";
 import { PerfOverlay } from "./perf";
-import { blendLook, Sky } from "./sky";
+import { blendLook, Sky, SUN_SHADOW_DISTANCE } from "./sky";
 import { Walker, type MoveInput } from "./walker";
 
-/** Lite mode keeps the nearest 120 trees (spec 11). */
-export const LITE_TREES = 120;
+/** Lite mode keeps the nearest 72 trees (spec 11). */
+export const LITE_TREES = 72;
 /** Radians of camera turn per CSS pixel dragged. */
 const LOOK_RAD_PER_PX = 0.005;
 /** Tap-to-walk eases the camera round behind the visitor this long after the last look. */
 const FOLLOW_AFTER_LOOK_MS = 2500;
 const CHECKPOINT_MS = 2000;
 const SKY_UPDATE_MS = 1000;
-const HEAD_STANDING = 1.45;
-const HEAD_SEATED = 0.85;
+const HEAD_STANDING = HEAD_HEIGHT.standing;
+const HEAD_SEATED = HEAD_HEIGHT.seated;
 const MAT_TOP = 0.025;
-const SPAWN_CAMERA_OFFSET = 0.16;
 /** A hidden tab keeps its socket this long, so a quick app switch doesn't drop presence (spec 10). */
 export const HIDDEN_KEEP_MS = 120_000;
 /** A tapped visitor's name shows this long (spec 02 § Avatar). */
@@ -95,7 +97,7 @@ const NAME_TAG_MS = 3000;
 const LIGHTS = {
   sanctum: { color: "#ffb45a", intensity: 14, distance: 8, at: [0, PLINTH + 1.6, 1.5] },
   mandapa: { color: "#ffc27a", intensity: 14, distance: 16, at: [0, 3.8, 12] },
-  gate: { color: "#ffc27a", intensity: 8, distance: 10, at: [0, 2.8, 56.6] },
+  gate: { color: "#ffc27a", intensity: 8, distance: 10, at: [GATE.x, 2.8, GATE.z - 1.4] },
 } as const;
 
 export interface TempleHandle {
@@ -200,16 +202,51 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     top: 20,
     bottom: -20,
     near: 1,
-    far: 100,
+    far: SUN_SHADOW_DISTANCE + 60,
   });
 
+  // Lite mode and Low phones get the lighter scene: 72 trees and Lite models (spec 10, 11).
+  const lighter = (): boolean => settings.get().lite || tier === "low";
   const greybox = buildGreybox({
     mode: PRADAKSHINA_MODE,
-    trees: settings.get().lite ? LITE_TREES : MAX_TREES,
-    footwearPairs: 1, // one pair for each visitor present, updated with presence
+    trees: lighter() ? LITE_TREES : MAX_TREES,
+    treeTier: lighter() ? "lite" : "full",
+    textureTier: lighter() ? "lite" : "full",
   });
   scene.add(greybox.group);
   const swings = new BellSwings(greybox.bells, greybox.bellHang);
+  const models = new SceneModels({
+    renderer,
+    greybox,
+    parent: greybox.group,
+    tier: lighter() ? "lite" : "full",
+    workers: tier === "low" ? 1 : 2,
+    // Upload textures and compile shaders before a model is shown, so it doesn't stall a frame.
+    prepare: async (model) => {
+      model.traverse((o) => {
+        if (!(o instanceof Mesh)) return;
+        for (const m of [o.material as Material | Material[]].flat()) {
+          const maps = m as Material & { map?: Texture | null; emissiveMap?: Texture | null };
+          if (maps.map) renderer.initTexture(maps.map);
+          if (maps.emissiveMap) renderer.initTexture(maps.emissiveMap);
+        }
+      });
+      await renderer.compileAsync(model, camera, scene);
+    },
+    // A model arriving costs a few slow frames; keep them out of the tier measurement.
+    onChange: () => {
+      sampler.reset();
+      skipFrames = 3;
+    },
+    onPlaced: (meshes) => {
+      const shadows = renderer.shadowMap.enabled;
+      for (const m of meshes) {
+        m.castShadow = shadows;
+        m.receiveShadow = shadows;
+      }
+    },
+  });
+  void models.start();
 
   const lights = {
     sanctum: new PointLight(LIGHTS.sanctum.color, 0, LIGHTS.sanctum.distance, 2),
@@ -231,13 +268,13 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     depthWrite: false,
     color: 0xffffff,
   });
-  const blob = new Mesh(new CircleGeometry(0.42, 20), blobMaterial);
+  const blob = new Mesh(new CircleGeometry(0.3, 20), blobMaterial);
   blob.rotation.x = -Math.PI / 2;
   scene.add(blob);
 
   const walker = new Walker(SPAWN);
-  // Slightly off the axis, so the gate bell doesn't hide the shikhara from the first view.
-  const rig = new CameraRig({ yaw: SPAWN.yaw + SPAWN_CAMERA_OFFSET });
+  // Straight behind the visitor, so the first view looks through the middle of the gate.
+  const rig = new CameraRig({ yaw: SPAWN.yaw });
   /** The mat the visitor sits on, or −1. Online, only after the server's `sit.ok`. */
   let mat = -1;
   /** The visitor sits on a mat the server hasn't confirmed yet (after a reconnect). */
@@ -582,7 +619,7 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
       if (onMat.instanceId !== mat) sitOn(onMat.instanceId);
       return;
     }
-    const hit = raycaster.intersectObject(greybox.ground, false)[0];
+    const hit = raycaster.intersectObject(greybox.tapMesh, false)[0];
     if (hit) walkTo(hit.point.x, hit.point.z);
   }
 
@@ -607,7 +644,6 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     const s = session;
     crowd.sync();
     const others = [...s.presence.remotes.values()].map((r) => r.visitor);
-    greybox.footwear.count = Math.min(INSTANCE_CAPACITY, 1 + others.length);
     const hall = s.hall;
     hud.setHall(
       hall && s.online ? { id: hall, number: Number(hall.slice(5)) } : null,
@@ -658,17 +694,13 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     renderer.setPixelRatio(pixelRatio(tier, window.devicePixelRatio));
     resize();
     const lite = settings.get().lite;
-    const trees = Math.min(greybox.treesAvailable, lite ? LITE_TREES : MAX_TREES);
-    if (greybox.trees.count !== trees) {
-      greybox.trees.count = trees;
-      // Bounds are cached per count; a stale sphere could cull every tree at once.
-      greybox.trees.boundingSphere = null;
-    }
+    models.setTier(lighter() ? "lite" : "full");
+    greybox.setTrees(lighter() ? LITE_TREES : MAX_TREES, lighter() ? "lite" : "full");
     const shadows = tier === "high" && !lite;
     if (renderer.shadowMap.enabled !== shadows) {
       renderer.shadowMap.enabled = shadows;
       sky.sun.castShadow = shadows;
-      for (const m of greybox.shadowCasters) {
+      for (const m of [...greybox.shadowCasters, ...models.meshes()]) {
         m.castShadow = shadows;
         m.receiveShadow = shadows;
       }
@@ -971,6 +1003,7 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
         lite: settings.get().lite,
         lights: scene.children.filter((o) => o instanceof PointLight).length,
         drawCalls: renderer.info.render.calls,
+        models: models.status(),
       }),
       net: () => {
         const ss = session;
@@ -991,7 +1024,6 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
           instance: ss.instance,
           you: ss.you,
           remotes,
-          footwear: greybox.footwear.count,
           gestures: crowdGestures(),
           events: recentEvents.slice(),
         };
@@ -1030,6 +1062,12 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     return out;
   }
 
+  // The boot screen stays up while the first-view models arrive, but not for long (spec 01).
+  await Promise.race([
+    models.firstView,
+    new Promise<void>((resolve) => window.setTimeout(resolve, FIRST_VIEW_WAIT_MS)),
+  ]);
+
   return {
     dispose() {
       renderer.setAnimationLoop(null);
@@ -1047,6 +1085,7 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
       input.dispose();
       owner.dispose();
       hud.dispose();
+      models.dispose();
       greybox.dispose();
       sky.dispose();
       avatar.dispose();

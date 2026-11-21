@@ -76,9 +76,10 @@ The order of work. Each milestone has deliverables and exit criteria, and the ne
 **Deliverables**
 - Final art for every asset in spec 11. LODs and vertex animation textures for avatars. KTX2 Full and Lite tiers.
 - The sacred assets, made by people and reviewed by the advisor.
+- Every `interim` (stand-in) model replaced. The asset slots, `npm run assets:build`, the manifest and the client loader were built early, on 2026-11-05 during M2, so that downloaded stand-ins can be tried before final art (spec 11 § Slots). M5 still adds tree LODs, the avatar model and the lighting pass with full materials.
 - Native-speaker review of all Hindi strings. Fonts subset.
 - Accessibility pass: keyboard, TalkBack and VoiceOver, reduced motion, "Describe the scene".
-- Credits screen, privacy page, support sheet (behind `VITE_UPI_VPA`).
+- Credits screen and privacy page. The support sheet (behind `VITE_UPI_VPA`) waits until donations are switched on (spec 09; off for now, 2026-11-04).
 - Optional: seasonal weather, aarti lyrics.
 
 **Exit criteria**

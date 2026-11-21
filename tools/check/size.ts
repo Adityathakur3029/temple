@@ -1,13 +1,15 @@
 /**
  * Download budgets from specs/10-performance.md § Download budgets. These are hard limits.
- * Reads the Vite build manifest (apps/web/dist/.vite/manifest.json); asset lines need the
- * asset manifest (spec 11) and report "not measured" until it exists.
+ * Reads the Vite build manifest (apps/web/dist/.vite/manifest.json) and the asset manifest
+ * (apps/web/src/assets/manifest.json, spec 11). Without an asset manifest the asset lines report
+ * "not measured".
  * Sizes are compressed over the wire, measured as gzip level 9. 1 kB = 1000 bytes, which is
  * stricter than 1024. WOFF2 and other pre-compressed formats count at their file size.
  */
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { gzipSync } from "node:zlib";
+import type { AssetManifest, AssetTier } from "../../apps/web/src/assets/manifest";
 
 const KB = 1000;
 const MB = 1000 * KB;
@@ -69,7 +71,7 @@ function walk(dir: string): string[] {
   return readdirSync(dir, { recursive: true, encoding: "utf8" }).map((f) => join(dir, f));
 }
 
-export function measureWeb(dist: string): BudgetResult[] {
+export function measureWeb(dist: string, assets: AssetManifest | null = null): BudgetResult[] {
   const manifestPath = join(dist, ".vite", "manifest.json");
   if (!existsSync(manifestPath)) {
     throw new Error(
@@ -95,6 +97,19 @@ export function measureWeb(dist: string): BudgetResult[] {
   const fonts = fontFiles.reduce((sum, f) => sum + readFileSync(join(dist, f)).byteLength, 0);
 
   const noAssets = "needs the asset manifest (spec 11)";
+  // Built models are already compressed (meshopt, KTX2), so they count at their file size.
+  const assetBytes = (keep: (f: AssetManifest["files"][number]) => boolean): number | null =>
+    assets ? assets.files.filter(keep).reduce((n, f) => n + f.bytes, 0) : null;
+  const firstView = assetBytes((f) => f.tier === "full" && f.priority === "P0");
+  // A whole visit's download: the app (HTML, CSS, JS, wasm, fonts) plus the tier's models.
+  const app = html + allJs + otherCss + wasm + fonts;
+  const tierBytes = (tier: AssetTier): number | null => {
+    const models = assetBytes((f) => f.tier === tier);
+    return models === null ? null : app + models;
+  };
+  const empty = assets !== null && assets.files.length === 0;
+  const modelsNote = empty ? "no models yet; greybox only" : "models";
+  const sceneNote = empty ? "the app; no models yet" : "the app and models";
   const result = (
     id: BudgetId,
     bytes: number | null,
@@ -117,22 +132,34 @@ export function measureWeb(dist: string): BudgetResult[] {
       fonts,
       fontFiles.length === 0 ? "no fonts shipped yet" : "all fonts, upper bound",
     ),
-    result("firstView", null, noAssets),
     result(
-      "beforeInteractive",
-      html + allJs + otherCss + wasm + fonts,
-      "HTML, CSS, JS, wasm, fonts; P0 assets and the asset manifest not counted yet",
-      true,
+      "firstView",
+      firstView,
+      firstView === null ? noAssets : empty ? modelsNote : "P0 models, Full tier",
     ),
-    result("fullScene", null, noAssets),
-    result("liteScene", null, noAssets),
-    result("aarti", null, noAssets),
+    firstView === null
+      ? result(
+          "beforeInteractive",
+          html + allJs + otherCss + wasm + fonts,
+          "HTML, CSS, JS, wasm, fonts; P0 assets not counted",
+          true,
+        )
+      : result(
+          "beforeInteractive",
+          html + allJs + otherCss + wasm + fonts + firstView,
+          "HTML, CSS, JS, wasm, fonts and P0 models",
+        ),
+    result("fullScene", tierBytes("full"), assets ? sceneNote : noAssets),
+    result("liteScene", tierBytes("lite"), assets ? sceneNote : noAssets),
+    result("aarti", null, "no audio yet"),
   ];
 }
 
 /** Built files that no budget line counts yet, so nothing ships unmeasured without notice. */
 export function uncountedFiles(dist: string): string[] {
-  const counted = /^(index\.html|_headers|\.assetsignore|\.vite\/.*|.*\.(js|css|wasm|woff2?))$/;
+  // Files under v/ are models from the asset manifest (spec 11), counted by the asset lines.
+  const counted =
+    /^(index\.html|_headers|\.assetsignore|\.vite\/.*|v\/.*|.*\.(js|css|wasm|woff2?))$/;
   return walk(dist)
     .filter((f) => statSync(f).isFile())
     .map((f) => relative(dist, f).replace(/\\/g, "/"))

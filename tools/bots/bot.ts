@@ -80,7 +80,7 @@ const ROUTE: readonly Point[] = [
   ...[...GATE_PATH].reverse().slice(1),
 ];
 
-const BELL_SPOT: Point = { x: -0.4, z: 55.8 };
+const BELL_SPOT: Point = { x: -0.4, z: 45.2 };
 const BELL_CHOICES: readonly BellId[] = ["gate", "path-1"];
 const STEP_MS = 1000 / POS_MAX_HZ + 5;
 

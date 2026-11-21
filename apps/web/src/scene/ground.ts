@@ -6,7 +6,9 @@ import {
   ANTARALA,
   GANESHA_SHRINE,
   GARBHAGRIHA,
+  GATE,
   GATE_PILLARS,
+  GATE_PILLAR_RADIUS,
   KUND,
   MANDAPA,
   MANDAPA_PILLARS,
@@ -96,7 +98,8 @@ export const CAMERA_BLOCKERS: readonly Box[] = [
     const h = PILLAR_HALF_SIZE + 0.05;
     return box(p.x - h, p.x + h, 0, HEIGHTS.pillarTop + 0.2, p.z - h, p.z + h);
   }),
-  box(NANDI_PLATFORM.x0, NANDI_PLATFORM.x1, 0, 1.6, NANDI_PLATFORM.z0, NANDI_PLATFORM.z1),
+  // Nandi to his horn tips: the platform (0.5 m) and the figure (1.3 m), with a little margin.
+  box(NANDI_PLATFORM.x0, NANDI_PLATFORM.x1, 0, 1.85, NANDI_PLATFORM.z0, NANDI_PLATFORM.z1),
   box(
     GANESHA_SHRINE.x0 - 0.15,
     GANESHA_SHRINE.x1 + 0.15,
@@ -105,8 +108,11 @@ export const CAMERA_BLOCKERS: readonly Box[] = [
     GANESHA_SHRINE.z0 - 0.15,
     GANESHA_SHRINE.z1 + 0.15,
   ),
-  ...GATE_PILLARS.map((p) => box(p.x - 0.3, p.x + 0.3, 0, 3.75, p.z - 0.3, p.z + 0.3)),
-  box(-2.7, 2.7, 3.3, 3.75, 57.8, 58.2),
+  ...GATE_PILLARS.map((p) => {
+    const r = GATE_PILLAR_RADIUS;
+    return box(p.x - r, p.x + r, 0, 3.8, p.z - r, p.z + r);
+  }),
+  box(-2.8, 2.8, 3.3, 3.8, GATE.z - 0.4, GATE.z + 0.4),
   box(DEEPA_STAND.x - 0.8, DEEPA_STAND.x + 0.8, 0, 2.3, DEEPA_STAND.z - 0.8, DEEPA_STAND.z + 0.8),
 ];
 

@@ -23,7 +23,7 @@ import {
   type VisitorId,
 } from "@sannidhi/protocol";
 import type { Pose, Presence } from "../net/presence";
-import { Avatar, GESTURE_S, type GestureAnim } from "./avatar";
+import { Avatar, GESTURE_S, LABEL_HEIGHT, type GestureAnim } from "./avatar";
 
 export const NEAR_M = 8;
 /** A near avatar goes back to the coarse geometry only beyond this, so it doesn't flicker at 8 m. */
@@ -71,7 +71,7 @@ export class Crowd {
     private readonly floorY: (x: number, z: number, sitBlend: number) => number,
   ) {
     // Soft round shadows under everyone, in one draw call (blob shadows, spec 10).
-    this.blobs = new InstancedMesh(new CircleGeometry(0.42, 16), blobMaterial, INSTANCE_CAPACITY);
+    this.blobs = new InstancedMesh(new CircleGeometry(0.3, 16), blobMaterial, INSTANCE_CAPACITY);
     this.blobs.count = 0;
     this.blobs.frustumCulled = false;
     this.group.add(this.blobs);
@@ -228,7 +228,7 @@ export class Crowd {
     const m = this.members.get(id);
     if (!m?.avatar.root.visible) return null;
     out.copy(m.avatar.root.position);
-    out.y += m.avatar.sitBlend > 0.5 ? 1.15 : 1.85;
+    out.y += m.avatar.sitBlend > 0.5 ? LABEL_HEIGHT.seated : LABEL_HEIGHT.standing;
     return out;
   }
 

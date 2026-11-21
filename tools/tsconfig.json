@@ -1,7 +1,7 @@
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "lib": ["ES2023"],
+    "lib": ["ES2023", "DOM"], // DOM: tools/world/tree-trunks.ts reads the web scene code
     "types": ["node"]
   },
   // Repo scripts, plus the root Vitest config.

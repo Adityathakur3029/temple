@@ -20,6 +20,7 @@
     "test": "vitest run",
     "test:e2e": "npm run test:e2e -w @sannidhi/web",
     "check": "tsx tools/check/index.ts",
+    "assets:build": "tsx tools/assets/build.ts",
     "bots": "tsx tools/bots/index.ts",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "eslint .",

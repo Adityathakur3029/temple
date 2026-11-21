@@ -4,6 +4,8 @@
  * at the end if any step failed.
  */
 import { join } from "node:path";
+import { readManifest } from "../assets/inputs";
+import { checkAssets } from "./assets";
 import { compareLocales, readLocales } from "./i18n";
 import { checkSpecLinks } from "./links";
 import { formatBytes, formatResults, measureWeb, overBudget, uncountedFiles } from "./size";
@@ -43,13 +45,14 @@ step("i18n key parity", () => compareLocales(readLocales(join(ROOT, "apps/web/sr
 step("Spec links", () =>
   checkSpecLinks(ROOT).map((p) => `${p.file}:${p.line} → ${p.target} (${p.problem})`),
 );
+step("Assets: config, manifest, budgets, licences (spec 11)", () => checkAssets(ROOT));
 const built = step(
   "Web release build",
   () => runNpm(["run", "build", "-w", "@sannidhi/web", "--silent"]) === 0,
 );
 if (built) {
   step("Size budgets (spec 10)", () => {
-    const results = measureWeb(join(ROOT, "apps/web/dist"));
+    const results = measureWeb(join(ROOT, "apps/web/dist"), readManifest());
     console.log(formatResults(results).replace(/^/gm, "  "));
     const uncounted = uncountedFiles(join(ROOT, "apps/web/dist"));
     if (uncounted.length > 0) {

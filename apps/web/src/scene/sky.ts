@@ -157,6 +157,8 @@ export function blendLook(blend: PhaseBlend): SkyState {
 }
 
 const DOME_RADIUS = 900;
+/** How far the sun light sits from the visitor along its ray; the shadow camera reaches 60 m past. */
+export const SUN_SHADOW_DISTANCE = 80;
 const MOON_DIR = new Vector3(0.35, 0.5, -0.75).normalize();
 
 export class Sky {
@@ -250,7 +252,9 @@ export class Sky {
     this.moon.position.copy(camera).addScaledVector(MOON_DIR, DOME_RADIUS * 0.9);
     this.moon.lookAt(camera);
     this.sun.target.position.copy(focus);
-    this.sun.position.copy(focus).addScaledVector(this.sunDir, 40);
+    // Far enough up the sun's ray that a 20 m tree's top still casts a shadow near the visitor
+    // when the sun is 15° up at dawn and dusk (the shadow camera's near plane is 1 m).
+    this.sun.position.copy(focus).addScaledVector(this.sunDir, SUN_SHADOW_DISTANCE);
   }
 
   dispose(): void {

@@ -25,7 +25,7 @@ The single job of the product: **give people a few calm minutes of devotion in c
 ## What a visit looks like
 
 1. The page opens on a calm loading screen, "Opening the temple doors", and shows the temple within a few seconds.
-2. The visitor appears at the gate barefoot. The footwear rack shows they have left their shoes. A one-line hint explains how to move.
+2. The visitor appears at the gate barefoot. A one-line hint says footwear is left at the gate and explains how to move.
 3. They walk up the path, optionally ringing bells along the way, pass the Ganesha shrine, and reach the courtyard with Nandi facing the sanctum.
 4. They can sit on a mat in the mandapa and take darshan, turn a japa mala, walk pradakshina, light a diya at the lamp stand or offer water at the threshold.
 5. At 06:00 and 19:00 IST the aarti begins for everyone at once. Afterwards visitors can take aarti and receive prasad.

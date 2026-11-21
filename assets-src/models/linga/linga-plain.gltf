@@ -1,0 +1,298 @@
+{
+  "asset": {
+    "generator": "glTF-Transform v4.5.1",
+    "version": "2.0",
+    "extras": {
+      "author": "MANISH 3D MASTER (https://sketchfab.com/Tigermrmanish2511)",
+      "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+      "source": "https://sketchfab.com/3d-models/shivling-3d-models-11acada5a1e04bc9bf2f63c4bf158e03",
+      "title": "Shivling 3D Models"
+    }
+  },
+  "accessors": [
+    {
+      "type": "VEC3",
+      "componentType": 5126,
+      "count": 821,
+      "max": [
+        1.1008673906326294,
+        1.1008672714233398,
+        1.6174625158309937
+      ],
+      "min": [
+        -1.9088298082351685,
+        -1.100867509841919,
+        -0.15173941850662231
+      ],
+      "bufferView": 0,
+      "byteOffset": 0
+    },
+    {
+      "type": "VEC3",
+      "componentType": 5126,
+      "count": 821,
+      "bufferView": 0,
+      "byteOffset": 12
+    },
+    {
+      "type": "SCALAR",
+      "componentType": 5125,
+      "count": 4158,
+      "bufferView": 1,
+      "byteOffset": 0
+    },
+    {
+      "type": "SCALAR",
+      "componentType": 5125,
+      "count": 3132,
+      "bufferView": 1,
+      "byteOffset": 16632
+    },
+    {
+      "type": "SCALAR",
+      "componentType": 5125,
+      "count": 180,
+      "bufferView": 1,
+      "byteOffset": 29160
+    },
+    {
+      "type": "VEC3",
+      "componentType": 5126,
+      "count": 624,
+      "max": [
+        0.5620056986808777,
+        0.562005877494812,
+        2.5718441009521484
+      ],
+      "min": [
+        -0.562005341053009,
+        -0.5620055198669434,
+        1.4020898342132568
+      ],
+      "bufferView": 2,
+      "byteOffset": 0
+    },
+    {
+      "type": "VEC3",
+      "componentType": 5126,
+      "count": 624,
+      "bufferView": 2,
+      "byteOffset": 12
+    },
+    {
+      "type": "VEC3",
+      "componentType": 5126,
+      "count": 64,
+      "max": [
+        -0.39807823300361633,
+        0.292908251285553,
+        2.1056809425354004
+      ],
+      "min": [
+        -0.5601894855499268,
+        -0.2929081916809082,
+        1.7466528415679932
+      ],
+      "bufferView": 3,
+      "byteOffset": 0
+    },
+    {
+      "type": "VEC3",
+      "componentType": 5126,
+      "count": 64,
+      "bufferView": 3,
+      "byteOffset": 12
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 19704,
+      "byteStride": 24,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 19704,
+      "byteLength": 29880,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 49584,
+      "byteLength": 14976,
+      "byteStride": 24,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 64560,
+      "byteLength": 1536,
+      "byteStride": 24,
+      "target": 34962
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "linga-plain.bin",
+      "byteLength": 66096
+    }
+  ],
+  "materials": [
+    {
+      "name": "Material.002",
+      "doubleSided": true,
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.0343,
+          0.0296,
+          0.0252,
+          1
+        ],
+        "roughnessFactor": 0.4257527856275371,
+        "metallicFactor": 0
+      }
+    },
+    {
+      "name": "Material.003",
+      "doubleSided": true,
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.0273,
+          0.0242,
+          0.0212,
+          1
+        ],
+        "roughnessFactor": 0.4257527856275371,
+        "metallicFactor": 0
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "name": "Cylinder_Material.002_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 1,
+            "POSITION": 0
+          },
+          "mode": 4,
+          "material": 0,
+          "indices": 2
+        }
+      ]
+    },
+    {
+      "name": "Cylinder_Material.003_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 6,
+            "POSITION": 5
+          },
+          "mode": 4,
+          "material": 1,
+          "indices": 3
+        }
+      ]
+    },
+    {
+      "name": "Cylinder_Material.004_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 8,
+            "POSITION": 7
+          },
+          "mode": 4,
+          "material": 1,
+          "indices": 4
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "name": "Sketchfab_model",
+      "rotation": [
+        -0.7071067811865474,
+        0,
+        0,
+        0.7071067811865477
+      ],
+      "children": [
+        1
+      ]
+    },
+    {
+      "name": "21429dab28b24af5a71abe1f3346aae5.fbx",
+      "rotation": [
+        0.7071067811865475,
+        0,
+        0,
+        0.7071067811865476
+      ],
+      "scale": [
+        0.009999999776482582,
+        0.009999999776482582,
+        0.009999999776482582
+      ],
+      "children": [
+        2
+      ]
+    },
+    {
+      "name": "RootNode",
+      "children": [
+        3
+      ]
+    },
+    {
+      "name": "Cylinder",
+      "translation": [
+        69.40756225585938,
+        892.4370727539062,
+        728.52001953125
+      ],
+      "rotation": [
+        -0.7071068809345475,
+        0,
+        0,
+        0.7071066814385333
+      ],
+      "scale": [
+        100,
+        100.00000000000001,
+        100.00000000000001
+      ],
+      "children": [
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "name": "Cylinder_Material.002_0",
+      "mesh": 0
+    },
+    {
+      "name": "Cylinder_Material.003_0",
+      "mesh": 1
+    },
+    {
+      "name": "Cylinder_Material.004_0",
+      "mesh": 2
+    }
+  ],
+  "scenes": [
+    {
+      "name": "Sketchfab_Scene",
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "scene": 0
+}

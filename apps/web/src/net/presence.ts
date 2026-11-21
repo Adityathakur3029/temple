@@ -60,7 +60,7 @@ export class Presence {
   /** This visitor's id, from the welcome. */
   me: VisitorId | null = null;
   readonly remotes = new Map<VisitorId, Remote>();
-  /** Called when someone appears or leaves (counts, footwear, sheets). */
+  /** Called when someone appears or leaves (counts, sheets). */
   onChange: (() => void) | null = null;
 
   /** Replaces everything with a welcome's snapshot. Returns this visitor's own state, if listed. */

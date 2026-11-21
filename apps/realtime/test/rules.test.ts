@@ -144,8 +144,9 @@ describe("rate limits and strikes", () => {
 
 describe("bells", () => {
   it("reaches BELL_REACH_M + 1 m", () => {
-    expect(inBellReach({ x: 0, z: 55 }, "gate")).toBe(true);
-    expect(inBellReach({ x: 0, z: 54.9 }, "gate")).toBe(false);
+    // The gate bell hangs at z 46; the server allows 2 m + 1 m.
+    expect(inBellReach({ x: 0, z: 49 }, "gate")).toBe(true);
+    expect(inBellReach({ x: 0, z: 49.1 }, "gate")).toBe(false);
   });
 
   it("caps each bell at BELL_MAX_PER_SEC across visitors", () => {

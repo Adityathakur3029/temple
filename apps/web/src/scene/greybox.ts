@@ -59,6 +59,7 @@ import {
   GATE_PILLARS,
   KUND,
   KUND_WATER,
+  LAWN,
   MANDAPA,
   MANDAPA_PILLARS,
   MATS,
@@ -1210,6 +1211,11 @@ function oakGeometry(): BufferGeometry {
 const TREE_CENTRE = { x: 0, z: 24 };
 /** How far a spot is from the paved ways. Trees space themselves from the paths, not the lawn. */
 const toPath = pathDistance;
+/** How far a spot is from anywhere visitors walk, the lawn too: the giants keep 12 m from it. */
+const toWalkable = (x: number, z: number): number =>
+  Math.min(toPath(x, z), ...LAWN.map((r) => shapeDistance(r, x, z)));
+/** The widest a tree may be (across or deep) unless it stands 12 m from where visitors walk. */
+const GROWN_MAX_WIDTH = 1.24;
 
 /** Where every tree grows, and how it looks; nearest the temple first. */
 export function treeSpots(): TreeSpot[] {
@@ -1325,6 +1331,17 @@ export function treeSpots(): TreeSpot[] {
       warmth: rng() * 2 - 1,
     });
     grown[kind]++;
+  }
+  // The layout spaces giants from the paths; one may still be under 12 m from the lawn. Grow it as
+  // a full-sized tree instead. Shrinking it afterwards leaves every other tree where it was.
+  for (const p of spots) {
+    const wide = Math.max(p.w, p.d);
+    if (wide > GROWN_MAX_WIDTH && toWalkable(p.x, p.z) < 12) {
+      const k = GROWN_MAX_WIDTH / wide;
+      p.w *= k;
+      p.d *= k;
+      p.h *= k;
+    }
   }
   spots.sort(
     (p, q) =>

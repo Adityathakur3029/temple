@@ -15,6 +15,7 @@ import {
   GANESHA,
   GARBHAGRIHA,
   GATE,
+  GATE_APPROACH,
   JAL_SPOT,
   KUND,
   KUND_WATER,
@@ -339,8 +340,9 @@ describe("ritual spots", () => {
     expect(CHECKPOINTS.N.z).toBeGreaterThan(CHECKPOINTS.W.z);
   });
 
-  it("starts visitors inside the gate, facing the temple", () => {
-    expect(SPAWN.z).toBeLessThan(GATE.z);
+  it("starts visitors on the approach outside the gate, facing the temple", () => {
+    expect(SPAWN.z).toBeGreaterThan(GATE.z);
+    expect(inShape(GATE_APPROACH, SPAWN.x, SPAWN.z)).toBe(true);
     expect(Math.cos(SPAWN.yaw)).toBeCloseTo(-1);
   });
 });

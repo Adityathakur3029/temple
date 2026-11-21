@@ -70,12 +70,13 @@ describe("joining", () => {
     const joined = await a.next("delta", (d) => d.join?.some((v) => v.id === wb.you.id) ?? false);
     expect(joined.join?.find((v) => v.id === wb.you.id)?.name).toEqual(wb.you.name);
 
-    a.send({ t: "pos", x: SPAWN.x, z: SPAWN.z - 0.5, yaw: 3.14, pose: "walk" });
+    const z = SPAWN.z - 0.5;
+    a.send({ t: "pos", x: SPAWN.x, z, yaw: 3.14, pose: "walk" });
     const moved = await b.next(
       "delta",
-      (d) => d.up?.some(([id, , z]) => id === wa.you.id && z === 56) ?? false,
+      (d) => d.up?.some(([id, , dz]) => id === wa.you.id && dz === z) ?? false,
     );
-    expect(moved.up?.find(([id]) => id === wa.you.id)).toEqual([wa.you.id, 0, 56, 3.14, 1, -1]);
+    expect(moved.up?.find(([id]) => id === wa.you.id)).toEqual([wa.you.id, 0, z, 3.14, 1, -1]);
 
     await a.close();
     await b.next("delta", (d) => d.gone?.includes(wa.you.id) ?? false);
@@ -89,7 +90,7 @@ describe("joining", () => {
     await wait(400);
     lite.frames.length = 0;
     full.frames.length = 0;
-    await walk(walker, SPAWN, { x: 0, z: 54 });
+    await walk(walker, SPAWN, { x: 0, z: SPAWN.z - 3 }); // towards the gate
     await wait(300);
     const deltas = (c: TestClient): number =>
       c.frames.filter((f) => f.startsWith('{"t":"delta"')).length;
@@ -189,6 +190,9 @@ describe("movement", () => {
 });
 
 describe("gestures and bells", () => {
+  /** On the approach just outside the torana, within reach of the gate bell. Spawn is 7.5 m out. */
+  const AT_GATE = { x: 0, z: BELLS.gate.z + 2 };
+
   it("shows namaste and pranam to others, once per cooldown", async () => {
     const { c: a, welcome: wa } = await TestClient.join({ hall: "hall-08" });
     const { c: b } = await TestClient.join({ hall: "hall-08" });
@@ -210,7 +214,8 @@ describe("gestures and bells", () => {
   it("rings a bell only within reach", async () => {
     const { c: a, welcome: wa } = await TestClient.join({ hall: "hall-09" });
     const { c: b } = await TestClient.join({ hall: "hall-09" });
-    // From the spawn, the gate bell is 1.5 m away and path-3 about 8.8 m.
+    // Walk up to the gate: there the gate bell is 2 m away and path-3 about 7.7 m.
+    await walk(a, SPAWN, AT_GATE);
     a.send({ t: "bell", bell: "path-3" });
     expect(await b.none("event", 300)).toBe(true);
     await wait(3000);
@@ -221,7 +226,9 @@ describe("gestures and bells", () => {
       kind: "bell",
       bell: "gate",
     });
-    expect(Math.hypot(BELLS["path-3"].x - SPAWN.x, BELLS["path-3"].z - SPAWN.z)).toBeGreaterThan(5);
+    expect(Math.hypot(BELLS["path-3"].x - AT_GATE.x, BELLS["path-3"].z - AT_GATE.z)).toBeGreaterThan(
+      5,
+    );
     await Promise.all([a.close(), b.close()]);
   });
 
@@ -230,6 +237,7 @@ describe("gestures and bells", () => {
       Array.from({ length: 6 }, () => TestClient.join({ hall: "hall-10" })),
     );
     const { c: listener } = await TestClient.join({ hall: "hall-10" });
+    await Promise.all(ringers.map(({ c }) => walk(c, SPAWN, AT_GATE)));
     await wait(300);
     for (const { c } of ringers) c.send({ t: "bell", bell: "gate" });
     await wait(500);

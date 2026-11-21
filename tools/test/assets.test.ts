@@ -5,7 +5,7 @@ import { Document } from "@gltf-transform/core";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 import type { AssetManifest, ManifestFile } from "../../apps/web/src/assets/manifest";
-import { SLOT_IDS, SLOTS } from "../../apps/web/src/assets/slots";
+import { MODEL_TRIANGLES, SLOT_IDS, SLOTS } from "../../apps/web/src/assets/slots";
 import { parseConfig, tagsFor, type SlotConfig } from "../assets/config";
 import { fitMatrix, rotationXYZ, transformPoint } from "../assets/fit";
 import { releaseHash, sha256 } from "../assets/inputs";
@@ -324,13 +324,14 @@ describe("checkManifest", () => {
   });
 
   it("adds up every copy's triangles and the GPU textures per tier", () => {
-    // 156 far trees at 120 triangles is 18,720; at 1,500 it would be 234,000.
-    expect(SLOTS.tree.copies?.full).toBe(156);
+    // The tree count is still being tuned, so work from whatever the slot asks for.
+    const copies = SLOTS.tree.copies?.full ?? 1;
     const tree = (triangles: number, gpu = 0): ManifestFile =>
       file({ slot: "tree", src: "models/tree.glb", priority: "P0", triangles, gpuBytes: gpu });
     expect(checkTotals({ release: "r", inputs: "i", files: [tree(120)] })).toEqual([]);
-    expect(checkTotals({ release: "r", inputs: "i", files: [tree(1500)] }).join()).toMatch(
-      /full models: 234,000 triangles/,
+    const over = Math.floor(MODEL_TRIANGLES.full / copies) + 1;
+    expect(checkTotals({ release: "r", inputs: "i", files: [tree(over)] }).join()).toMatch(
+      `full models: ${(over * copies).toLocaleString("en")} triangles`,
     );
     expect(
       checkTotals({ release: "r", inputs: "i", files: [tree(100, 150_000_000)] }).join(),

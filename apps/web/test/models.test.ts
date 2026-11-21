@@ -67,19 +67,27 @@ describe("greybox sections", () => {
 });
 
 describe("near trees", () => {
-  it("shows the tier's near trees first, then the far trees, up to the total", () => {
+  // The exact counts are still being tuned: these follow whatever the slots ask for.
+  it("shows the tier's near trees and oaks first, then the far trees, up to the total", () => {
     const grey = buildGreybox({ mode: "half-somasutra", trees: MAX_TREES });
-    const near = SLOTS["near-tree"].copies;
-    const far = SLOTS.tree.copies;
-    expect((near?.full ?? 0) + (far?.full ?? 0)).toBe(MAX_TREES);
-    expect(grey.nearTrees.count).toBe(near?.full);
-    expect(grey.trees.count).toBe(far?.full);
-    grey.setTrees(90, "lite");
-    expect(grey.nearTrees.count).toBe(near?.lite);
-    expect(grey.trees.count).toBe(far?.lite);
-    expect(grey.nearTrees.count + grey.trees.count).toBe(90);
-    grey.setTrees(10, "full"); // fewer than the near trees: no far trees at all
-    expect([grey.nearTrees.count, grey.trees.count]).toEqual([10, 0]);
+    const near = SLOTS["near-tree"].copies ?? { full: 0, lite: 0 };
+    const oak = SLOTS.oak.copies ?? { full: 0, lite: 0 };
+    const far = SLOTS.tree.copies ?? { full: 0, lite: 0 };
+    expect(near.full + oak.full + far.full).toBe(MAX_TREES);
+    expect([grey.nearTrees.count, grey.oaks.count, grey.trees.count]).toEqual([
+      near.full,
+      oak.full,
+      far.full,
+    ]);
+    const lite = near.lite + oak.lite + far.lite;
+    grey.setTrees(lite, "lite");
+    expect([grey.nearTrees.count, grey.oaks.count, grey.trees.count]).toEqual([
+      near.lite,
+      oak.lite,
+      far.lite,
+    ]);
+    grey.setTrees(10, "full"); // fewer than the near trees: no oaks or far trees at all
+    expect([grey.nearTrees.count, grey.oaks.count, grey.trees.count]).toEqual([10, 0, 0]);
     grey.dispose();
   });
 
@@ -116,7 +124,7 @@ describe("the forest", () => {
     const pos = new Vector3();
     const quat = new Quaternion();
     const scale = new Vector3();
-    const trees = [grey.trees, grey.nearTrees].flatMap((mesh) =>
+    const trees = [grey.trees, grey.nearTrees, grey.oaks].flatMap((mesh) =>
       Array.from({ length: mesh.count }, (_, i) => {
         mesh.getMatrixAt(i, m);
         m.decompose(pos, quat, scale);

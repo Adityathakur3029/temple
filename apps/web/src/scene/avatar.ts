@@ -291,7 +291,7 @@ export function setAvatarModel(root: Object3D): void {
       named = named.parent;
     }
     if (!m) return;
-    const mats = mesh.material as Material | Material[];
+    const mats = mesh.material;
     const first = Array.isArray(mats) ? mats[0] : mats;
     const key = `${m[1]}:${m[2]}`;
     parts.set(key, [

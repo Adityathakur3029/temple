@@ -147,7 +147,7 @@ Commissioned work needs a written licence that covers a perpetual, worldwide rig
 **AI-generated content:**
 - MAY be used only for non-sacred textures and props, where the tool's terms allow this use. It is disclosed in the credits.
 - MUST NOT be used for the linga, Nandi, Ganesha, sacred symbols, the aarti or mantra audio in anything deployed.
-- The one exception is a test model of the linga, Nandi or Ganesha on the owner's own computer, to work out the size and decoration to ask a human maker for (temporary, decided by the owner on 2026-11-08; spec 08 § Depiction). It is `interim` and tagged `ai`, and `npm run deploy:web` refuses to deploy it.
+- The one exception is a test model of the linga, Nandi or Ganesha on the owner's own computer, to work out the size and decoration to ask a human maker for (temporary, decided by the owner on 2026-11-08; spec 08 § Depiction). It is `interim` and tagged `ai`, and `npm run deploy:web` refuses to deploy it, except to staging with `--allow-ai-test-models` (owner, 2026-11-22).
 
 ### `assets-src/LICENSES.md` entry format
 
@@ -182,7 +182,7 @@ The in-app credits screen (spec 07) is generated from the manifest's `credit` fi
   - a configured model has no `LICENSES.md` entry, or a CC-BY model has no credit;
   - a sacred slot's config doesn't say `"ai"` explicitly, or a downloaded or AI-made sacred form isn't `interim`;
   - web code outside the scene loads the manifest or a model, or names a built model's path (spec 08). The favicon and app icon are checked by review.
-- `npm run deploy:web` refuses to run while the manifest has a model tagged both `sacred` and `ai` (a local test model, spec 08 § Depiction).
+- `npm run deploy:web` refuses to run while the manifest has a model tagged both `sacred` and `ai` (a test model, spec 08 § Depiction), except to staging with `--allow-ai-test-models`.
 - A slot without a model, or whose model fails to load, shows its greybox shape.
 - Lite-tier scene bytes ≤ 5 MB and Full-tier ≤ 12 MB (spec 10).
 

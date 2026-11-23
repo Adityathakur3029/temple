@@ -455,6 +455,50 @@ export function slabTexture(width: number, rng: Rng): CanvasTexture | null {
   return texture;
 }
 
+/**
+ * A near-white stone grain for the yard slabs (scene/yard-paving.ts): swirls, pale mottling and a
+ * fine speckle. It multiplies the slabs' own colour, so the yard keeps its stone colour. One repeat
+ * is YARD_TILE metres; `size` pixels square. Null where there is no canvas (tests).
+ */
+export function yardStoneTexture(size: number, rng: Rng): CanvasTexture | null {
+  if (typeof document === "undefined") return null;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const g = canvas.getContext("2d");
+  if (!g) return null;
+  const grain = noiseCanvas(256, 4, 5, rng, (v, px, i) => {
+    const k = 205 + clamp01((v - 0.5) * 2.4 + 0.5) * 50;
+    setPixel(px, i, k, k, k - 2, 255);
+  });
+  const mottle = noiseCanvas(256, 6, 4, rng, (v, px, i) => {
+    const a = smooth(clamp01((v - 0.52) / 0.18)) * 70;
+    setPixel(px, i, 255, 255, 250, a);
+  });
+  const fine = noiseCanvas(256, 64, 2, rng, (v, px, i) => {
+    const k = clamp01((v - 0.5) * 3 + 0.5) * 255;
+    setPixel(px, i, k, k, k, 255);
+  });
+  if (!grain || !mottle || !fine) return null;
+  g.save();
+  g.scale(size / 256, size / 256);
+  g.fillStyle = g.createPattern(grain, "repeat") ?? "#e6e6e4";
+  g.fillRect(0, 0, 256, 256);
+  g.fillStyle = g.createPattern(mottle, "repeat") ?? "transparent";
+  g.fillRect(0, 0, 256, 256);
+  g.globalCompositeOperation = "overlay";
+  g.globalAlpha = 0.22;
+  g.fillStyle = g.createPattern(fine, "repeat") ?? "transparent";
+  g.fillRect(0, 0, 256, 256);
+  g.restore();
+  const texture = new CanvasTexture(canvas);
+  texture.wrapS = RepeatWrapping;
+  texture.wrapT = RepeatWrapping;
+  texture.colorSpace = SRGBColorSpace;
+  texture.anisotropy = 8;
+  return texture;
+}
+
 /** One repeat of the grass pattern, in metres. */
 export const GRASS_TILE = 3;
 

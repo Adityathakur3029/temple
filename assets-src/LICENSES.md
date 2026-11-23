@@ -176,7 +176,7 @@ Template for a downloaded model:
 ## audio/bell-1.m4a
 - Source: own. Made by the owner for Sannidhi with ElevenLabs sound effects (AI) on 2026-11-23; source clip assets-src/audio/bell/bell-1.wav
 - Author: the Sannidhi owner, with ElevenLabs
-- Licence: own. OPEN: confirm the ElevenLabs plan used allows commercial use without attribution (free-plan output is non-commercial and needs credit to ElevenLabs); until confirmed, not for deploy
+- Licence: own. OPEN: confirm the ElevenLabs plan used allows commercial use without attribution (free-plan output is non-commercial and needs credit to ElevenLabs); until confirmed, staging only (owner, 2026-11-23), not production
 - Credit line: Bell sounds made for Sannidhi with ElevenLabs (AI)
 - Interim: yes (until the owner's final recordings, spec 06)
 - AI-made: yes. Allowed because a bell sound is not a deity, sacred form or chant (spec 11 § AI-generated content); disclosed in the credit line
@@ -194,7 +194,7 @@ Template for a downloaded model:
 ## audio/background-day-1.m4a
 - Source: own. Made by the owner for Sannidhi with ElevenLabs (AI) on 2026-11-23; source clip assets-src/audio/background/background-2.wav
 - Author: the Sannidhi owner, with ElevenLabs
-- Licence: own. OPEN: as bell-1 (confirm the ElevenLabs plan allows commercial use); until confirmed, not for deploy
+- Licence: own. OPEN: as bell-1 (confirm the ElevenLabs plan allows commercial use); until confirmed, staging only (owner, 2026-11-23), not production
 - Credit line: Background and meditation sounds made for Sannidhi with ElevenLabs (AI)
 - Interim: yes
 - AI-made: yes (owner, 2026-11-23). Must not contain chant or mantra to be deployed (spec 11 § AI-generated content)
@@ -203,7 +203,7 @@ Template for a downloaded model:
 ## audio/background-night-1.m4a
 - Source: own. Made by the owner for Sannidhi with ElevenLabs (AI) on 2026-11-23; source clip assets-src/audio/background/background-1.wav
 - Author: the Sannidhi owner, with ElevenLabs
-- Licence: own. OPEN: as bell-1 (confirm the ElevenLabs plan allows commercial use); until confirmed, not for deploy
+- Licence: own. OPEN: as bell-1 (confirm the ElevenLabs plan allows commercial use); until confirmed, staging only (owner, 2026-11-23), not production
 - Credit line: Background and meditation sounds made for Sannidhi with ElevenLabs (AI)
 - Interim: yes
 - AI-made: yes (owner, 2026-11-23). Must not contain chant or mantra to be deployed (spec 11 § AI-generated content)
@@ -212,7 +212,7 @@ Template for a downloaded model:
 ## audio/meditation-1.m4a
 - Source: own. Made by the owner for Sannidhi with ElevenLabs (AI) on 2026-11-23; source clip assets-src/audio/meditation/meditation-1.wav
 - Author: the Sannidhi owner, with ElevenLabs
-- Licence: own. OPEN: as bell-1 (confirm the ElevenLabs plan allows commercial use); until confirmed, not for deploy
+- Licence: own. OPEN: as bell-1 (confirm the ElevenLabs plan allows commercial use); until confirmed, staging only (owner, 2026-11-23), not production
 - Credit line: Background and meditation sounds made for Sannidhi with ElevenLabs (AI)
 - Interim: yes
 - AI-made: yes (owner, 2026-11-23). Must not contain chant or mantra to be deployed (spec 11 § AI-generated content)
@@ -221,7 +221,7 @@ Template for a downloaded model:
 ## audio/meditation-2.m4a
 - Source: own. Made by the owner for Sannidhi with ElevenLabs (AI) on 2026-11-23; source clip assets-src/audio/meditation/meditation-2.wav
 - Author: the Sannidhi owner, with ElevenLabs
-- Licence: own. OPEN: as bell-1 (confirm the ElevenLabs plan allows commercial use); until confirmed, not for deploy
+- Licence: own. OPEN: as bell-1 (confirm the ElevenLabs plan allows commercial use); until confirmed, staging only (owner, 2026-11-23), not production
 - Credit line: Background and meditation sounds made for Sannidhi with ElevenLabs (AI)
 - Interim: yes
 - AI-made: yes (owner, 2026-11-23). Must not contain chant or mantra to be deployed (spec 11 § AI-generated content)
@@ -230,7 +230,7 @@ Template for a downloaded model:
 ## audio/meditation-3.m4a
 - Source: own. Made by the owner for Sannidhi with ElevenLabs (AI) on 2026-11-23; source clip assets-src/audio/meditation/meditation-3.wav
 - Author: the Sannidhi owner, with ElevenLabs
-- Licence: own. OPEN: as bell-1 (confirm the ElevenLabs plan allows commercial use); until confirmed, not for deploy
+- Licence: own. OPEN: as bell-1 (confirm the ElevenLabs plan allows commercial use); until confirmed, staging only (owner, 2026-11-23), not production
 - Credit line: Background and meditation sounds made for Sannidhi with ElevenLabs (AI)
 - Interim: yes
 - AI-made: yes (owner, 2026-11-23). Must not contain chant or mantra to be deployed (spec 11 § AI-generated content)
@@ -239,7 +239,7 @@ Template for a downloaded model:
 ## audio/meditation-4.m4a
 - Source: own. Made by the owner for Sannidhi with ElevenLabs (AI) on 2026-11-23; source clip assets-src/audio/meditation/meditation-4.wav
 - Author: the Sannidhi owner, with ElevenLabs
-- Licence: own. OPEN: as bell-1 (confirm the ElevenLabs plan allows commercial use); until confirmed, not for deploy
+- Licence: own. OPEN: as bell-1 (confirm the ElevenLabs plan allows commercial use); until confirmed, staging only (owner, 2026-11-23), not production
 - Credit line: Background and meditation sounds made for Sannidhi with ElevenLabs (AI)
 - Interim: yes
 - AI-made: yes (owner, 2026-11-23). Must not contain chant or mantra to be deployed (spec 11 § AI-generated content)

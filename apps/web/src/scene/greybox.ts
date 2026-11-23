@@ -89,7 +89,8 @@ import type { AssetTier } from "../assets/manifest";
 import { SLOTS, type SlotId } from "../assets/slots";
 import { MeshBuilder, placed, withoutSection } from "./builder";
 import { HEIGHTS, KUND_FLOOR_Y, KUND_STEP, KUND_WATER_Y, PAVING, PLINTH, STEPS } from "./ground";
-import { SlabBuilder, grassTexture, slabTexture } from "./stone-path";
+import { SlabBuilder, grassTexture, slabTexture, yardStoneTexture } from "./stone-path";
+import { YardSlabBuilder } from "./yard-paving";
 import { buildBoardText } from "./today-board";
 
 /** Weathered grey-brown stone, deodar green, brass and a few warm accents (spec 02 § Setting). */
@@ -98,6 +99,8 @@ export const COLOURS = {
   lawn: "#5f7d34",
   paving: "#8b8375",
   court: "#968d7e",
+  /** The earth in the joints between the yard slabs. */
+  joint: "#6e5a40",
   carpet: "#8a1c1c",
   carpetBorder: "#a8873e",
   aisle: "#a59c8c",
@@ -448,11 +451,17 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   lawnGeo.rotateX(-Math.PI / 2);
 
   // --- Paving --------------------------------------------------------------------------------
-  // The yard and the courtyard are plain stone; the paths are slate slabs laid across the way
-  // (scene/stone-path.ts), drawn as their own mesh.
-  b.box(COMPOUND.x0, COMPOUND.x1, 0, 0.012, COMPOUND.z0, KUND.z0, C.paving);
-  b.box(COMPOUND.x0, KUND.x0, 0, 0.012, KUND.z0, COMPOUND.z1, C.paving);
-  b.box(COURTYARD.x0, COURTYARD.x1, 0, PAVING, COURTYARD.z0, COURTYARD.z1, C.court);
+  // The yard and the courtyard are large stone slabs in staggered rows, each standing a little
+  // above the earth with narrow earth joints between (scene/yard-paving.ts). They keep the yard's
+  // stone colours. The paths are slate slabs laid across the way (scene/stone-path.ts), a few
+  // millimetres higher, drawn as their own mesh.
+  const kundCorner = { x0: KUND.x0, x1: COMPOUND.x1, z0: KUND.z0, z1: COMPOUND.z1 };
+  b.box(COMPOUND.x0, COMPOUND.x1, 0, 0.004, COMPOUND.z0, KUND.z0, C.joint);
+  b.box(COMPOUND.x0, KUND.x0, 0, 0.004, KUND.z0, COMPOUND.z1, C.joint);
+  const yardTop = PAVING - 0.004;
+  const yard = new YardSlabBuilder()
+    .pave(COMPOUND, C.paving, yardTop, mulberry32(52), [COURTYARD, kundCorner, MANDAPA, ANTARALA])
+    .pave(COURTYARD, C.court, yardTop, mulberry32(53), [kundCorner, MANDAPA]);
   const slabs = new SlabBuilder();
   const P = PRADAKSHINA;
   const hw = P.halfWidth;
@@ -1023,6 +1032,14 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   const stonePath = new Mesh(slabs.build(), new MeshLambertMaterial({ map: slabMap }));
   stonePath.name = "stone-path";
   group.add(stonePath);
+
+  const yardMap = yardStoneTexture(opts.textureTier === "lite" ? 256 : 512, mulberry32(48));
+  const yardMesh = new Mesh(
+    yard.build(),
+    new MeshLambertMaterial(yardMap ? { map: yardMap, vertexColors: true } : { vertexColors: true }),
+  );
+  yardMesh.name = "yard-paving";
+  group.add(yardMesh);
 
   // Without a canvas (tests), plain lawn green, still clearly apart from the forest floor.
   const grassMap = grassTexture(opts.textureTier === "lite" ? 256 : 512, mulberry32(47));

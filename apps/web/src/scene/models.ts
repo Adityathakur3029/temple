@@ -27,6 +27,7 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import manifestJson from "../assets/manifest.json";
 import type { AssetManifest, AssetTier, ManifestFile } from "../assets/manifest";
 import { PRIORITIES, SLOTS, isSlotId, type SlotId } from "../assets/slots";
+import { isSoundId, type SoundId } from "../assets/sounds";
 import { setAvatarModel } from "./avatar";
 import type { Greybox } from "./greybox";
 
@@ -40,6 +41,17 @@ export type SlotStatus = "loading" | "ready" | "failed";
 /** The asset origin is set at build time (spec 01); empty means the app's own origin. */
 export function assetUrl(path: string, origin = import.meta.env.VITE_ASSET_ORIGIN): string {
   return `${(origin ?? "").trim().replace(/\/+$/, "")}${path}`;
+}
+
+/** Each sound's variant URLs, in variant order (spec 11 § Sounds). */
+export function soundUrls(manifest: AssetManifest = MANIFEST): Partial<Record<SoundId, string[]>> {
+  const out: Partial<Record<SoundId, string[]>> = {};
+  const sorted = [...(manifest.sounds ?? [])].sort((a, b) => a.src.localeCompare(b.src));
+  for (const s of sorted) {
+    if (!isSoundId(s.sound)) continue;
+    (out[s.sound] ??= []).push(assetUrl(s.path));
+  }
+  return out;
 }
 
 /** The manifest's files for one tier, grouped by priority, slots in a known order. */

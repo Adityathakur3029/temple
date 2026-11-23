@@ -1,6 +1,6 @@
 {
-  "release": "16cab6c4",
-  "inputs": "f6d79e613b25a43b",
+  "release": "f0b163e5",
+  "inputs": "2e4a3446b5ee4f76",
   "files": [
     {
       "src": "models/gate.glb",
@@ -20,7 +20,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/16cab6c4/full/models/gate.glb"
+      "path": "/v/f0b163e5/full/models/gate.glb"
     },
     {
       "src": "models/gate.glb",
@@ -40,7 +40,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/16cab6c4/lite/models/gate.glb"
+      "path": "/v/f0b163e5/lite/models/gate.glb"
     },
     {
       "src": "models/today-board.glb",
@@ -60,7 +60,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/16cab6c4/full/models/today-board.glb"
+      "path": "/v/f0b163e5/full/models/today-board.glb"
     },
     {
       "src": "models/today-board.glb",
@@ -80,7 +80,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/16cab6c4/lite/models/today-board.glb"
+      "path": "/v/f0b163e5/lite/models/today-board.glb"
     },
     {
       "src": "models/tree.glb",
@@ -100,7 +100,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/16cab6c4/full/models/tree.glb"
+      "path": "/v/f0b163e5/full/models/tree.glb"
     },
     {
       "src": "models/tree.glb",
@@ -120,7 +120,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/16cab6c4/lite/models/tree.glb"
+      "path": "/v/f0b163e5/lite/models/tree.glb"
     },
     {
       "src": "models/near-tree.glb",
@@ -140,7 +140,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/16cab6c4/full/models/near-tree.glb"
+      "path": "/v/f0b163e5/full/models/near-tree.glb"
     },
     {
       "src": "models/near-tree.glb",
@@ -160,7 +160,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/16cab6c4/lite/models/near-tree.glb"
+      "path": "/v/f0b163e5/lite/models/near-tree.glb"
     },
     {
       "src": "models/oak.glb",
@@ -180,7 +180,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/16cab6c4/full/models/oak.glb"
+      "path": "/v/f0b163e5/full/models/oak.glb"
     },
     {
       "src": "models/oak.glb",
@@ -200,14 +200,14 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/16cab6c4/lite/models/oak.glb"
+      "path": "/v/f0b163e5/lite/models/oak.glb"
     },
     {
       "src": "models/shrine.glb",
       "slot": "shrine",
       "tier": "full",
-      "sha256": "585bdacc0be2e64ba6251395cab9e47acbcdf22b6b35a5e0b8115a9dbcb1183d",
-      "bytes": 307736,
+      "sha256": "ddb8bba8e89ebc39fa8ce1c0ef7cb19dd587c9292fb42589d4df6acf4b3a2dd5",
+      "bytes": 307724,
       "priority": "P1",
       "tags": [
         "shrine",
@@ -220,14 +220,14 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/16cab6c4/full/models/shrine.glb"
+      "path": "/v/f0b163e5/full/models/shrine.glb"
     },
     {
       "src": "models/shrine.glb",
       "slot": "shrine",
       "tier": "lite",
-      "sha256": "585bdacc0be2e64ba6251395cab9e47acbcdf22b6b35a5e0b8115a9dbcb1183d",
-      "bytes": 307736,
+      "sha256": "ddb8bba8e89ebc39fa8ce1c0ef7cb19dd587c9292fb42589d4df6acf4b3a2dd5",
+      "bytes": 307724,
       "priority": "P1",
       "tags": [
         "shrine",
@@ -240,7 +240,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/16cab6c4/lite/models/shrine.glb"
+      "path": "/v/f0b163e5/lite/models/shrine.glb"
     },
     {
       "src": "models/linga.glb",
@@ -261,7 +261,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/16cab6c4/full/models/linga.glb"
+      "path": "/v/f0b163e5/full/models/linga.glb"
     },
     {
       "src": "models/linga.glb",
@@ -282,7 +282,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/16cab6c4/lite/models/linga.glb"
+      "path": "/v/f0b163e5/lite/models/linga.glb"
     },
     {
       "src": "models/nandi.glb",
@@ -303,7 +303,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/16cab6c4/full/models/nandi.glb"
+      "path": "/v/f0b163e5/full/models/nandi.glb"
     },
     {
       "src": "models/nandi.glb",
@@ -324,14 +324,14 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/16cab6c4/lite/models/nandi.glb"
+      "path": "/v/f0b163e5/lite/models/nandi.glb"
     },
     {
       "src": "models/mandapa.glb",
       "slot": "mandapa",
       "tier": "full",
-      "sha256": "4e1c77bba10b0c34fd6b5c2043e2663cee3c304ca51be750f900ce749e419370",
-      "bytes": 126628,
+      "sha256": "59d076e690f50245cbdcd830eb4659df3c1eff679f1ed34bf14d31a55b856e1b",
+      "bytes": 126608,
       "priority": "P1",
       "tags": [
         "mandapa",
@@ -344,14 +344,14 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/16cab6c4/full/models/mandapa.glb"
+      "path": "/v/f0b163e5/full/models/mandapa.glb"
     },
     {
       "src": "models/mandapa.glb",
       "slot": "mandapa",
       "tier": "lite",
-      "sha256": "4e1c77bba10b0c34fd6b5c2043e2663cee3c304ca51be750f900ce749e419370",
-      "bytes": 126628,
+      "sha256": "59d076e690f50245cbdcd830eb4659df3c1eff679f1ed34bf14d31a55b856e1b",
+      "bytes": 126608,
       "priority": "P1",
       "tags": [
         "mandapa",
@@ -364,7 +364,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/16cab6c4/lite/models/mandapa.glb"
+      "path": "/v/f0b163e5/lite/models/mandapa.glb"
     },
     {
       "src": "models/ganesha-shrine.glb",
@@ -384,7 +384,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/16cab6c4/full/models/ganesha-shrine.glb"
+      "path": "/v/f0b163e5/full/models/ganesha-shrine.glb"
     },
     {
       "src": "models/ganesha-shrine.glb",
@@ -404,7 +404,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/16cab6c4/lite/models/ganesha-shrine.glb"
+      "path": "/v/f0b163e5/lite/models/ganesha-shrine.glb"
     },
     {
       "src": "models/ganesha.glb",
@@ -429,7 +429,7 @@
         ]
       ],
       "gpuBytes": 1398101,
-      "path": "/v/16cab6c4/full/models/ganesha.glb"
+      "path": "/v/f0b163e5/full/models/ganesha.glb"
     },
     {
       "src": "models/ganesha.glb",
@@ -454,7 +454,7 @@
         ]
       ],
       "gpuBytes": 349525,
-      "path": "/v/16cab6c4/lite/models/ganesha.glb"
+      "path": "/v/f0b163e5/lite/models/ganesha.glb"
     },
     {
       "src": "models/kund.glb",
@@ -474,7 +474,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/16cab6c4/full/models/kund.glb"
+      "path": "/v/f0b163e5/full/models/kund.glb"
     },
     {
       "src": "models/kund.glb",
@@ -494,7 +494,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/16cab6c4/lite/models/kund.glb"
+      "path": "/v/f0b163e5/lite/models/kund.glb"
     },
     {
       "src": "models/deepa-stand.glb",
@@ -514,7 +514,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/16cab6c4/full/models/deepa-stand.glb"
+      "path": "/v/f0b163e5/full/models/deepa-stand.glb"
     },
     {
       "src": "models/deepa-stand.glb",
@@ -534,7 +534,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/16cab6c4/lite/models/deepa-stand.glb"
+      "path": "/v/f0b163e5/lite/models/deepa-stand.glb"
     },
     {
       "src": "models/bell.glb",
@@ -558,7 +558,7 @@
         ]
       ],
       "gpuBytes": 349525,
-      "path": "/v/16cab6c4/full/models/bell.glb"
+      "path": "/v/f0b163e5/full/models/bell.glb"
     },
     {
       "src": "models/bell.glb",
@@ -582,7 +582,7 @@
         ]
       ],
       "gpuBytes": 87381,
-      "path": "/v/16cab6c4/lite/models/bell.glb"
+      "path": "/v/f0b163e5/lite/models/bell.glb"
     },
     {
       "src": "models/post-lamp.glb",
@@ -602,7 +602,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/16cab6c4/full/models/post-lamp.glb"
+      "path": "/v/f0b163e5/full/models/post-lamp.glb"
     },
     {
       "src": "models/post-lamp.glb",
@@ -622,7 +622,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/16cab6c4/lite/models/post-lamp.glb"
+      "path": "/v/f0b163e5/lite/models/post-lamp.glb"
     },
     {
       "src": "models/avatar.glb",
@@ -642,7 +642,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/16cab6c4/full/models/avatar.glb"
+      "path": "/v/f0b163e5/full/models/avatar.glb"
     },
     {
       "src": "models/avatar.glb",
@@ -662,7 +662,129 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/16cab6c4/lite/models/avatar.glb"
+      "path": "/v/f0b163e5/lite/models/avatar.glb"
+    }
+  ],
+  "sounds": [
+    {
+      "src": "audio/bell-1.m4a",
+      "sound": "bell",
+      "sha256": "b1fde6b791d7aac20cc0280f6737242c8f1b89828fee7c122faa714d60d2a20c",
+      "bytes": 50263,
+      "seconds": 6,
+      "tags": [
+        "bell",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Bell sounds made for Sannidhi with ElevenLabs (AI)",
+      "path": "/v/f0b163e5/audio/bell-1.m4a"
+    },
+    {
+      "src": "audio/bell-2.m4a",
+      "sound": "bell",
+      "sha256": "19a7effa83bf77a1367a2d3dc896a1c57a90219afc93c9a9c3e4d2848675f839",
+      "bytes": 50307,
+      "seconds": 6,
+      "tags": [
+        "bell",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Bell sounds made for Sannidhi with ElevenLabs (AI)",
+      "path": "/v/f0b163e5/audio/bell-2.m4a"
+    },
+    {
+      "src": "audio/background-day-1.m4a",
+      "sound": "background-day",
+      "sha256": "9d28d7487952942e2f29b11b2e6d6a54442a611a37e6aa3b281f54bb64b5f3cb",
+      "bytes": 164739,
+      "seconds": 20,
+      "tags": [
+        "background-day",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Background and meditation sounds made for Sannidhi with ElevenLabs (AI)",
+      "path": "/v/f0b163e5/audio/background-day-1.m4a"
+    },
+    {
+      "src": "audio/background-night-1.m4a",
+      "sound": "background-night",
+      "sha256": "27e1872c2158c039f49c306cd67bb1ea5eb91206f2aace0d198c11051a54e119",
+      "bytes": 164836,
+      "seconds": 20,
+      "tags": [
+        "background-night",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Background and meditation sounds made for Sannidhi with ElevenLabs (AI)",
+      "path": "/v/f0b163e5/audio/background-night-1.m4a"
+    },
+    {
+      "src": "audio/meditation-1.m4a",
+      "sound": "meditation",
+      "sha256": "e31d0f12de53176d469ce633a41dbeed8f188a1b75e159270224c65e14bcb8fb",
+      "bytes": 368512,
+      "seconds": 30,
+      "tags": [
+        "meditation",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Background and meditation sounds made for Sannidhi with ElevenLabs (AI)",
+      "path": "/v/f0b163e5/audio/meditation-1.m4a"
+    },
+    {
+      "src": "audio/meditation-2.m4a",
+      "sound": "meditation",
+      "sha256": "493d6fb155759105dc650a482743bdf7d336e11c424938e5ebd5cad0ac2a003a",
+      "bytes": 365921,
+      "seconds": 30,
+      "tags": [
+        "meditation",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Background and meditation sounds made for Sannidhi with ElevenLabs (AI)",
+      "path": "/v/f0b163e5/audio/meditation-2.m4a"
+    },
+    {
+      "src": "audio/meditation-3.m4a",
+      "sound": "meditation",
+      "sha256": "d7fac32629456aecd911f40174575e2582da9fcf00652026a0eb5c56f3f383ac",
+      "bytes": 370017,
+      "seconds": 30,
+      "tags": [
+        "meditation",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Background and meditation sounds made for Sannidhi with ElevenLabs (AI)",
+      "path": "/v/f0b163e5/audio/meditation-3.m4a"
+    },
+    {
+      "src": "audio/meditation-4.m4a",
+      "sound": "meditation",
+      "sha256": "b6883f74bd053fa639c09094bc4ec5e2803a9004c8f9cbee6c00d2a54646af09",
+      "bytes": 369286,
+      "seconds": 30,
+      "tags": [
+        "meditation",
+        "interim",
+        "ai"
+      ],
+      "licence": "own",
+      "credit": "Background and meditation sounds made for Sannidhi with ElevenLabs (AI)",
+      "path": "/v/f0b163e5/audio/meditation-4.m4a"
     }
   ]
 }

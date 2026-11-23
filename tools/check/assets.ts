@@ -1,7 +1,7 @@
 /**
  * Asset checks for `npm run check` (spec 11 § Acceptance criteria): the config is valid, the
- * built files match the manifest and the config, every file is within its slot's budgets and
- * carries its licence and credit, and only scene code can load models (spec 08: no deity image
+ * built files (models and sounds) match the manifest and the config, every file is within its
+ * slot's budgets and carries its licence and credit, and only scene code can load models (spec 08: no deity image
  * in UI, loading or donation code).
  */
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
@@ -13,6 +13,7 @@ import {
   SLOTS,
   isSlotId,
 } from "../../apps/web/src/assets/slots";
+import { SOUNDS, isSoundId } from "../../apps/web/src/assets/sounds";
 import type { AssetConfig } from "../assets/config";
 import {
   RELEASES_DIR,
@@ -20,9 +21,10 @@ import {
   inputsHash,
   readConfig,
   readManifest,
-  releaseHash,
+  releaseOf,
   sha256,
 } from "../assets/inputs";
+import { soundSrc, type SoundsConfig } from "../assets/sound-config";
 
 const STALE = "the built models are out of date; run `npm run assets:build`";
 
@@ -61,6 +63,7 @@ export function checkManifest(
   manifest: AssetManifest,
   config: AssetConfig,
   readFile: (path: string) => Uint8Array | null,
+  sounds: SoundsConfig = {},
 ): string[] {
   const problems: string[] = [];
   const seen = new Set<string>();
@@ -105,10 +108,58 @@ export function checkManifest(
       if (!seen.has(`${slot}|${tier}`)) problems.push(`slot ${slot} has no ${tier} file; ${STALE}`);
     }
   }
+  problems.push(...checkSounds(manifest, sounds, readFile));
   problems.push(...checkTotals(manifest));
-  const expected = manifest.files.length > 0 ? releaseHash(manifest.files) : null;
+  const expected = releaseOf(manifest.files, manifest.sounds ?? []);
   if (manifest.release !== expected) {
     problems.push(`manifest release ${manifest.release} should be ${expected}; ${STALE}`);
+  }
+  return problems;
+}
+
+/** Sound files in the manifest against sounds.json and the files on disk (spec 11 § Sounds). */
+function checkSounds(
+  manifest: AssetManifest,
+  sounds: SoundsConfig,
+  readFile: (path: string) => Uint8Array | null,
+): string[] {
+  const problems: string[] = [];
+  const seen = new Set<string>();
+  for (const f of manifest.sounds ?? []) {
+    const where = `manifest ${f.src}`;
+    if (!isSoundId(f.sound)) {
+      problems.push(`${where}: unknown sound "${String(f.sound)}"`);
+      continue;
+    }
+    seen.add(f.src);
+    if (f.path !== `/v/${manifest.release}/${f.src}`) {
+      problems.push(`${where}: path ${f.path} is not under release ${manifest.release}`);
+    }
+    const data = readFile(f.path);
+    if (!data) problems.push(`${where}: ${f.path} is missing; ${STALE}`);
+    else if (data.byteLength !== f.bytes || sha256(data) !== f.sha256) {
+      problems.push(`${where}: file doesn't match its sha256 or size; ${STALE}`);
+    }
+    if (f.seconds > SOUNDS[f.sound].maxSeconds) {
+      problems.push(`${where}: ${f.seconds} s > ${SOUNDS[f.sound].maxSeconds} s`);
+    }
+    if (!(LICENCES as readonly string[]).includes(f.licence)) {
+      problems.push(`${where}: licence "${f.licence}" is not allowed`);
+    } else if (!NO_CREDIT_NEEDED.includes(f.licence) && !f.credit) {
+      problems.push(`${where}: ${f.licence} needs a credit line`);
+    }
+    const cfg = sounds[f.sound];
+    if (!cfg) problems.push(`${where}: sound isn't in assets-src/sounds.json; ${STALE}`);
+    else if (cfg.licence !== f.licence || cfg.credit !== f.credit) {
+      problems.push(`${where}: licence or credit differs from sounds.json; ${STALE}`);
+    }
+  }
+  for (const [sound, cfg] of Object.entries(sounds)) {
+    if (!isSoundId(sound)) continue;
+    cfg.files.forEach((_, i) => {
+      const src = soundSrc(sound, i);
+      if (!seen.has(src)) problems.push(`${src} isn't built; ${STALE}`);
+    });
   }
   return problems;
 }
@@ -149,23 +200,30 @@ export function checkModelImports(webSrc: string, extra: readonly string[] = [])
 }
 
 export function checkAssets(root: string): string[] {
-  const { config, problems, raw } = readConfig();
+  const { config, sounds, problems, raw } = readConfig();
   let manifest: AssetManifest;
   try {
     manifest = readManifest();
   } catch (err) {
     return [...problems, `asset manifest: ${err instanceof Error ? err.message : String(err)}`];
   }
-  if (problems.length === 0 && manifest.inputs !== inputsHash(config, raw)) {
+  if (problems.length === 0 && manifest.inputs !== inputsHash(config, raw, sounds)) {
     problems.push(`assets-src/ changed since the last build; ${STALE}`);
   }
   problems.push(
-    ...checkManifest(manifest, config, (path) => {
-      const disk = fileOnDisk(path);
-      return existsSync(disk) ? readFileSync(disk) : null;
-    }),
+    ...checkManifest(
+      manifest,
+      config,
+      (path) => {
+        const disk = fileOnDisk(path);
+        return existsSync(disk) ? readFileSync(disk) : null;
+      },
+      sounds,
+    ),
   );
-  const listed = new Set(manifest.files.map((f) => fileOnDisk(f.path)));
+  const listed = new Set(
+    [...manifest.files, ...(manifest.sounds ?? [])].map((f) => fileOnDisk(f.path)),
+  );
   for (const file of listFiles(RELEASES_DIR)) {
     if (!listed.has(file)) {
       problems.push(`${relative(root, file).replace(/\\/g, "/")} isn't in the manifest; ${STALE}`);

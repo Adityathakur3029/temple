@@ -1,10 +1,11 @@
 /**
  * Pointer and keyboard input for the temple (spec 02 § Controls, spec 07 § Keyboard):
  * drag to look, pinch or scroll to zoom, tap or click the ground to walk, W A S D or arrows to walk,
- * E for the context action, V for the darshan view, 1 to bow, 3 for namaste, Esc to close.
+ * E for the context action, V for the darshan view, 1 to bow, 3 for namaste, M for sound on or
+ * off, Esc to close.
  */
 
-export type KeyAction = "context" | "darshan" | "escape" | "pranam" | "namaste";
+export type KeyAction = "context" | "darshan" | "escape" | "pranam" | "namaste" | "sound";
 
 export interface InputHandlers {
   look(dxPx: number, dyPx: number): void;
@@ -29,6 +30,7 @@ const MOVE_KEYS: Readonly<Record<string, readonly [number, number]>> = {
 const ACTION_KEYS: Readonly<Record<string, KeyAction>> = {
   KeyE: "context",
   KeyV: "darshan",
+  KeyM: "sound",
   Digit1: "pranam",
   Numpad1: "pranam",
   Digit3: "namaste",

@@ -10,6 +10,7 @@ import {
   roundCm,
   roundYaw,
   type BellId,
+  type TapId,
   type ClientMessage,
   type EventMessage,
   type Gesture,
@@ -209,6 +210,10 @@ export class Session {
 
   bell(bell: BellId): void {
     this.conn.send({ t: "bell", bell });
+  }
+
+  wash(tap: TapId): void {
+    this.conn.send({ t: "wash", tap });
   }
 
   /**

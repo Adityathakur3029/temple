@@ -9,6 +9,7 @@ import {
   HALL_IDS,
   JAL_KINDS,
   POSES,
+  TAP_IDS,
   type ClientMessage,
   type ClientMessageType,
   type HallId,
@@ -56,6 +57,7 @@ const VALIDATORS: { readonly [K in ClientMessageType]: (o: Obj) => boolean } = {
     isOneOf(o.pose, POSES),
   gesture: (o) => hasOnly(o, ["t", "g"]) && isOneOf(o.g, GESTURES),
   bell: (o) => hasOnly(o, ["t", "bell"]) && isOneOf(o.bell, BELL_IDS),
+  wash: (o) => hasOnly(o, ["t", "tap"]) && isOneOf(o.tap, TAP_IDS),
   sit: (o) =>
     hasOnly(o, ["t", "req", "mat"]) && isReq(o.req) && (o.mat === undefined || isMatIndex(o.mat)),
   stand: bare,

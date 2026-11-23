@@ -14,7 +14,8 @@
  * Animations are procedural: idle, walk and sit (sukhasana, cross-legged, facing the sanctum),
  * and three devotional gestures: namaste (palms joined at the chest with a slight nod, 1.2 s),
  * pranam (a standing bow with joined palms raised to the forehead, 2.5 s) and ringing a bell
- * (reach up and strike, 0.8 s). The rig has no running, jumping, dancing or emote motion at all.
+ * (reach up and strike, 0.8 s), and washing the hands at a tap (lean a little, cup the hands under
+ * the spout and rub them, then shake the water off gently, 4 s). The rig has no running, jumping, dancing or emote motion at all.
  * M5 replaces this with the skinned asset and vertex animation textures (spec 11).
  */
 import {
@@ -61,13 +62,17 @@ const SWING = 0.5;
 const SIT_S = 0.9;
 
 export type Detail = "high" | "low";
-export type GestureAnim = "namaste" | "pranam" | "bell";
+export type GestureAnim = "namaste" | "pranam" | "bell" | "wash";
+
+/** Washing the hands at a tap (spec 03 § Wash hands). */
+export const WASH_S = 4;
 
 /** Gesture lengths in seconds (spec 03). */
 export const GESTURE_S: Readonly<Record<GestureAnim, number>> = {
   namaste: 1.2,
   pranam: 2.5,
   bell: 0.8,
+  wash: WASH_S,
 };
 
 interface Body {
@@ -622,6 +627,7 @@ export class Avatar {
     let namaste = 0;
     let pranam = 0;
     let bell = 0;
+    let wash = 0;
     let gt = 0;
     if (g) {
       g.t += dt;
@@ -630,6 +636,7 @@ export class Avatar {
       if (g.t >= length) this.gesture = null;
       else if (g.kind === "namaste") namaste = envelope(g.t, length);
       else if (g.kind === "pranam") pranam = envelope(g.t, length, 0.5, 0.6);
+      else if (g.kind === "wash") wash = envelope(g.t, length, 0.5, 0.5);
       else bell = envelope(g.t, length, 0.2, 0.25);
     }
     const palms = Math.max(namaste, pranam);
@@ -646,10 +653,14 @@ export class Avatar {
     hips.position.y = lerp(HIP_HEIGHT - Math.abs(Math.cos(phase)) * 0.012 * w, SEATED_HIP, s);
     // A standing bow leans forward from the hips; seated, only the head bows.
     const bow = pranam * (1 - s);
-    spine.rotation.set(breath + 0.42 * bow + 0.12 * pranam * s, Math.sin(phase) * 0.06 * w, 0);
+    spine.rotation.set(
+      breath + 0.42 * bow + 0.12 * pranam * s + 0.22 * wash,
+      Math.sin(phase) * 0.06 * w,
+      0,
+    );
     // Namaste: a slight nod in the middle of the gesture.
     const nod = namaste * Math.sin(Math.min(1, gt / GESTURE_S.namaste) * Math.PI);
-    head.rotation.x = lerp(0.02, 0.08, s) + 0.2 * nod + 0.2 * pranam;
+    head.rotation.x = lerp(0.02, 0.08, s) + 0.2 * nod + 0.2 * pranam + 0.15 * wash;
     this.skirt.scale.y = lerp(1, 0.35, s);
 
     // Legs. Standing: swing with the stride. Seated: thighs forward and out, shins crossed (left
@@ -706,6 +717,21 @@ export class Avatar {
       urz = lerp(urz, 0.12, bell);
       frx = lerp(frx, -0.35, bell);
       frz = lerp(frz, 0, bell);
+    }
+    // Washing: both hands forward and cupped together under the spout, rubbed slowly while the
+    // water runs, then a gentle shake at the end. Calm, never a splash.
+    if (wash > 0) {
+      const u = gt / WASH_S;
+      const rub = u > 0.2 && u < 0.78 ? Math.sin(gt * Math.PI * 2 * 1.6) * 0.1 : 0;
+      const shake = u >= 0.78 ? Math.sin(gt * Math.PI * 2 * 3) * 0.08 * wash : 0;
+      ulx = lerp(ulx, -0.95, wash);
+      urx = lerp(urx, -0.95, wash);
+      ulz = lerp(ulz, -0.28, wash);
+      urz = lerp(urz, 0.28, wash);
+      flx = lerp(flx, -0.5 + shake, wash);
+      frx = lerp(frx, -0.5 - shake, wash);
+      flz = lerp(flz, -0.35 + rub, wash);
+      frz = lerp(frz, 0.35 + rub, wash);
     }
     ul.rotation.set(ulx, 0, ulz);
     ur.rotation.set(urx, 0, urz);

@@ -47,8 +47,28 @@ General rules for all rituals:
   - Per-visitor cooldown `BELL_COOLDOWN_MS`.
   - Per-bell rate cap `BELL_MAX_PER_SEC`. Rings beyond it are dropped silently so the hall never sounds chaotic.
 - **Animation:** reach up and strike, 0.8 s. The bell swings.
-- **Sound:** a brass bell sample (3 variants, random pitch ±3%), on the effects channel and spatialised. Clients cap simultaneous bell voices at 4.
+- **Sound:** a brass bell sample (up to 3 variants, 2 for now; random pitch ±3%), on the effects channel. Your own ring plays plainly; another visitor's comes from that bell, 6 dB quieter. Clients cap simultaneous bell voices at 4.
 - **Acceptance:** ringing from 5 m away is rejected by the server. Twenty visitors ringing at once produce at most `BELL_MAX_PER_SEC` audible rings per bell per second.
+
+## Wash hands (हाथ धोएँ)
+
+- **Purpose:** wash the hands before entering, as visitors customarily do at a temple's water point. It is a preparation, not an offering.
+- **Where:** the washing trough outside the gate, on the left of the approach as a visitor arrives (spec 02). It has five brass taps, `tap-1` … `tap-5`. The visitor stands at a tap within `TAP_REACH_M`.
+- **Input:** tap a tap, or the context button "Wash hands", or key `E` near the trough. The context button appears within 2.2 m of the trough, outside the gate (`WASH_OFFER_M`, client); "Wash hands" walks the visitor to the nearest tap that nobody is standing at (or the nearest tap, if all are in use) and then washes.
+- **Entry is not required.** Anyone may walk through the gate without washing. The client remembers, for this visit only, whether the visitor has washed; if they reach the gate on a first visit without having washed, the gate hint adds "You may wash your hands at the taps before entering" (spec 07 § Onboarding). Nothing is blocked, recorded or shown to others.
+- **Network:** `wash {tap:"tap-3"}` → `event {kind:"wash", from, tap}`.
+- **Server rule:**
+  - The visitor must be within `TAP_REACH_M + 1` of that tap.
+  - Per-visitor cooldown `WASH_COOLDOWN_MS`.
+  - Taps are not reserved. Two visitors at one tap is allowed but the client avoids it.
+- **Animation:** the avatar faces the tap, leans slightly, holds cupped hands under the spout and rubs them together, then shakes the water off gently, 4 s. A thin stream runs from the spout for the duration. Remote avatars play the same from the event. Nothing playful: no splashing.
+- **Sound:** running water from a tap, 4 s (effects channel, spatial). Clients cap simultaneous tap voices at 3.
+- **Accessibility:** the context button reads "Wash hands" (`action.wash`). The screen reader announces "You washed your hands" (`a11y.wash`). The running stream is the visual counterpart of the sound.
+- **Acceptance:**
+  - Washing from 4 m away is rejected by the server.
+  - A second wash within the cooldown is ignored.
+  - Two clients: A's washing appears on B at the same tap.
+  - A visitor who never washes can still walk through the gate.
 
 ## Japa mala (जप माला)
 

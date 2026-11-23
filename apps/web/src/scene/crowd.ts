@@ -50,7 +50,7 @@ interface Member {
   /** Distance from the viewer at the last level-of-detail pass. */
   dist: number;
   /** A gesture from an `event`, waiting until the interpolated avatar has caught up. */
-  queued: { kind: GestureAnim; at: number } | null;
+  queued: { kind: GestureAnim; at: number; onStart?: () => void } | null;
   /** Until when (ms) the avatar bows, facing the shrine whatever the stream says. */
   bowUntil: number;
 }
@@ -121,10 +121,17 @@ export class Crowd {
   /**
    * Someone's gesture or bell, from an `event`. It starts once the avatar, drawn `delayMs`
    * behind, has caught up with the moment it was sent, so a bow never starts mid-turn.
+   * `onStart` runs when it starts (for example the tap's water), and only if it does.
    */
-  play(id: VisitorId, kind: GestureAnim, now: number, delayMs: number): void {
+  play(
+    id: VisitorId,
+    kind: GestureAnim,
+    now: number,
+    delayMs: number,
+    onStart?: () => void,
+  ): void {
     const m = this.members.get(id);
-    if (m) m.queued = { kind, at: now + delayMs };
+    if (m) m.queued = onStart ? { kind, at: now + delayMs, onStart } : { kind, at: now + delayMs };
   }
 
   /**
@@ -156,6 +163,7 @@ export class Crowd {
       avatar.setSeated(isSeatedAt(a.pose, a.mat, a.x, a.z));
       if (m.queued && now >= m.queued.at) {
         avatar.play(m.queued.kind);
+        m.queued.onStart?.();
         if (m.queued.kind === "pranam") m.bowUntil = now + GESTURE_S.pranam * 1000;
         m.queued = null;
       }

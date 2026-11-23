@@ -43,6 +43,10 @@ export const BELL_REACH_M = 2.0;
 export const BELL_COOLDOWN_MS = 3000;
 /** Per bell, across all visitors. */
 export const BELL_MAX_PER_SEC = 2;
+/** The client shows the "Wash hands" button inside this distance of a tap; the server allows +1 m. */
+export const TAP_REACH_M = 1.2;
+/** Per visitor. The washing animation lasts 4 s. */
+export const WASH_COOLDOWN_MS = 6000;
 
 /** Minimum time between counted malas. */
 export const JAPA_MALA_MIN_MS = 60000;

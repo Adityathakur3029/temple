@@ -41,6 +41,10 @@ export const BELL_IDS = [
 ] as const;
 export type BellId = (typeof BELL_IDS)[number];
 
+/** The five taps at the washing trough outside the gate, nearest the gate first (spec 02). */
+export const TAP_IDS = ["tap-1", "tap-2", "tap-3", "tap-4", "tap-5"] as const;
+export type TapId = (typeof TAP_IDS)[number];
+
 export const GESTURES = ["namaste", "pranam", "aarti", "prasad"] as const;
 export type Gesture = (typeof GESTURES)[number];
 
@@ -55,6 +59,7 @@ export const EVENT_KINDS = [
   "bilva",
   "aarti",
   "prasad",
+  "wash",
 ] as const;
 export type EventKind = (typeof EVENT_KINDS)[number];
 
@@ -154,6 +159,10 @@ export interface BellMessage {
   t: "bell";
   bell: BellId;
 }
+export interface WashMessage {
+  t: "wash";
+  tap: TapId;
+}
 export interface SitMessage {
   t: "sit";
   req: number;
@@ -202,6 +211,7 @@ export type ClientMessage =
   | PosMessage
   | GestureMessage
   | BellMessage
+  | WashMessage
   | SitMessage
   | StandMessage
   | DiyaRequestMessage
@@ -220,6 +230,7 @@ export const CLIENT_MESSAGE_TYPES = [
   "pos",
   "gesture",
   "bell",
+  "wash",
   "sit",
   "stand",
   "diya.request",
@@ -262,6 +273,8 @@ export interface EventMessage {
   from: VisitorId;
   kind: EventKind;
   bell?: BellId;
+  /** With kind "wash". */
+  tap?: TapId;
 }
 export interface CorrectMessage {
   t: "correct";

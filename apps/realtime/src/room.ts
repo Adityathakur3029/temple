@@ -32,6 +32,7 @@ import { newResumeToken, newVisitor, newVisitorId } from "./rules/identity";
 import { Buckets, RATE_ERROR_EVERY_MS, addStrike } from "./rules/limits";
 import { nearestFreeMat } from "./rules/mats";
 import { POSE, checkMove, isSeated, type Place } from "./rules/movement";
+import { inTapReach } from "./rules/taps";
 
 /** The Worker names the instance in this header when it forwards an upgrade. */
 export const ROOM_HEADER = "x-sannidhi-room";
@@ -421,6 +422,12 @@ export class RoomDO extends DurableObject<Env> {
       case "bell":
         if (inBellReach(a.place, msg.bell) && this.bells.allow(msg.bell, now)) {
           this.broadcast({ t: "event", from: id, kind: "bell", bell: msg.bell }, conn);
+        }
+        return;
+      case "wash":
+        // The per-visitor cooldown is the message's rate limit (WASH_COOLDOWN_MS).
+        if (inTapReach(a.place, msg.tap)) {
+          this.broadcast({ t: "event", from: id, kind: "wash", tap: msg.tap }, conn);
         }
         return;
       case "sit": {

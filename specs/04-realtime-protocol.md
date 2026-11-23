@@ -66,6 +66,7 @@ type Pose = "stand" | "walk" | "sit" | "pranam" | "japa" | "offer";
 const POSES: Pose[] = ["stand", "walk", "sit", "pranam", "japa", "offer"]; // index used in deltas
 type BellId = "gate" | `path-${1|2|3|4|5|6|7|8}` | "mandapa-n" | "mandapa-s";
 type Gesture = "namaste" | "pranam" | "aarti" | "prasad";
+type TapId = `tap-${1|2|3|4|5}`;            // the washing trough's taps, nearest the gate first
 
 interface Visitor {                          // profile, sent once on join
   id: VisitorId;
@@ -97,6 +98,7 @@ The same holds for two lists in `world.ts`: `mat` (in `StateTuple`, `sit` and `s
 | `pos` | `x, z, yaw, pose: Pose` | Own position and pose; sent only when changed | `POS_MAX_HZ` (bucket burst 20) |
 | `gesture` | `g: Gesture` | Namaste, pranam, take aarti, prasad | 1 per `GESTURE_COOLDOWN_MS` |
 | `bell` | `bell: BellId` | Ring a bell in reach | 1 per `BELL_COOLDOWN_MS` |
+| `wash` | `tap: TapId` | Wash hands at a tap in reach | 1 per `WASH_COOLDOWN_MS` |
 | `sit` | `req, mat?` | Request a mat (nearest if omitted) | 1 per 1 s |
 | `stand` | — | Leave the mat | 1 per 1 s |
 | `diya.request` | `req` | Ask for a spot at the deepa stand | 1 per 1 s |
@@ -119,7 +121,7 @@ Rate limits are token buckets per visitor and message type (`RATE_LIMITS` in `pa
 |---|---|---|
 | `welcome` | `v, you: Visitor, hall, instance, resume, serverTime, snapshot` | After the socket is accepted |
 | `delta` | `rev, at, join?: Visitor[], up?: StateTuple[], gone?: VisitorId[]` | At most `TICK_HZ` (or `LITE_TICK_HZ`), only when something changed |
-| `event` | `from, kind: "namaste"\|"pranam"\|"bell"\|"jal"\|"bilva"\|"aarti"\|"prasad", bell?` | Someone did a visible action |
+| `event` | `from, kind: "namaste"\|"pranam"\|"bell"\|"jal"\|"bilva"\|"aarti"\|"prasad"\|"wash", bell?, tap?` | Someone did a visible action (`bell` with kind `bell`, `tap` with kind `wash`) |
 | `correct` | `x, z` | Your last position was not allowed. Snap or ease there |
 | `sit.ok` / `sit.no` | `req, mat` / `req` | Mat answer |
 | `diya.queue` | `pos` | Your place in the diya queue (0 = next) |
@@ -231,6 +233,8 @@ Design and document it here before implementing. Don't base it on any other prod
 | `BELL_REACH_M` | 2.0 | Client shows the button inside this distance; the server allows +1 m |
 | `BELL_COOLDOWN_MS` | 3000 | Per visitor |
 | `BELL_MAX_PER_SEC` | 2 | Per bell, across all visitors |
+| `TAP_REACH_M` | 1.2 | A visitor washes within this distance of a tap's spout (the client offers "Wash hands" from further out and walks there first, spec 03); the server allows +1 m |
+| `WASH_COOLDOWN_MS` | 6000 | Per visitor; the washing animation lasts 4 s |
 | `JAPA_MALA_MIN_MS` | 60000 | Minimum time between counted malas |
 | `PRADAKSHINA_MAX_MS` | 600000 | A round must finish within 10 min |
 | `PRADAKSHINA_MODE` | `"half-somasutra"` | or `"full"`; see spec 02 |

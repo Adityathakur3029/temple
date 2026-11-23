@@ -3,7 +3,13 @@
  * client → server table, as token buckets (spec 05 § Handling a message, step 4).
  * test/limits.test.ts reads the spec table and fails if the two drift apart.
  */
-import { BELL_COOLDOWN_MS, GESTURE_COOLDOWN_MS, JAPA_MALA_MIN_MS, POS_MAX_HZ } from "./constants";
+import {
+  BELL_COOLDOWN_MS,
+  GESTURE_COOLDOWN_MS,
+  JAPA_MALA_MIN_MS,
+  POS_MAX_HZ,
+  WASH_COOLDOWN_MS,
+} from "./constants";
 import type { ClientMessageType } from "./messages";
 
 export interface RateLimit {
@@ -19,6 +25,7 @@ export const RATE_LIMITS: { readonly [K in ClientMessageType]: RateLimit } = {
   pos: { everyMs: 1000 / POS_MAX_HZ, burst: 20 },
   gesture: { everyMs: GESTURE_COOLDOWN_MS, burst: 1 },
   bell: { everyMs: BELL_COOLDOWN_MS, burst: 1 },
+  wash: { everyMs: WASH_COOLDOWN_MS, burst: 1 },
   sit: perSecond,
   stand: perSecond,
   "diya.request": perSecond,

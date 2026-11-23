@@ -91,7 +91,7 @@ The delta `rev` starts at the wall clock when the object starts, so a new incarn
 These follow the rules in [03 Rituals](03-rituals.md), with constants from [04](04-realtime-protocol.md#constants). Ordering is strictly first-come by server receive time. Ties can't happen inside a single Durable Object.
 
 - **Mats:** `sit.ok` gives the visitor the mat to hold while they walk to it. A mat held by a connected visitor or by a resume record is never given to anyone else. A new `sit` releases the mat held before.
-- **Gestures and bells** go out as `event` at once, to everyone in the instance except the visitor who did them (their own client plays it locally).
+- **Gestures, bells and washing at a tap** go out as `event` at once, to everyone in the instance except the visitor who did them (their own client plays it locally).
 
 ### Capacity
 

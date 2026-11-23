@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  TAPS,
+  TAP_IDS,
+  TAP_REACH_M,
+  TAP_SPOTS,
+  WASH_AREA,
+  WASH_TROUGH,
   AARTI_PLATE,
   ANTARALA,
   BELLS,
@@ -26,7 +32,9 @@ import {
   MAT_ROWS_Z,
   MATS,
   NANDI,
+  DARSHAN_CARPET,
   NANDI_AXIS,
+  NANDI_PLATFORM,
   PRADAKSHINA,
   SOMASUTRA,
   SOMASUTRA_BRIDGE,
@@ -165,6 +173,28 @@ describe("world.ts matches spec 02", () => {
     expect(coords(text).at(-1)).toEqual(BELLS.gate);
   });
 
+  it("puts the washing trough, its taps and the washing area where the spec says", () => {
+    const trough = new RegExp(String.raw`x (${NUM}) … (${NUM}), z (${NUM}) … (${NUM})`).exec(
+      row(layout, "Washing trough with taps"),
+    );
+    expect(trough?.slice(1).map(num)).toEqual([
+      WASH_TROUGH.x0,
+      WASH_TROUGH.x1,
+      WASH_TROUGH.z0,
+      WASH_TROUGH.z1,
+    ]);
+    const area = new RegExp(
+      String.raw`washing area in front of the trough \(x (${NUM}) … (${NUM}), z (${NUM}) … (${NUM})\)`,
+    ).exec(row(greybox, "Walkable area"));
+    expect(area?.slice(1).map(num)).toEqual([WASH_AREA.x0, WASH_AREA.x1, WASH_AREA.z0, WASH_AREA.z1]);
+    const text = row(greybox, "Taps");
+    const x = num(new RegExp(String.raw`back wall at x (${NUM})`).exec(text)?.[1] ?? "");
+    const zs = /z ((?:\d+(?:\.\d+)?(?:, )?)+)/.exec(text)?.[1]?.split(",").map(num);
+    expect(TAP_IDS.map((id) => TAPS[id])).toEqual(zs?.map((z) => ({ x, z })));
+    const spotX = num(new RegExp(String.raw`spot for each is at x (${NUM})`).exec(text)?.[1] ?? "");
+    for (const id of TAP_IDS) expect(TAP_SPOTS[id].x, id).toBe(spotX);
+  });
+
   it("puts the checkpoints where § Pradakshina path says", () => {
     const text = section(spec, "Pradakshina path");
     for (const id of ["E", "S", "W", "N"] as const) {
@@ -207,6 +237,15 @@ describe("sacred and blocked zones", () => {
     expect(blockedAt(0, 12, mode)).toBe("nandi-axis");
     // The whole line from the door to Nandi is covered.
     for (let z = 0; z <= 22; z += 0.05) expect(inSacredZone(0, z, mode)).toBe(true);
+  });
+
+  it.each(MODES)("both darshan carpets are walkable from the door to Nandi's platform (%s)", (mode) => {
+    // A visitor's feet anywhere on either carpet, 10 cm in from its edges.
+    for (const s of [1, -1])
+      for (let x = DARSHAN_CARPET.x0 + 0.1; x <= DARSHAN_CARPET.x1 - 0.1; x += 0.05)
+        for (let z = 3; z <= NANDI_PLATFORM.z0 - 0.2; z += 0.1)
+          expect(isWalkable(s * x, z, mode), JSON.stringify({ x: s * x, z })).toBe(true);
+    expect(DARSHAN_CARPET.x0).toBeGreaterThanOrEqual(NANDI_AXIS.x1);
   });
 
   it.each(MODES)("the kund water and below the second step are blocked (%s)", (mode) => {
@@ -324,6 +363,15 @@ describe("ritual spots", () => {
         }
       }
       expect(reachable, id).toBe(true);
+    }
+  });
+
+  it("lets a visitor stand at every tap's spot, within reach, facing it", () => {
+    for (const id of TAP_IDS) {
+      const spot = TAP_SPOTS[id];
+      expect(clearFor(spot), id).toBe(true);
+      expect(distance(spot, TAPS[id]), id).toBeLessThanOrEqual(TAP_REACH_M);
+      expect(spot.yaw, id).toBeCloseTo(yawTowards(spot, TAPS[id]));
     }
   });
 

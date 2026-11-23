@@ -11,6 +11,8 @@ import {
   SERVER_IDLE_TIMEOUT_MS,
   SPAWN,
   STRIKE_LIMIT,
+  TAP_SPOTS,
+  WASH_COOLDOWN_MS,
   nameLabel,
   parseResumeToken,
   type HallId,
@@ -245,6 +247,31 @@ describe("gestures and bells", () => {
     expect(rings).toBe(2);
     await Promise.all([...ringers.map(({ c }) => c.close()), listener.close()]);
   });
+});
+
+describe("wash hands", () => {
+  it("washes only at a tap, once per cooldown, and shows it to others", async () => {
+    const { c: a, welcome: wa } = await TestClient.join({ hall: "hall-09" });
+    const { c: b } = await TestClient.join({ hall: "hall-09" });
+    // From the spawn, tap-3 is about 4.6 m away: too far.
+    a.send({ t: "wash", tap: "tap-3" });
+    expect(await b.none("event", 300)).toBe(true);
+    await wait(WASH_COOLDOWN_MS);
+    const spot = TAP_SPOTS["tap-3"];
+    await walk(a, SPAWN, { x: 0, z: spot.z });
+    await walk(a, { x: 0, z: spot.z }, spot);
+    a.send({ t: "wash", tap: "tap-3" });
+    expect(await b.next("event")).toEqual({
+      t: "event",
+      from: wa.you.id,
+      kind: "wash",
+      tap: "tap-3",
+    });
+    expect(await a.none("event")).toBe(true); // not echoed to the sender
+    a.send({ t: "wash", tap: "tap-3" }); // within the cooldown: dropped
+    expect(await b.none("event", 300)).toBe(true);
+    await Promise.all([a.close(), b.close()]);
+  }, 20000);
 });
 
 describe("mats", () => {

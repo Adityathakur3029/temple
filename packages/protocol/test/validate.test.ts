@@ -19,6 +19,8 @@ const VALID: ClientMessage[] = [
   { t: "bell", bell: "gate" },
   { t: "bell", bell: "path-8" },
   { t: "bell", bell: "mandapa-s" },
+  { t: "wash", tap: "tap-1" },
+  { t: "wash", tap: "tap-5" },
   { t: "sit", req: 1 },
   { t: "sit", req: 2, mat: 0 },
   { t: "sit", req: 3, mat: MAT_COUNT - 1 },
@@ -54,6 +56,11 @@ const INVALID: [string, unknown][] = [
   ["pos unknown pose", { t: "pos", x: 1, z: 2, yaw: 0, pose: "run" }],
   ["gesture unknown", { t: "gesture", g: "wave" }],
   ["bell unknown", { t: "bell", bell: "path-9" }],
+  ["tap unknown", { t: "wash", tap: "tap-6" }],
+  ["tap missing", { t: "wash" }],
+  ["tap not a string", { t: "wash", tap: 3 }],
+  ["tap wrong case", { t: "wash", tap: "TAP-1" }],
+  ["wash extra key", { t: "wash", tap: "tap-1", bell: "gate" }],
   ["sit no req", { t: "sit" }],
   ["sit negative req", { t: "sit", req: -1 }],
   ["sit fractional req", { t: "sit", req: 1.5 }],
@@ -116,7 +123,7 @@ function rng(seed: number): () => number {
 
 function randomJson(r: () => number, depth = 0): unknown {
   const pick = Math.floor(r() * (depth > 2 ? 5 : 7));
-  const keys = ["t", "x", "z", "yaw", "pose", "req", "mat", "kind", "g", "bell", "c", "__proto__"];
+  const keys = ["t", "x", "z", "yaw", "pose", "req", "mat", "kind", "g", "bell", "tap", "c", "__proto__"];
   const strings = [...CLIENT_MESSAGE_TYPES, "walk", "gate", "water", "namaste", "", "ॐ"];
   switch (pick) {
     case 0:

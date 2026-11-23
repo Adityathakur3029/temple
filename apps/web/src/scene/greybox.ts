@@ -63,6 +63,7 @@ import {
   MANDAPA,
   MANDAPA_PILLARS,
   MATS,
+  DARSHAN_CARPET,
   NANDI_AXIS,
   NANDI_PLATFORM,
   PRADAKSHINA,
@@ -70,7 +71,11 @@ import {
   SANCTUM_DOOR,
   SOMASUTRA,
   SOMASUTRA_BRIDGE,
+  TAPS,
+  TAP_IDS,
   TODAY_BOARD,
+  WASH_AREA,
+  WASH_TROUGH,
   BELL_POSTS,
   BELL_POST_LAMP_OUT,
   pathDistance,
@@ -83,8 +88,9 @@ import {
 import type { AssetTier } from "../assets/manifest";
 import { SLOTS, type SlotId } from "../assets/slots";
 import { MeshBuilder, placed, withoutSection } from "./builder";
-import { HEIGHTS, KUND_FLOOR_Y, KUND_STEP, KUND_WATER_Y, PAVING, PLINTH } from "./ground";
+import { HEIGHTS, KUND_FLOOR_Y, KUND_STEP, KUND_WATER_Y, PAVING, PLINTH, STEPS } from "./ground";
 import { SlabBuilder, grassTexture, slabTexture } from "./stone-path";
+import { buildBoardText } from "./today-board";
 
 /** Weathered grey-brown stone, deodar green, brass and a few warm accents (spec 02 § Setting). */
 export const COLOURS = {
@@ -122,6 +128,16 @@ export const COLOURS = {
 } as const;
 
 const TAU = Math.PI * 2;
+
+/** Heights of the washing trough, and where each tap's spout ends (over the water). */
+export const TROUGH = {
+  wallTop: 1.1,
+  floor: 0.3,
+  lip: 0.55,
+  water: 0.45,
+  spoutX: -3.12,
+  spoutY: 0.8,
+} as const;
 
 /** Seeded random numbers, so every visitor sees the same forest. */
 function mulberry32(seed: number): () => number {
@@ -300,6 +316,10 @@ export interface Greybox {
   /** One instance per bell, in BELL_IDS order; their matrices swing when rung (scene/bells.ts). */
   bells: InstancedMesh;
   bellHang: Record<BellId, { x: number; y: number; z: number; scale: number }>;
+  /** One stream per tap, in TAP_IDS order, shown while someone washes (scene/taps.ts). */
+  tapWater: InstancedMesh;
+  /** Never drawn: the trough's bounds, for picking a tap. */
+  troughPick: Mesh;
   /** The brass lamp on each path post's shelf, in pathPosts() order; their flames are in code. */
   postLamps: InstancedMesh;
   /** The deodars beyond the near trees, nearest the temple first (the tree slot). */
@@ -438,7 +458,7 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   const hw = P.halfWidth;
   // The loop starts and ends at Nandi. The stone path runs on into the courtyard on both sides
   // and turns in level with Nandi: one arm ends on Nandi's left, the other on his right, with a
-  // gap round his platform. The arms stay clear of the Nandi axis (x ±1.2, which ends at Nandi).
+  // gap round his platform. The arms stay clear of the Nandi axis (x ±0.4, which ends at Nandi).
   // In the courtyard the stone lies a few millimetres above the courtyard's own paving.
   const ARM_END = NANDI_PLATFORM.x1 + 0.4;
   const ARM_HALF = 0.58;
@@ -448,14 +468,37 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   const CARPET_HALF = 0.85;
   const CARPET_BORDER = 0.07;
   const margin = hw - CARPET_HALF;
-  const carpet = (x0: number, x1: number, z0: number, z1: number, lift = 0): void => {
-    b.box(x0, x1, PAVING, PAVING + 0.008, z0, z1, C.carpetBorder);
+  const carpet = (x0: number, x1: number, z0: number, z1: number, lift = 0, y = PAVING): void => {
+    b.box(x0, x1, y, y + 0.008, z0, z1, C.carpetBorder);
     const e = CARPET_BORDER;
-    b.box(x0 + e, x1 - e, PAVING, PAVING + 0.012 + lift, z0 + e, z1 - e, C.carpet);
+    b.box(x0 + e, x1 - e, y, y + 0.012 + lift, z0 + e, z1 - e, C.carpet);
   };
   const cz0 = P.zWest - CARPET_HALF;
   const front0 = nandiZ - ARM_HALF;
   const front1 = nandiZ + ARM_HALF;
+  // Two darshan carpets, one each side of the Nandi axis, from the sanctum door over the mandapa
+  // steps to just in front of Nandi's platform. Visitors walk on these. The axis
+  // between them stays plain pale stone and a no-walk zone (spec 02, spec 08).
+  for (const s of [1, -1]) {
+    const xa = s * DARSHAN_CARPET.x0;
+    const xb = s * DARSHAN_CARPET.x1;
+    const ax0 = Math.min(xa, xb);
+    const ax1 = Math.max(xa, xb);
+    const e = CARPET_BORDER;
+    // Treads: antarala and mandapa floor, the two steps, then the courtyard up to Nandi's platform.
+    carpet(ax0, ax1, SANCTUM_DOOR.z + 0.2, STEPS.z0, 0, PLINTH + 0.008);
+    carpet(ax0, ax1, STEPS.z0, STEPS.z0 + 0.34, 0, 0.3);
+    carpet(ax0, ax1, STEPS.z0 + 0.34, STEPS.z0 + 0.67, 0, 0.15);
+    carpet(ax0, ax1, STEPS.z0 + 0.67, NANDI_PLATFORM.z0 - 0.15);
+    // Risers: the carpet hangs down each step face.
+    const riser = (z: number, yTop: number, yBottom: number): void => {
+      b.box(ax0, ax1, yBottom, yTop + 0.008, z, z + 0.008, C.carpetBorder);
+      b.box(ax0 + e, ax1 - e, yBottom, yTop + 0.012, z, z + 0.012, C.carpet);
+    };
+    riser(STEPS.z0, PLINTH + 0.008, 0.3);
+    riser(STEPS.z0 + 0.34, 0.3, 0.15);
+    riser(STEPS.z0 + 0.67, 0.15, PAVING);
+  }
   const gap = SOMASUTRA_BRIDGE.z1 + 0.15;
   carpet(-P.x - CARPET_HALF, -P.x + CARPET_HALF, cz0, front1);
   carpet(P.x - CARPET_HALF, P.x + CARPET_HALF, cz0, -gap);
@@ -497,6 +540,8 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   // The approach outside the gate, paved on past where visitors may walk.
   const ap = GATE_APPROACH;
   slabs.box(ap.x0, ap.x1, 0, PAVING, GATE_INSIDE.z1, GATE.z + 14);
+  // The paving in front of the washing trough and under it, joined to the approach.
+  slabs.box(WASH_TROUGH.x0 - 0.3, WASH_AREA.x1, 0, PAVING, WASH_AREA.z0, WASH_AREA.z1);
 
   // A flat stone edging between the paving and the lawn, flush enough to walk over.
   const kerb = (x0: number, x1: number, z0: number, z1: number): void =>
@@ -848,14 +893,52 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   }
   for (const p of WALL_LINE.slice(1, -1)) pillar(p.x, p.z, 1.25);
 
+  // The board is built in its own frame (x along its face, +z out of its front), then turned.
   const tb = TODAY_BOARD;
+  const boardBox = (
+    x0: number,
+    x1: number,
+    y0: number,
+    y1: number,
+    z0: number,
+    z1: number,
+    colour: ColorRepresentation,
+  ): void => {
+    const m = new Matrix4()
+      .makeTranslation(tb.x, 0, tb.z)
+      .multiply(new Matrix4().makeRotationY(tb.yaw))
+      .multiply(new Matrix4().makeTranslation((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2));
+    b.add(new BoxGeometry(x1 - x0, y1 - y0, z1 - z0), m, colour);
+  };
   b.section("today-board");
-  b.box(tb.x - 0.06, tb.x + 0.06, 0, 1.95, tb.z - 0.75, tb.z - 0.63, C.woodDark);
-  b.box(tb.x - 0.06, tb.x + 0.06, 0, 1.95, tb.z + 0.63, tb.z + 0.75, C.woodDark);
-  b.box(tb.x - 0.05, tb.x + 0.05, 1.0, 1.85, tb.z - 0.8, tb.z + 0.8, C.wood);
-  b.box(tb.x - 0.065, tb.x - 0.05, 1.06, 1.79, tb.z - 0.72, tb.z + 0.72, C.board);
-  b.box(tb.x - 0.2, tb.x + 0.25, 1.95, 2.02, tb.z - 0.9, tb.z + 0.9, C.woodDark);
+  boardBox(-0.75, -0.63, 0, 1.95, -0.06, 0.06, C.woodDark);
+  boardBox(0.63, 0.75, 0, 1.95, -0.06, 0.06, C.woodDark);
+  boardBox(-0.8, 0.8, 1.0, 1.85, -0.05, 0.05, C.wood);
+  boardBox(-0.72, 0.72, 1.06, 1.79, 0.05, 0.065, C.board);
+  boardBox(-0.9, 0.9, 1.95, 2.02, -0.25, 0.2, C.woodDark);
   b.section(null);
+
+  // --- Washing trough with its taps (spec 02 § Layout, spec 03 § Wash hands) ---------------------
+  // Plain stonework in code, no figures or symbols: a back wall with a stepped coping carrying the
+  // brass taps, and a low trough in front of it with water in it.
+  {
+    const t = WASH_TROUGH;
+    const wallX0 = t.x0 - 0.2;
+    b.box(wallX0, t.x0, 0, TROUGH.wallTop, t.z0 - 0.15, t.z1 + 0.15, C.stoneDark);
+    b.box(wallX0 - 0.04, t.x0 + 0.04, TROUGH.wallTop, TROUGH.wallTop + 0.08, t.z0 - 0.2, t.z1 + 0.2, C.stone);
+    b.box(t.x0, t.x1, 0, TROUGH.floor, t.z0, t.z1, C.stone); // the trough's floor
+    b.box(t.x1 - 0.1, t.x1, 0, TROUGH.lip, t.z0, t.z1, C.stone); // front lip
+    b.box(t.x0, t.x1 - 0.1, 0, TROUGH.lip, t.z0, t.z0 + 0.1, C.stone); // ends
+    b.box(t.x0, t.x1 - 0.1, 0, TROUGH.lip, t.z1 - 0.1, t.z1, C.stone);
+    b.box(t.x0, t.x1 - 0.1, TROUGH.floor, TROUGH.water, t.z0 + 0.1, t.z1 - 0.1, C.water);
+    for (const id of TAP_IDS) {
+      const z = TAPS[id].z;
+      // A short brass pipe out of the wall, a valve knob, and the spout turned down.
+      b.box(t.x0, TROUGH.spoutX + 0.03, TROUGH.spoutY + 0.06, TROUGH.spoutY + 0.11, z - 0.025, z + 0.025, C.brass);
+      b.add(new CylinderGeometry(0.035, 0.035, 0.04, 8), placed(t.x0 + 0.12, TROUGH.spoutY + 0.15, z), C.brass);
+      b.add(new CylinderGeometry(0.022, 0.026, 0.1, 8), placed(TROUGH.spoutX, TROUGH.spoutY + 0.05, z), C.brass);
+    }
+  }
 
   // --- Bells: chains and the frames that hold the path bells ------------------------------------
   const hangs = bellHangs();
@@ -1003,6 +1086,23 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   bells.name = "bells";
   group.add(bells);
 
+  // The streams that run from the taps while someone washes (scene/taps.ts), hidden at rest.
+  const tapWater = new InstancedMesh(
+    new CylinderGeometry(0.016, 0.022, 1, 6, 1, true).translate(0, -0.5, 0),
+    new MeshLambertMaterial({ color: "#9cc4c8", transparent: true, opacity: 0.7 }),
+    TAP_IDS.length,
+  );
+  TAP_IDS.forEach((_, i) => tapWater.setMatrixAt(i, m.makeScale(0, 0, 0)));
+  tapWater.name = "tap-water";
+  group.add(tapWater);
+  // An invisible box over the trough, so a tap on it can be picked (it is never drawn).
+  const troughPick = new Mesh(
+    new BoxGeometry(WASH_TROUGH.x1 - WASH_TROUGH.x0 + 0.2, TROUGH.wallTop, WASH_TROUGH.z1 - WASH_TROUGH.z0)
+      .translate(0, TROUGH.wallTop / 2, 0),
+  );
+  troughPick.position.set((WASH_TROUGH.x0 + WASH_TROUGH.x1) / 2 - 0.1, 0, (WASH_TROUGH.z0 + WASH_TROUGH.z1) / 2);
+  troughPick.updateMatrixWorld(true);
+
   // Each lamp faces the path (a model's front is +z).
   const postLamps = new InstancedMesh(
     postLampGeometry(),
@@ -1036,6 +1136,10 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   setTrees(opts.trees, opts.treeTier ?? "full");
   group.add(trees, nearTrees, oaks);
 
+  // The aarti timings on the today board stay whether the greybox board or its model is shown.
+  const boardText = buildBoardText();
+  if (boardText) group.add(boardText);
+
   return {
     group,
     ground,
@@ -1043,6 +1147,8 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
     mats,
     bells,
     bellHang,
+    tapWater,
+    troughPick,
     postLamps,
     trees,
     nearTrees,
@@ -1061,6 +1167,7 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
     },
     dispose() {
       tapMesh.geometry.dispose();
+      troughPick.geometry.dispose();
       group.traverse((o) => {
         if (o instanceof Mesh || o instanceof Points) {
           const mesh = o as Mesh<BufferGeometry, Material | Material[]>;

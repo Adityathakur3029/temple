@@ -172,3 +172,75 @@ Template for a downloaded model:
 - Interim: yes (until final art in M5, or until it is accepted as final)
 - AI-made: yes. Allowed because the devotee figure is not a deity, sacred form or sacred symbol (spec 11 § AI-generated content); it carries no caste, sect or regional marker (spec 08); disclosed in the credit line
 - Modified: re-encoded by the asset build
+
+## audio/bell-1.m4a
+- Source: own. Made by the owner for Sannidhi with ElevenLabs sound effects (AI) on 2026-11-23; source clip assets-src/audio/bell/bell-1.wav
+- Author: the Sannidhi owner, with ElevenLabs
+- Licence: own. OPEN: confirm the ElevenLabs plan used allows commercial use without attribution (free-plan output is non-commercial and needs credit to ElevenLabs); until confirmed, not for deploy
+- Credit line: Bell sounds made for Sannidhi with ElevenLabs (AI)
+- Interim: yes (until the owner's final recordings, spec 06)
+- AI-made: yes. Allowed because a bell sound is not a deity, sacred form or chant (spec 11 § AI-generated content); disclosed in the credit line
+- Modified: mixed to mono, level set to −6 dBFS peak, faded over the last 0.15 s and encoded to AAC by the asset build
+
+## audio/bell-2.m4a
+- Source: own. Made by the owner for Sannidhi with ElevenLabs sound effects (AI) on 2026-11-23; source clip assets-src/audio/bell/bell-2.wav
+- Author: the Sannidhi owner, with ElevenLabs
+- Licence: own. OPEN: as bell-1
+- Credit line: Bell sounds made for Sannidhi with ElevenLabs (AI)
+- Interim: yes (until the owner's final recordings, spec 06)
+- AI-made: yes. As bell-1
+- Modified: as bell-1
+
+## audio/background-day-1.m4a
+- Source: own. Made by the owner for Sannidhi with ElevenLabs (AI) on 2026-11-23; source clip assets-src/audio/background/background-2.wav
+- Author: the Sannidhi owner, with ElevenLabs
+- Licence: own. OPEN: as bell-1 (confirm the ElevenLabs plan allows commercial use); until confirmed, not for deploy
+- Credit line: Background and meditation sounds made for Sannidhi with ElevenLabs (AI)
+- Interim: yes
+- AI-made: yes (owner, 2026-11-23). Must not contain chant or mantra to be deployed (spec 11 § AI-generated content)
+- Modified: resampled to 44.1 kHz stereo, levelled to −20 LUFS (peak ≤ −1 dBFS) and encoded to AAC at 64 kbps by the asset build; no fade, so it loops without a gap
+
+## audio/background-night-1.m4a
+- Source: own. Made by the owner for Sannidhi with ElevenLabs (AI) on 2026-11-23; source clip assets-src/audio/background/background-1.wav
+- Author: the Sannidhi owner, with ElevenLabs
+- Licence: own. OPEN: as bell-1 (confirm the ElevenLabs plan allows commercial use); until confirmed, not for deploy
+- Credit line: Background and meditation sounds made for Sannidhi with ElevenLabs (AI)
+- Interim: yes
+- AI-made: yes (owner, 2026-11-23). Must not contain chant or mantra to be deployed (spec 11 § AI-generated content)
+- Modified: resampled to 44.1 kHz stereo, levelled to −20 LUFS (peak ≤ −1 dBFS) and encoded to AAC at 64 kbps by the asset build; no fade, so it loops without a gap
+
+## audio/meditation-1.m4a
+- Source: own. Made by the owner for Sannidhi with ElevenLabs (AI) on 2026-11-23; source clip assets-src/audio/meditation/meditation-1.wav
+- Author: the Sannidhi owner, with ElevenLabs
+- Licence: own. OPEN: as bell-1 (confirm the ElevenLabs plan allows commercial use); until confirmed, not for deploy
+- Credit line: Background and meditation sounds made for Sannidhi with ElevenLabs (AI)
+- Interim: yes
+- AI-made: yes (owner, 2026-11-23). Must not contain chant or mantra to be deployed (spec 11 § AI-generated content)
+- Modified: resampled to 44.1 kHz stereo, levelled to −18 LUFS (peak ≤ −1 dBFS) and encoded to AAC at 96 kbps by the asset build; no fade, so it loops without a gap
+
+## audio/meditation-2.m4a
+- Source: own. Made by the owner for Sannidhi with ElevenLabs (AI) on 2026-11-23; source clip assets-src/audio/meditation/meditation-2.wav
+- Author: the Sannidhi owner, with ElevenLabs
+- Licence: own. OPEN: as bell-1 (confirm the ElevenLabs plan allows commercial use); until confirmed, not for deploy
+- Credit line: Background and meditation sounds made for Sannidhi with ElevenLabs (AI)
+- Interim: yes
+- AI-made: yes (owner, 2026-11-23). Must not contain chant or mantra to be deployed (spec 11 § AI-generated content)
+- Modified: resampled to 44.1 kHz stereo, levelled to −18 LUFS (peak ≤ −1 dBFS) and encoded to AAC at 96 kbps by the asset build; no fade, so it loops without a gap
+
+## audio/meditation-3.m4a
+- Source: own. Made by the owner for Sannidhi with ElevenLabs (AI) on 2026-11-23; source clip assets-src/audio/meditation/meditation-3.wav
+- Author: the Sannidhi owner, with ElevenLabs
+- Licence: own. OPEN: as bell-1 (confirm the ElevenLabs plan allows commercial use); until confirmed, not for deploy
+- Credit line: Background and meditation sounds made for Sannidhi with ElevenLabs (AI)
+- Interim: yes
+- AI-made: yes (owner, 2026-11-23). Must not contain chant or mantra to be deployed (spec 11 § AI-generated content)
+- Modified: resampled to 44.1 kHz stereo, levelled to −18 LUFS (peak ≤ −1 dBFS) and encoded to AAC at 96 kbps by the asset build; no fade, so it loops without a gap
+
+## audio/meditation-4.m4a
+- Source: own. Made by the owner for Sannidhi with ElevenLabs (AI) on 2026-11-23; source clip assets-src/audio/meditation/meditation-4.wav
+- Author: the Sannidhi owner, with ElevenLabs
+- Licence: own. OPEN: as bell-1 (confirm the ElevenLabs plan allows commercial use); until confirmed, not for deploy
+- Credit line: Background and meditation sounds made for Sannidhi with ElevenLabs (AI)
+- Interim: yes
+- AI-made: yes (owner, 2026-11-23). Must not contain chant or mantra to be deployed (spec 11 § AI-generated content)
+- Modified: resampled to 44.1 kHz stereo, levelled to −18 LUFS (peak ≤ −1 dBFS) and encoded to AAC at 96 kbps by the asset build; no fade, so it loops without a gap

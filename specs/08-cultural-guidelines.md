@@ -19,7 +19,7 @@ Where Hindu practice varies by region or tradition, this document picks a defaul
 ## Sacred space
 
 1. **Garbhagriha:** visible from the mandapa and the threshold, never entered by avatars or the camera.
-2. **Nandi axis:** the line from Nandi to the sanctum door is kept clear. Paths and spots route around it.
+2. **Nandi axis:** the line from Nandi to the sanctum door is kept clear. Paths and spots route around it. It is left as plain pale stone, with a walkable red darshan carpet either side of it, so the clear line reads at a glance (owner, 2026-11-23); avatars cannot step on it.
 3. **Footwear:** visitors leave footwear at the gate, and avatars are barefoot inside the boundary. The hint at the gate says so ([07](07-ui-and-language.md)).
 4. **Direction:** pradakshina is clockwise, keeping the shrine on the right. For this Shiva temple the default is the half round that turns back at the somasutra (jaladhari) without crossing it. **Check with advisor.**
 5. **Posture:**
@@ -28,7 +28,7 @@ Where Hindu practice varies by region or tradition, this document picks a defaul
 6. **Decorum:**
    - No running, jumping, dancing, emotes, comic effects or celebratory particles anywhere in the temple.
    - Walking speed is calm.
-7. **Sound:** bells are rate-capped so the temple never becomes noisy. No music outside aarti except the optional personal mantra loop.
+7. **Sound:** bells are rate-capped so the temple never becomes noisy. Outside aarti, only the quiet day or night background loop and the visitor's own meditation or mantra loop play (owner, 2026-11-23; spec 06 § Background and meditation). Nothing else is music.
 8. **Night hours:** see open decision 3. The default keeps the temple open with no changes.
 
 ## Depiction
@@ -40,9 +40,9 @@ Where Hindu practice varies by region or tradition, this document picks a defaul
 - **Nandi:** seated and calm, facing the sanctum, with a traditional form and no exaggerated or cartoon proportions. Never animated.
 - **Ganesha:** a small traditional seated murti in an open shrine near the gate. Never animated, never stylised as a mascot.
 - **Human-made:** all three (linga, Nandi, Ganesha) are made by people, never AI-generated, in anything deployed. The final versions are made for Sannidhi and reviewed by the advisor (M5). See spec 11.
-- **AI-made test models (temporary, decided by the owner, 2026-11-08):** to work out what size and decoration to ask a human maker for, an AI-made linga, Nandi or Ganesha MAY be tried in the temple on the owner's own computer. It is never deployed, to staging or production:
+- **AI-made test models (temporary, decided by the owner, 2026-11-08):** to work out what size and decoration to ask a human maker for, an AI-made linga, Nandi or Ganesha MAY be tried in the temple on the owner's own computer. It is never deployed to production. It MAY go to staging, which is unlisted and only for the owner and testers (decided by the owner, 2026-11-22):
   - the config says `"ai": true` and `"interim": true`, with a credit naming the AI tool, and `LICENSES.md` says it is a test model;
-  - `npm run deploy:web` refuses to run while the asset manifest has a model tagged both `sacred` and `ai`;
+  - `npm run deploy:web` refuses to run while the asset manifest has a model tagged both `sacred` and `ai`, except to staging when run with `--allow-ai-test-models`;
   - the depiction rules above still hold: the linga aniconic, with no face or eyes; Nandi seated, calm and traditional; Ganesha traditional and never a mascot, cartoon or "cute" figure; no copy of a specific real temple's murti, and no damaged form. A test MAY try a decoration that is still an open question for the advisor (for example the tripundra), so the owner can see it before asking;
   - the result is a brief for the human maker (sizes, decorations, screenshots), not final art. Screenshots of a test model aren't published;
   - this exception ends when the human-made versions arrive (M5), or sooner if the owner ends it.
@@ -111,6 +111,7 @@ Where Hindu practice varies by region or tradition, this document picks a defaul
 | Shawl colours | 8 muted wool colours (madder, rust, mustard, olive, teal, indigo, plum, charcoal); no saffron, which reads as a renunciate's robe. Rust is close to geru and madder to monastic maroon: review both at dusk and under lamp light | 02 |
 | Darshan from off the axis | The darshan camera moves towards the axis so the linga shows through the door; the avatar stays where it is. For anyone within about 9 m of the linga (the front mats, the antarala) the viewpoint is inside the Nandi-axis strip. Only the camera is there, never an avatar | 02 |
 | Visitor names (M2) | The curated list in `packages/protocol/src/names.ts`. Reviewed by the cultural reviewer. Open points: `megh` (also the name of a community), `deodar` (devadaru), `bhojpatra` (used for writing yantras) and `walnut` (a Herath offering in Kashmir). Spec 05 gives `megh`, `deodar` and `bhojpatra` as examples, so dropping one changes spec 05 too | 05 |
+| Washing before entering (spec 03 § Wash hands) | Hands only, optional, at the trough outside the gate; the gate hint names footwear first, then washing. Open points: (1) many temples expect feet washed too (हाथ-पैर धोना); (2) in practice footwear usually comes off before washing, which matters if feet are added; (3) rinsing the mouth (achamana) is left out on purpose | 02, 03, 07 |
 | Where Bow is offered (M2) | The courtyard, the mandapa, and within 6 m of the Ganesha shrine (spec 03). Not yet at the antarala beside the axis, where many devotees bow at the threshold, nor behind the shrine during pradakshina. Offer either? | 03 |
 
 ## Acceptance criteria

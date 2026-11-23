@@ -11,7 +11,7 @@
  * direction of yaw θ is (x, z) = (sin θ, cos θ). See `yawTowards`.
  */
 import { PRADAKSHINA_MODE, type PradakshinaMode } from "./constants";
-import { BELL_IDS, POSES, type BellId } from "./messages";
+import { BELL_IDS, POSES, TAP_IDS, type BellId, type TapId } from "./messages";
 import { TREE_TRUNKS } from "./trees";
 
 // ---------------------------------------------------------------------------
@@ -135,7 +135,14 @@ export const NANDI: Spot = { x: 0, z: 22, yaw: Math.PI };
 export const NANDI_PLATFORM = rect(-1, 1, 21, 23);
 
 /** The strip between Nandi and the sanctum. No standing, sitting or walking on it. */
-export const NANDI_AXIS = rect(-1.2, 1.2, 0, 22);
+export const NANDI_AXIS = rect(-0.4, 0.4, 0, 22);
+
+/**
+ * The two walkable darshan carpets, one each side of the Nandi axis (this is the +x one; the
+ * other is its mirror), from the sanctum door to just in front of Nandi's platform. Decoration
+ * on walkable floor, clear of the axis and the inner mats (spec 02).
+ */
+export const DARSHAN_CARPET = { x0: 0.45, x1: 1.3 } as const;
 
 export const COURTYARD = rect(-12, 12, 19, 30);
 
@@ -169,13 +176,38 @@ export const GATE_PILLARS: readonly Point[] = [
 /** Radius of the circle round each gate pillar that visitors keep clear of (the stone base). */
 export const GATE_PILLAR_RADIUS = 0.45;
 
-/** The painted "today" board beside the path, facing it. */
-export const TODAY_BOARD: Spot = { x: 3, z: 44.4, yaw: -Math.PI / 2 };
+/**
+ * The painted "today" board just outside the gate, beside the approach, turned 30° from +z
+ * towards the arrival spot so visitors read it as they come in. Its front faces (sin yaw, cos yaw).
+ */
+export const TODAY_BOARD: Spot = { x: 3, z: 48.6, yaw: -Math.PI / 6 };
+/** Half the board's width, post to post, along its face. */
+export const TODAY_BOARD_HALF_WIDTH = 0.8;
 
 /** Just inside the gate, between its pillars and the start of the path. */
 export const GATE_INSIDE = rect(-2.6, 2.6, 42.4, 46.3);
 /** The paved approach outside the gate, as far as visitors may walk back out. */
 export const GATE_APPROACH = rect(-1.8, 1.8, 46, 55);
+
+/**
+ * The washing trough on the west side of the approach (on the left as a visitor arrives), its
+ * five brass taps on the back wall with their spouts facing the approach (+x). Spec 02 § Layout.
+ */
+export const WASH_TROUGH = rect(-3.6, -3.0, 47.6, 51.6);
+/** The paving in front of the trough, joined to the approach. */
+export const WASH_AREA = rect(-2.9, -1.8, 47.4, 51.8);
+/** Where each tap's spout is, on the trough's back wall. */
+export const TAPS: Readonly<Record<TapId, Point>> = {
+  "tap-1": { x: -3.6, z: 47.8 },
+  "tap-2": { x: -3.6, z: 48.7 },
+  "tap-3": { x: -3.6, z: 49.6 },
+  "tap-4": { x: -3.6, z: 50.5 },
+  "tap-5": { x: -3.6, z: 51.4 },
+};
+/** Where a visitor stands to wash at each tap, facing it (−x). */
+export const TAP_SPOTS: Readonly<Record<TapId, Spot>> = Object.fromEntries(
+  TAP_IDS.map((id) => [id, { x: -2.55, z: TAPS[id].z, yaw: -Math.PI / 2 }]),
+) as Record<TapId, Spot>;
 
 /**
  * New visitors appear on the approach, facing the gate and the temple beyond it, far enough out
@@ -315,6 +347,7 @@ export const PATHS: readonly Shape[] = [
   GANESHA_FRONT,
   GATE_INSIDE,
   GATE_APPROACH,
+  WASH_AREA,
 ];
 
 /** Where feet may go: the union of these shapes, minus obstacles and sacred zones. */
@@ -407,7 +440,21 @@ export const OBSTACLES: readonly Obstacle[] = [
   { id: "nandi", shape: NANDI_PLATFORM },
   { id: "deepa-stand", shape: circle(DEEPA_STAND.x, DEEPA_STAND.z, DEEPA_STAND_RADIUS) },
   { id: "ganesha-shrine", shape: GANESHA_SHRINE },
-  { id: "today-board", shape: rect(2.8, 3.2, TODAY_BOARD.z - 0.8, TODAY_BOARD.z + 0.8) },
+  {
+    id: "today-board",
+    // A capsule along the board's face; its width runs along (cos yaw, −sin yaw).
+    shape: capsule(
+      {
+        x: TODAY_BOARD.x - Math.cos(TODAY_BOARD.yaw) * TODAY_BOARD_HALF_WIDTH,
+        z: TODAY_BOARD.z + Math.sin(TODAY_BOARD.yaw) * TODAY_BOARD_HALF_WIDTH,
+      },
+      {
+        x: TODAY_BOARD.x + Math.cos(TODAY_BOARD.yaw) * TODAY_BOARD_HALF_WIDTH,
+        z: TODAY_BOARD.z - Math.sin(TODAY_BOARD.yaw) * TODAY_BOARD_HALF_WIDTH,
+      },
+      0.2,
+    ),
+  },
   ...GATE_PILLARS.map((p): Obstacle => ({
     id: "gate",
     shape: circle(p.x, p.z, GATE_PILLAR_RADIUS),

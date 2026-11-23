@@ -229,3 +229,26 @@ test("rings a bell in reach, and others see it swing", async ({ page, browser })
     .toBe(true);
   await other.context.close();
 });
+
+test("washes hands at a tap, and others see it (spec 03 § Wash hands)", async ({
+  page,
+  browser,
+}) => {
+  const a = await open(page, "hall-15");
+  const other = await visitor(browser);
+  await open(other.page, "hall-15");
+  // The trough is on the left of the approach; "Wash hands" walks to a free tap and washes.
+  await walkTo(page, -1.2, 50);
+  const wash = page.getByRole("button", { name: "Wash hands" });
+  await expect(wash).toBeVisible();
+  await wash.click();
+  await expect
+    .poll(async () =>
+      (await net(other.page)).events.some((e) => e.kind === "wash" && e.from === a.you?.id),
+    )
+    .toBe(true);
+  await expect
+    .poll(async () => (await net(other.page)).gestures[a.you?.id ?? ""])
+    .toBe("wash");
+  await other.context.close();
+});

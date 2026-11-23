@@ -108,6 +108,7 @@ Configuration the client needs (realtime URL, asset origin, analytics token, UPI
 1. `index.html` shows a static boot screen with no JS dependency. A CSS-only retry link appears after 15 s.
 2. `main.ts` (small) checks for WebGL2. If it's missing, it shows a respectful "This device can't show the temple" page with an audio-only aarti option.
 3. `main.ts` lazy-loads the scene bundle, which includes the asset manifest (spec 11), then loads the **first-view assets** (gate, path, low LOD trees) before anything else. The boot screen waits for them for at most 5 s (`FIRST_VIEW_WAIT_MS`); after that the temple opens with greybox shapes, and the models replace them as they arrive.
+   On a first visit, the boot screen also waits for the visitor to tap Enter on the boot notice (spec 07 § Boot notice). The scene bundle downloads while they read.
 4. In parallel it calls `GET /api/rooms`, picks a hall, and opens the WebSocket.
 5. The temple becomes interactive. Remaining assets stream in by priority (spec 10).
 

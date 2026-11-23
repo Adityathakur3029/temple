@@ -2,7 +2,8 @@
 
 /**
  * Slots whose built model (an asset manifest entry) is an AI-made sacred form. These are local
- * test models only (spec 08 § Depiction), so deploy:web refuses to run while there are any.
+ * test models (spec 08 § Depiction), so deploy:web refuses to run while there are any, except
+ * to staging with `--allow-ai-test-models` (see allowAiTestModels).
  */
 export function aiSacredSlots(manifest: {
   files: readonly { slot: string; tags: readonly string[] }[];
@@ -14,6 +15,14 @@ export function aiSacredSlots(manifest: {
 }
 
 export type Target = "staging" | "production";
+
+/**
+ * Whether deploy:web may ship AI-made sacred test models: only to staging, and only when asked
+ * with `--allow-ai-test-models` (owner, 2026-11-22; spec 08 § Depiction). Production never.
+ */
+export function allowAiTestModels(target: Target, argv: readonly string[]): boolean {
+  return target === "staging" && argv.includes("--allow-ai-test-models");
+}
 
 export function parseTarget(argv: readonly string[]): Target {
   const i = argv.findIndex((a) => a === "--env" || a.startsWith("--env="));

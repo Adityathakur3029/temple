@@ -67,6 +67,8 @@ The order of work. Each milestone has deliverables and exit criteria, and the ne
 - Synced aarti with drift correction, cue-driven lamp choreography, take aarti and prasad, Media Session.
 - Licence entries for every audio file.
 
+Started early, during M3, on the owner's decision (2026-11-23), as the models were: the mixer with the sound switch, key `M` and saved setting; sound effects in the asset build (spec 11 § Sounds); and the bell, with spatial remote rings and the 4-voice cap. Ambience, the aarti, the settings sliders and the other effects stay in M4.
+
 **Exit criteria**
 - The aarti sync test passes on two real devices with skewed clocks (spec 06).
 - The memory check on the Low device passes.

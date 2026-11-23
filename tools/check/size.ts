@@ -10,6 +10,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { gzipSync } from "node:zlib";
 import type { AssetManifest, AssetTier } from "../../apps/web/src/assets/manifest";
+import { SOUNDS, isSoundId } from "../../apps/web/src/assets/sounds";
 
 const KB = 1000;
 const MB = 1000 * KB;
@@ -103,13 +104,22 @@ export function measureWeb(dist: string, assets: AssetManifest | null = null): B
   const firstView = assetBytes((f) => f.tier === "full" && f.priority === "P0");
   // A whole visit's download: the app (HTML, CSS, JS, wasm, fonts) plus the tier's models.
   const app = html + allJs + otherCss + wasm + fonts;
+  // Sounds are the same file in both tiers (spec 11 § Sounds). Meditation loops are fetched only
+  // when a visitor asks for one, so they aren't part of every visit.
+  const soundBytes = (assets?.sounds ?? [])
+    .filter((f) => !(isSoundId(f.sound) && SOUNDS[f.sound].onDemand))
+    .reduce((n, f) => n + f.bytes, 0);
   const tierBytes = (tier: AssetTier): number | null => {
     const models = assetBytes((f) => f.tier === tier);
-    return models === null ? null : app + models;
+    return models === null ? null : app + models + soundBytes;
   };
   const empty = assets !== null && assets.files.length === 0;
   const modelsNote = empty ? "no models yet; greybox only" : "models";
-  const sceneNote = empty ? "the app; no models yet" : "the app and models";
+  const sceneNote = empty
+    ? "the app; no models yet"
+    : soundBytes > 0
+      ? "the app, models and sound effects"
+      : "the app and models";
   const result = (
     id: BudgetId,
     bytes: number | null,
@@ -151,7 +161,7 @@ export function measureWeb(dist: string, assets: AssetManifest | null = null): B
         ),
     result("fullScene", tierBytes("full"), assets ? sceneNote : noAssets),
     result("liteScene", tierBytes("lite"), assets ? sceneNote : noAssets),
-    result("aarti", null, "no audio yet"),
+    result("aarti", null, "no aarti recording yet"),
   ];
 }
 

@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { REALTIME_URLS, aiSacredSlots, parseTarget } from "../deploy/target";
+import { REALTIME_URLS, aiSacredSlots, allowAiTestModels, parseTarget } from "../deploy/target";
+
+describe("allowAiTestModels", () => {
+  it("allows AI test models on staging only, and only with the flag", () => {
+    expect(allowAiTestModels("staging", ["--env", "staging", "--allow-ai-test-models"])).toBe(true);
+    expect(allowAiTestModels("staging", ["--env", "staging"])).toBe(false);
+    expect(allowAiTestModels("production", ["--env", "production", "--allow-ai-test-models"])).toBe(false);
+  });
+});
 
 describe("aiSacredSlots", () => {
   it("finds AI-made sacred forms, which deploy:web refuses", () => {

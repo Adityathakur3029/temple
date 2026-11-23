@@ -1,0 +1,48 @@
+{
+  "sounds": {
+    "bell": {
+      "files": [
+        "audio/bell/bell-1.wav",
+        "audio/bell/bell-2.wav"
+      ],
+      "licence": "own",
+      "credit": "Bell sounds made for Sannidhi with ElevenLabs (AI)",
+      "interim": true,
+      "ai": true,
+      "notes": "Made by the owner with ElevenLabs sound effects on 2026-11-23: one brass bell strike each, ringing out over 6 s. Spec 03 asks for three variants; a third can be added as bell-3.wav. OPEN: confirm the ElevenLabs plan allows commercial use before deploying (assets-src/LICENSES.md)."
+    },
+    "background-day": {
+      "files": [
+        "audio/background/background-2.wav"
+      ],
+      "licence": "own",
+      "credit": "Background and meditation sounds made for Sannidhi with ElevenLabs (AI)",
+      "interim": true,
+      "ai": true,
+      "notes": "The daytime loop (06:30–18:30 IST is day; spec 06). Made by the owner with ElevenLabs on 2026-11-23 (confirmed by the owner). OPEN: confirm the ElevenLabs plan allows commercial use before deploying (assets-src/LICENSES.md), as for the bells."
+    },
+    "background-night": {
+      "files": [
+        "audio/background/background-1.wav"
+      ],
+      "licence": "own",
+      "credit": "Background and meditation sounds made for Sannidhi with ElevenLabs (AI)",
+      "interim": true,
+      "ai": true,
+      "notes": "The night loop (18:30–05:30 IST). Made by the owner with ElevenLabs on 2026-11-23 (confirmed by the owner). OPEN: confirm the ElevenLabs plan allows commercial use before deploying (assets-src/LICENSES.md), as for the bells."
+    },
+    "meditation": {
+      "files": [
+        "audio/meditation/meditation-1.wav",
+        "audio/meditation/meditation-2.wav",
+        "audio/meditation/meditation-3.wav",
+        "audio/meditation/meditation-4.wav"
+      ],
+      "licence": "own",
+      "credit": "Background and meditation sounds made for Sannidhi with ElevenLabs (AI)",
+      "interim": true,
+      "ai": true,
+      "notes": "One is picked at random when a visitor turns meditation on, and looped. Made by the owner with ElevenLabs on 2026-11-23 (confirmed by the owner). OPEN: confirm the ElevenLabs plan allows commercial use before deploying (assets-src/LICENSES.md), as for the bells."
+    }
+  }
+}

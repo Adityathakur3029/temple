@@ -3,6 +3,7 @@
  * this file; the client reads every asset URL from it and never hard-codes one (spec 01).
  */
 import type { Priority, SlotId } from "./slots";
+import type { SoundId } from "./sounds";
 
 export type AssetTier = "full" | "lite";
 
@@ -35,10 +36,28 @@ export interface ManifestFile {
   gpuBytes: number;
 }
 
+/** A built sound variant (spec 11 § Sounds). The same file serves both tiers. */
+export interface ManifestSound {
+  /** e.g. `audio/bell-1.m4a`. */
+  src: string;
+  sound: SoundId;
+  /** Versioned path on the asset origin: `/v/<release>/audio/<file>`. */
+  path: string;
+  sha256: string;
+  bytes: number;
+  seconds: number;
+  /** `interim` for a stand-in until final recordings; `ai` when an AI tool made it. */
+  tags: string[];
+  licence: Licence;
+  credit: string | null;
+}
+
 export interface AssetManifest {
   /** Short hash of the file list; null while no asset has been built. */
   release: string | null;
   /** Hash of the asset config, the source files and the build settings, to spot stale builds. */
   inputs: string | null;
   files: ManifestFile[];
+  /** Missing in manifests built before sounds existed. */
+  sounds?: ManifestSound[];
 }

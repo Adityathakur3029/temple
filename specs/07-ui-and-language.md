@@ -15,7 +15,7 @@ Screens, controls, wording, Hindi/English localisation, fonts and accessibility.
 
 | Screen | Contents |
 |---|---|
-| Boot | Temple mark, "Sannidhi", "Opening the temple doors". Language toggle (हिन्दी / English). Retry link after 15 s (CSS only) |
+| Boot | Temple mark, "Sannidhi", "Opening the temple doors". Language toggle (हिन्दी / English). Retry link after 15 s (CSS only). On a first visit, the boot notice (below) |
 | Unsupported device | "This device can't show the temple." Offer: "Listen to the next aarti" (audio-only page) |
 | Temple (HUD) | Top bar: hall chip ("Hall 3 · 27 here"), sound toggle, settings. Bottom: action dock and context button. Notices: aarti banner, queue status, connection state |
 | Hall list (sheet) | All halls with counts. The current hall is marked. Full halls are disabled. "Counts update every few seconds" |
@@ -28,9 +28,13 @@ Screens, controls, wording, Hindi/English localisation, fonts and accessibility.
 
 **Donation entry points:** only Settings and the Exit screen. Never in the action dock, on the sanctum, during aarti, or in loading screens.
 
+## Boot notice
+
+On the first visit, the boot screen shows a short notice above the language toggle, in the chosen language: who the temple is for (anyone who can't visit a temple in person, such as because of illness, a hospital stay, age or distance), that it is made with respect and isn't meant to hurt anyone's religious feelings, that the temple is fictional and doesn't replace worship, that it isn't medical care or advice, and that offerings are symbolic (strings `notice.*`). The boot screen stays until the visitor taps "Enter the temple". The scene bundle downloads meanwhile, but the temple and the hall connection only start after Enter, so nobody appears in a hall while reading. Store it in `localStorage` `sannidhi:notice-v1` so later visits skip it. If storage is blocked, the notice shows on every visit. The wording is a plain-language notice, not legal advice. Get a lawyer to review it before launch (spec 09 § Legal checklist).
+
 ## HUD
 
-- **Action dock** (bottom, phone-thumb reach): Namaste · Bow · Japa · Darshan. Parikrama appears when near checkpoint `E`.
+- **Action dock** (bottom, phone-thumb reach): Namaste · Bow · Japa · Darshan · Meditate. Parikrama appears when near checkpoint `E`. Meditate is a toggle (pressed while it plays) and is hidden when no meditation file is built (spec 06 § Background and meditation).
 - **Context button:** one large button above the dock when near a ritual spot ("Ring bell", "Light a diya", "Offer water", "Sit", "Take aarti", "Receive prasad").
 - **Notices:** one at a time, in priority order: connection problem > queue status > aarti banner > hint.
 - **Visual style:** soft translucent panels tinted towards deodar green. Brass-coloured accents are reserved for the active state. Deities are never used as icons or decoration.
@@ -40,7 +44,7 @@ Screens, controls, wording, Hindi/English localisation, fonts and accessibility.
 
 On the first visit, show at most three hints, one at a time, each dismissed by doing the action:
 1. "Drag to look around. Tap the path to walk." (चारों ओर देखने के लिए खींचें। चलने के लिए रास्ते पर टैप करें।)
-2. At the gate: "Footwear is left at the gate." (जूते-चप्पल द्वार पर उतारे जाते हैं।)
+2. At the gate: "Footwear is left at the gate." (जूते-चप्पल द्वार पर उतारे जाते हैं।) If the visitor has not washed their hands this visit, it adds "You may wash your hands at the taps before entering." (चाहें तो प्रवेश से पहले नल पर हाथ धो लें।) (spec 03 § Wash hands). Nothing is blocked.
 3. Near the first bell: "Tap the bell to ring it." (घंटी बजाने के लिए उस पर टैप करें।)
 
 Store completion in `localStorage` `sannidhi:onboarding-v1`.
@@ -112,6 +116,12 @@ The keys are the canonical names in the locale files. Hindi strings need native 
 | `unsupported.title` | This device can't show the temple | यह डिवाइस मंदिर नहीं दिखा सकता |
 | `lang.hi` | हिन्दी | हिन्दी |
 | `lang.en` | English | English |
+| `notice.title` | Before you enter | प्रवेश से पहले |
+| `notice.purpose` | Sannidhi is a quiet place for anyone who cannot visit a temple in person, whether because of illness, a hospital stay, age or distance. It is made with devotion and respect, and is not meant to hurt anyone's religious feelings or beliefs. | सन्निधि उन सबके लिए एक शांत स्थान है जो बीमारी, अस्पताल में भर्ती होने, आयु या दूरी के कारण मंदिर नहीं जा पाते। इसे श्रद्धा और सम्मान से बनाया गया है। इसका उद्देश्य किसी की धार्मिक भावनाओं या आस्था को ठेस पहुँचाना नहीं है। |
+| `notice.fictional` | This temple is imaginary. It does not represent any real temple, trust or religious organisation, and it does not replace worship at a temple or at home. | यह मंदिर काल्पनिक है। यह किसी वास्तविक मंदिर, ट्रस्ट या धार्मिक संस्था का प्रतिनिधित्व नहीं करता, और मंदिर या घर में की जाने वाली पूजा का स्थान नहीं लेता। |
+| `notice.medical` | This is not medical care or advice. If you are unwell, please follow your doctor's guidance. | यह चिकित्सा सेवा या चिकित्सकीय सलाह नहीं है। अस्वस्थ हों तो कृपया अपने डॉक्टर की सलाह का पालन करें। |
+| `notice.symbolic` | Offerings here are symbolic. No blessing, wish or result is promised. | यहाँ के अर्पण प्रतीकात्मक हैं। किसी आशीर्वाद, मनोकामना या फल का वादा नहीं किया जाता। |
+| `notice.enter` | Enter the temple | मंदिर में प्रवेश करें |
 | `hud.hall` | Hall {n} | कक्ष {n} |
 | `hud.here` | {count} here | {count} उपस्थित |
 | `action.namaste` | Namaste | नमस्ते |
@@ -119,6 +129,7 @@ The keys are the canonical names in the locale files. Hindi strings need native 
 | `action.bell` | Ring bell | घंटी बजाएँ |
 | `action.japa` | Japa | जप |
 | `action.darshan` | Darshan | दर्शन |
+| `action.meditate` | Meditate | ध्यान |
 | `action.parikrama` | Parikrama | परिक्रमा |
 | `action.diya` | Light a diya | दीया जलाएँ |
 | `action.jal` | Offer water | जल अर्पित करें |
@@ -127,6 +138,7 @@ The keys are the canonical names in the locale files. Hindi strings need native 
 | `action.stand` | Stand up | उठें |
 | `action.take_aarti` | Take aarti | आरती लें |
 | `action.prasad` | Receive prasad | प्रसाद ग्रहण करें |
+| `action.wash` | Wash hands | हाथ धोएँ |
 | `japa.count` | {bead} / 108 | {bead} / 108 |
 | `japa.malas_today` | Malas today: {n} | आज की मालाएँ: {n} |
 | `japa.turn` | Turn the mala here | यहाँ से माला पलटें |
@@ -144,6 +156,9 @@ The keys are the canonical names in the locale files. Hindi strings need native 
 | `aarti.go` | Go to the mandapa | मंडप की ओर चलें |
 | `aarti.listen` | Listen | सुनें |
 | `aarti.mute_once` | Mute this aarti | इस आरती की ध्वनि बंद करें |
+| `board.title` | Aarti timings | आरती का समय |
+| `board.time_morning` | {time} AM | सुबह {time} बजे |
+| `board.time_evening` | {time} PM | शाम {time} बजे |
 | `sound.on` | Turn sound on | ध्वनि चालू करें |
 | `sound.off` | Turn sound off | ध्वनि बंद करें |
 | `hall.full` | This hall is full. Please choose another. | यह कक्ष भरा हुआ है। कृपया दूसरा चुनें। |
@@ -178,7 +193,7 @@ The keys are the canonical names in the locale files. Hindi strings need native 
 | `controls.walk` | Walk | चलें |
 | `controls.drag` | Drag or scroll | खींचें या स्क्रॉल करें |
 | `controls.look` | Look around and zoom | चारों ओर देखें और ज़ूम करें |
-| `controls.context` | Action at this spot (ring bell, sit, stand up) | इस जगह का कार्य (घंटी बजाएँ, बैठें, उठें) |
+| `controls.context` | Action at this spot (ring bell, wash hands, sit, stand up) | इस जगह का कार्य (घंटी बजाएँ, हाथ धोएँ, बैठें, उठें) |
 | `controls.darshan` | Darshan view | दर्शन दृश्य |
 | `controls.close` | Close the open sheet or view | खुला पैनल या दृश्य बंद करें |
 | `lite.suggest` | This device may run more smoothly in Lite mode. | लाइट मोड में यह डिवाइस बेहतर चल सकता है। |
@@ -205,12 +220,15 @@ The keys are the canonical names in the locale files. Hindi strings need native 
 | `a11y.namaste` | You greeted everyone. | आपने सबका अभिवादन किया। |
 | `a11y.pranam` | You bowed. | आपने प्रणाम किया। |
 | `a11y.bell` | You rang the bell. | आपने घंटी बजाई। |
+| `a11y.wash` | You washed your hands. | आपने हाथ धो लिए। |
 | `a11y.others_namaste_one` | Someone greeted everyone. | किसी ने सबका अभिवादन किया। |
 | `a11y.others_namaste` | {n} people greeted everyone. | {n} लोगों ने सबका अभिवादन किया। |
 | `a11y.others_pranam_one` | Someone bowed. | किसी ने प्रणाम किया। |
 | `a11y.others_pranam` | {n} people bowed. | {n} लोगों ने प्रणाम किया। |
 | `a11y.others_bell_one` | A bell rang. | एक घंटी बजी। |
 | `a11y.others_bell` | Bells rang {n} times. | {n} बार घंटी बजी। |
+| `hint.gate` | Footwear is left at the gate. | जूते-चप्पल द्वार पर उतारे जाते हैं। |
+| `hint.gate_wash` | Footwear is left at the gate. You may wash your hands at the taps before entering. | जूते-चप्पल द्वार पर उतारे जाते हैं। चाहें तो प्रवेश से पहले नल पर हाथ धो लें। |
 
 ## Accessibility
 

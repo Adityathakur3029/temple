@@ -36,6 +36,9 @@ import {
   PRADAKSHINA_MODE,
   SEAT_REACH_M,
   SPAWN,
+  TAP_IDS,
+  TAP_SPOTS,
+  WASH_COOLDOWN_MS,
   blockedAt,
   bowTarget,
   distance,
@@ -50,6 +53,7 @@ import {
   type Point,
   type Pose,
   type StateTuple,
+  type TapId,
   type Visitor,
 } from "@sannidhi/protocol";
 import { currentLang } from "../i18n/lang";
@@ -57,6 +61,9 @@ import { realtimeBase, socketBase } from "../net/config";
 import type { NetStatus } from "../net/connection";
 import { Session } from "../net/session";
 import { Hud, type Gesture } from "../ui/hud";
+import { Beds } from "../audio/beds";
+import { Effects } from "../audio/effects";
+import { Mixer } from "../audio/mixer";
 import { decide, FrameSampler, readLiteSignals, suggestLiteAtStart } from "../platform/adapt";
 import { CALM_FPS, IdleMonitor } from "../platform/idle";
 import { SettingsStore } from "../platform/settings";
@@ -66,12 +73,13 @@ import { chooseTier, pixelRatio, readDeviceInfo, type Tier } from "../platform/t
 import { loadView, saveView } from "../platform/view";
 import { Avatar, HEAD_HEIGHT, disposeAvatarCache, prebuildAvatarGeometries } from "./avatar";
 import { BellSwings } from "./bells";
+import { TapWater, nearTrough, nearestTap, tapInReach } from "./taps";
 import { CameraRig, clampOrbit, type CameraPose } from "./camera";
 import { Crowd } from "./crowd";
 import { PLINTH, groundY } from "./ground";
 import { buildGreybox, MAX_TREES } from "./greybox";
 import { Input } from "./input";
-import { FIRST_VIEW_WAIT_MS, SceneModels } from "./models";
+import { FIRST_VIEW_WAIT_MS, SceneModels, soundUrls } from "./models";
 import { NavGrid } from "./nav";
 import { PerfOverlay } from "./perf";
 import { blendLook, Sky, SUN_SHADOW_DISTANCE } from "./sky";
@@ -162,6 +170,23 @@ function bellInReach(p: Point): BellId | null {
   return best;
 }
 
+const ONBOARDING_KEY = "sannidhi:onboarding-v1";
+
+/** The onboarding hints completed on this device (spec 07 § Onboarding, spec 09 storage keys). */
+function readOnboarding(): string[] {
+  try {
+    const v: unknown = JSON.parse(localStore.getItem(ONBOARDING_KEY) ?? "[]");
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeOnboarding(hint: string): void {
+  const done = readOnboarding();
+  if (!done.includes(hint)) localStore.setItem(ONBOARDING_KEY, JSON.stringify([...done, hint]));
+}
+
 /** Where a bow is offered: the courtyard, the mandapa, and before the Ganesha shrine (spec 03). */
 function canBowAt(p: Point): boolean {
   return (
@@ -215,6 +240,7 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
   });
   scene.add(greybox.group);
   const swings = new BellSwings(greybox.bells, greybox.bellHang);
+  const tapWater = new TapWater(greybox.tapWater);
   const models = new SceneModels({
     renderer,
     greybox,
@@ -284,6 +310,11 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
   /** Dev and tests: time runs faster, so the server's speed check would correct every step. */
   let fastForward = false;
   let lastBellAt = Number.NEGATIVE_INFINITY;
+  let lastWashAt = Number.NEGATIVE_INFINITY;
+  /** Washed the hands this visit (spec 03 § Wash hands): only changes the gate hint. */
+  let washed = false;
+  /** The gate hint (spec 07 § Onboarding, hint 2) was seen on an earlier visit, or this one. */
+  let gateHintDone = readOnboarding().includes("gate");
 
   const restored = loadView(sessionStore, Date.now());
   if (restored) {
@@ -327,7 +358,14 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
         if (e.kind === "namaste" || e.kind === "pranam" || e.kind === "bell") {
           crowd.play(e.from, e.kind, performance.now(), interpDelay());
           hud.noteRemote(e.kind);
-          if (e.kind === "bell" && e.bell) swings.ring(e.bell);
+          if (e.kind === "bell" && e.bell) {
+            swings.ring(e.bell);
+            // Another visitor's bell sounds from where it hangs, a little quieter (spec 06).
+            effects.play("bell", { at: greybox.bellHang[e.bell], remote: true });
+          }
+        } else if (e.kind === "wash" && e.tap) {
+          const tap = e.tap;
+          crowd.play(e.from, "wash", performance.now(), interpDelay(), () => tapWater.run(tap));
         }
       },
       correct: (x, z) => {
@@ -347,7 +385,23 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
   let lastLookAt = -Infinity;
   let timeScale = 1;
 
+  // Sound (spec 06): off until the visitor turns it on; files load only then.
+  const mixer = new Mixer(localStore);
+  const effects = new Effects(mixer, soundUrls());
+  // The background loop by day or night, or this visitor's meditation (spec 06 § Background and
+  // meditation). The scene clock follows `?ist=` too, so night can be heard in review.
+  const beds = new Beds(mixer, soundUrls(), { now: () => clock.now() });
+  const toggleMeditation = (): void => {
+    const on = !beds.isMeditating;
+    // Meditation is heard, so asking for it turns sound on (this is a tap, so the browser allows it).
+    if (on && !mixer.audible) mixer.setOn(true);
+    beds.setMeditating(on);
+  };
+  const listenDir = new Vector3();
+
   const hud = new Hud(host, settings, {
+    sound: () => mixer.toggle(),
+    meditate: () => toggleMeditation(),
     context: () => doContext(),
     darshan: () => toggleDarshan(),
     gesture: (g) => doGesture(g),
@@ -374,6 +428,14 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
       hud.showLiteSuggestion(false);
     },
   });
+  hud.setSound(mixer.audible);
+  mixer.onChange(() => {
+    hud.setSound(mixer.audible);
+    // Turning sound off ends meditation; it doesn't wait silently to start again.
+    if (!mixer.settings.on && beds.isMeditating) beds.setMeditating(false);
+  });
+  hud.setMeditation(beds.isMeditating, beds.canMeditate);
+  beds.onChange(() => hud.setMeditation(beds.isMeditating, beds.canMeditate));
 
   const owner = new RenderOwner({
     channel: openChannel(),
@@ -408,6 +470,7 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
       if (a === "context") doContext();
       else if (a === "darshan") toggleDarshan();
       else if (a === "namaste" || a === "pranam") hud.tryGesture(a);
+      else if (a === "sound") mixer.toggle();
       else if (!hud.sheetOpen && rig.mode === "darshan") {
         rig.setMode("orbit", reducedMotion());
         hud.setDarshan(false);
@@ -506,9 +569,10 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     return best;
   }
 
-  function contextAction(): "stand" | "bell" | "sit" | null {
+  function contextAction(): "stand" | "bell" | "wash" | "sit" | null {
     if (mat >= 0) return "stand";
     if (bellInReach(walker)) return "bell";
+    if (nearTrough(walker)) return "wash";
     if (inMandapa(walker.x, walker.z)) return "sit";
     return null;
   }
@@ -519,9 +583,53 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     else if (action === "bell") {
       const bell = bellInReach(walker);
       if (bell) ringBell(bell);
+    } else if (action === "wash") {
+      goWash(null);
     } else if (action === "sit") {
       sitNearest();
     }
+  }
+
+  /**
+   * Wash at `tap`, or at the nearest tap nobody is standing at (spec 03 § Wash hands): walk to
+   * its spot first if not there yet.
+   */
+  function goWash(tap: TapId | null): void {
+    if (avatar.playing === "wash") return;
+    const chosen = tap ?? freeTap(walker);
+    const spot = TAP_SPOTS[chosen];
+    if (distance(walker, spot) <= 0.3 || (tap === null && tapInReach(walker) === chosen)) {
+      washAt(chosen);
+      return;
+    }
+    walkTo(spot.x, spot.z, () => washAt(chosen));
+  }
+
+  /** The nearest tap whose spot nobody else stands at; the nearest tap if all are in use. */
+  function freeTap(p: Point): TapId {
+    const taken = new Set<TapId>();
+    for (const r of session.presence.remotes.values()) {
+      const last = r.samples[r.samples.length - 1];
+      if (!last) continue;
+      for (const id of TAP_IDS) if (distance(last, TAP_SPOTS[id]) < 0.5) taken.add(id);
+    }
+    const order = [...TAP_IDS].sort(
+      (a, b) => distance(p, TAP_SPOTS[a]) - distance(p, TAP_SPOTS[b]),
+    );
+    return order.find((id) => !taken.has(id)) ?? order[0] ?? nearestTap(p);
+  }
+
+  function washAt(tap: TapId): void {
+    const now = performance.now();
+    if (now - lastWashAt < WASH_COOLDOWN_MS + 100 || mat >= 0) return;
+    lastWashAt = now;
+    walker.stop();
+    walker.face(-Math.PI / 2); // towards the tap, on the trough's back wall (−x)
+    avatar.play("wash");
+    tapWater.run(tap);
+    session.wash(tap);
+    hud.announce("a11y.wash");
+    washed = true;
   }
 
   function ringBell(bell: BellId): void {
@@ -532,6 +640,7 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     walker.face(yawTowards(walker, BELLS[bell]));
     avatar.play("bell");
     swings.ring(bell);
+    effects.play("bell");
     session.bell(bell);
     hud.announce("a11y.bell");
   }
@@ -614,6 +723,12 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     // A bell out of reach: walk towards it; if no path ends right under it, walk where the tap
     // meets the ground, as on any other tap.
     if (bell && walkTo(BELLS[bell].x, BELLS[bell].z, () => ringBell(bell))) return;
+    // The washing trough: wash at the tap nearest where it was tapped.
+    const onTrough = raycaster.intersectObject(greybox.troughPick, false)[0];
+    if (onTrough) {
+      goWash(nearestTap({ x: onTrough.point.x, z: onTrough.point.z }));
+      return;
+    }
     const onMat = raycaster.intersectObject(greybox.mats, false)[0];
     if (onMat?.instanceId !== undefined) {
       if (onMat.instanceId !== mat) sitOn(onMat.instanceId);
@@ -776,7 +891,7 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
       move = moveInput;
     }
     // Stay put while sitting down, standing up or bowing.
-    walker.hold = !avatar.standing || avatar.playing === "pranam";
+    walker.hold = !avatar.standing || avatar.playing === "pranam" || avatar.playing === "wash";
     walker.update(dt, mat < 0 && avatar.standing ? move : null);
     if (
       walker.walkingPath &&
@@ -805,6 +920,15 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     }
     camera.position.set(pose.eye.x, pose.eye.y, pose.eye.z);
     camera.lookAt(pose.look.x, pose.look.y, pose.look.z);
+    camera.getWorldDirection(listenDir);
+    mixer.setListener(
+      camera.position.x,
+      camera.position.y,
+      camera.position.z,
+      listenDir.x,
+      listenDir.y,
+      listenDir.z,
+    );
     avatar.root.visible = camera.position.distanceTo(head) > 0.7;
     sky.follow(camera.position, avatar.root.position);
 
@@ -815,6 +939,8 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
       playGesture("pranam");
     }
     swings.update(dt, reducedMotion());
+    tapWater.update(dt);
+    updateGateHint();
     updateNameTag(now);
 
     if (now - lastSky > SKY_UPDATE_MS) {
@@ -830,6 +956,22 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     hud.setContext(contextAction());
     hud.setPranamAvailable(mat < 0 && !bowAfterTurn && canBowAt(walker));
     if (now - lastCheckpoint > CHECKPOINT_MS) checkpoint(now);
+  }
+
+  /**
+   * The gate hint on a first visit (spec 07 § Onboarding, hint 2): shown on the approach near the
+   * gate, with the reminder to wash if the visitor hasn't; done once they walk through the gate.
+   */
+  function updateGateHint(): void {
+    if (gateHintDone) return;
+    if (walker.z < GATE.z - 1) {
+      gateHintDone = true;
+      writeOnboarding("gate");
+      hud.showHint(null);
+      return;
+    }
+    const near = Math.abs(walker.x) < 4 && walker.z >= GATE.z && walker.z < GATE.z + 3.5;
+    hud.showHint(near ? (washed ? "hint.gate" : "hint.gate_wash") : null);
   }
 
   function updateNameTag(now: number): void {
@@ -936,6 +1078,7 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
 
   const idleTimer = window.setInterval(() => idle.tick(mat >= 0), 1000);
   const onVisibility = (): void => {
+    mixer.setHidden(document.hidden);
     if (!document.hidden && !owner.isOwner) onFocus();
     updateLoop();
     if (!document.hidden) session.reconnectNow();
@@ -1085,6 +1228,9 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
       input.dispose();
       owner.dispose();
       hud.dispose();
+      effects.dispose();
+      beds.dispose();
+      mixer.dispose();
       models.dispose();
       greybox.dispose();
       sky.dispose();

@@ -69,7 +69,7 @@ Coordinates are metres with +y up and the linga at the origin. +z points from th
 | Slot | What goes there | Fitted to | Placed at (origin point) | Triangles / draws | Priority |
 |---|---|---|---|---|---|
 | `gate` | The torana: two pillars, the lintel and its small tower (not the walls); no carved deity figures | 5.6 m wide (x) | Bottom centre at (0, 0, 46) | 15k / 2 | P0 |
-| `today-board` | The painted board, blank (its text is drawn in code) | 2.02 m tall | Bottom centre at (3, 0, 44.4), front turned to −x (the path) | 3k / 1 | P0 |
+| `today-board` | The painted board, blank (its text is drawn in code) | 2.02 m tall | Bottom centre at (3, 0, 48.6), just outside the gate; front turned 30° from +z towards −x (yaw −π/6), facing visitors as they arrive | 3k / 1 | P0 |
 | `tree` | A deodar | 10.4 m tall | Base centre; the 156 trees beyond the near trees, placed in code nearest the temple first (78 in Lite mode and on Low phones) | 120 / 2 | P0 |
 | `near-tree` | A more detailed deodar or pine with cut-out foliage, for the trees nearest the paths | 5.2 m wide, the greybox tree's spread, so no branch reaches over a path | Base centre; the 24 trees closest to the walkable area, placed in code, closest first (12 in Lite mode and on Low phones) | 1,600 / 2 | P1 |
 | `shrine` | Garbhagriha, antarala and shikhara with amalaka and kalasha, and the somasutra spout. Hollow and empty sanctum (no linga, murti or Nandi inside, no carved deity figures), door to +z, floor at 0.45 m | 16.1 m tall | Bottom centre at (0, 0, 1.26) | 45k / 3 | P1 |
@@ -93,6 +93,25 @@ Textures follow the asset list above: 2K / 1K for the shrine, mandapa, kund and 
 - **All models together:** `npm run check` adds up every model's triangles times its copies, and every texture's GPU memory, per tier, against what spec 10 leaves for models (`MODEL_TRIANGLES`, `MODEL_TEXTURE_BYTES` in `slots.ts`). That check on the built models is the limit: with every slot filled to its own budget the Full total would be about 237k, over the 220k, until the tree LODs (M5) replace the `tree` and `near-tree` budgets.
 - **Taps:** tap-to-walk tests the greybox shapes as first built, not the models, so a tap stays cheap.
 - **Loading:** by priority (spec 10 § Loading priority), after the scene code. A model replaces its greybox shape as soon as it arrives.
+
+## Sounds
+
+Sounds go through the same build as models. Values live in `apps/web/src/assets/sounds.ts`; this table mirrors it.
+
+| Sound | What it is | Channel | Variants | Longest clip | Voices at once | Pitch change |
+|---|---|---|---|---|---|---|
+| `bell` | A brass bell struck once, ringing out | Effects | 1–3 | 8 s | 4 | ±3 % |
+| `background-day` | The daytime background loop | Ambience | 1 | 120 s | 1 | none |
+| `background-night` | The night background loop | Ambience | 1 | 120 s | 1 | none |
+| `meditation` | Meditation loops; one picked at random (on demand) | Chant | 1–8 | 120 s | 1 | none |
+
+- **Source:** clips live in `assets-src/audio/<sound>/` as `.wav` (best), `.flac` or `.mp3`.
+- **Config:** `assets-src/sounds.json` lists each sound's clips, one per variant, with the same `licence`, `credit`, `interim`, `ai` and `notes` settings as a slot. Unknown sounds or settings fail the build. Each variant needs its own `LICENSES.md` entry, `## audio/<sound>-<n>.m4a`.
+- **Build:** `npm run assets:build` encodes each clip as AAC-LC `.m4a`, 44.1 kHz, in its sound's format (spec 06 § Loudness and formats), and fails if a clip is longer than its sound allows.
+  - **Effects** are mixed down to mono at 64 kbps. The level is set so the encoded file peaks at no more than −6 dBFS: from the mono mix first, then lower again if the AAC encoding overshoots. The last 0.15 s fades out, so a clip cut short never clicks.
+  - **Loops** (background, meditation) stay stereo. The level is set to the format's loudness (LUFS), but never past a −1 dBFS peak. They are never faded, so they loop without a gap. The encoder is `ffmpeg-static`, a build tool only, never shipped.
+- **Output:** `apps/web/public/v/<release>/audio/<sound>-<n>.m4a`, one file for both tiers.
+- **Loading:** nothing is downloaded until the visitor turns sound on. Then effects are fetched and decoded once into `AudioBuffer`s (spec 06 § Spatial effects), and the background loop due now. A meditation is fetched only when the visitor turns meditation on; these on-demand files don't count towards a visit's download in the size check (spec 10).
 
 ## Manifest
 
@@ -119,12 +138,25 @@ The client loads assets only through the manifest. No asset URL is written into 
       "textures": [[1024, 1024]],
       "gpuBytes": 1398101
     }
+  ],
+  "sounds": [
+    {
+      "src": "audio/bell-1.m4a",
+      "sound": "bell",
+      "path": "/v/3f9c2a1d/audio/bell-1.m4a",
+      "sha256": "…64 hex…",
+      "bytes": 50263,
+      "seconds": 6,
+      "tags": ["bell", "interim", "ai"],
+      "licence": "own",
+      "credit": "Bell sounds made for Sannidhi with ElevenLabs (AI)"
+    }
   ]
 }
 ```
 
-- **`release`** is a short hash of the manifest's file list and hashes. A changed asset gives a new release folder. Old folders are never overwritten or deleted while a deployed app version still references them. It is `null` while no model is configured.
-- **`inputs`** hashes the config, every file in each model's source folder, the slot table and the build settings. `npm run check` fails when it no longer matches, which means the models need building again.
+- **`release`** is a short hash of the manifest's file list and hashes, models and sounds. A changed asset gives a new release folder. Old folders are never overwritten or deleted while a deployed app version still references them. It is `null` while no model or sound is configured.
+- **`inputs`** hashes the configs (`slots.json`, `sounds.json`), every file in each model's source folder, each configured sound clip, the slot table and the build settings. `npm run check` fails when it no longer matches, which means the models need building again.
 - **Origin:** set by `VITE_ASSET_ORIGIN` at build time (spec 01). Until the asset Worker exists it is empty, and the web Worker serves the files under `/v/` with the immutable cache header in `apps/web/public/_headers`. The web Worker only has the current release, so a visitor still on an older app version sees greybox shapes until they reload.
 - **`priority`** follows the loading order in spec 10.
 - **`tags`** are the slot id, `sacred` for deity and sacred-object assets, `interim` for stand-ins and `ai` for AI-made assets. Only scene code (`apps/web/src/scene`, `apps/web/src/assets`) may load the manifest or a model, and `npm run check` fails otherwise, so no `sacred` asset can reach UI icon, favicon, loading or donation code (spec 08).
@@ -145,9 +177,9 @@ Commissioned work needs a written licence that covers a perpetual, worldwide rig
 **Downloaded models** (from Sketchfab, Poly Haven and similar sites) are allowed as stand-ins when the licence is CC0 or CC-BY 4.0. Record the source page, author, licence and date in `assets-src/LICENSES.md` before configuring the model; the build fails without that entry. Mark the model `interim` until final art replaces it. This includes the linga, Nandi and Ganesha, on the conditions in spec 08 § Depiction: for these the config must say `"ai"` explicitly (`false` for a downloaded stand-in, `true` only for a local test model), and the build refuses one that isn't `interim` unless its licence is `own` and it isn't AI-made.
 
 **AI-generated content:**
-- MAY be used only for non-sacred textures and props, where the tool's terms allow this use. It is disclosed in the credits.
+- MAY be used only for non-sacred textures, props and sound effects (a bell, water, a match), where the tool's terms allow this use. It is disclosed in the credits.
 - MUST NOT be used for the linga, Nandi, Ganesha, sacred symbols, the aarti or mantra audio in anything deployed.
-- The one exception is a test model of the linga, Nandi or Ganesha on the owner's own computer, to work out the size and decoration to ask a human maker for (temporary, decided by the owner on 2026-11-08; spec 08 § Depiction). It is `interim` and tagged `ai`, and `npm run deploy:web` refuses to deploy it.
+- The one exception is a test model of the linga, Nandi or Ganesha on the owner's own computer, to work out the size and decoration to ask a human maker for (temporary, decided by the owner on 2026-11-08; spec 08 § Depiction). It is `interim` and tagged `ai`, and `npm run deploy:web` refuses to deploy it, except to staging with `--allow-ai-test-models` (owner, 2026-11-22).
 
 ### `assets-src/LICENSES.md` entry format
 
@@ -179,10 +211,10 @@ The in-app credits screen (spec 07) is generated from the manifest's `credit` fi
 - `npm run check` fails when:
   - an asset exceeds its triangle, draw or size budget;
   - a built file doesn't match its manifest entry, or `assets-src/` changed since the last build;
-  - a configured model has no `LICENSES.md` entry, or a CC-BY model has no credit;
+  - a configured model or sound variant has no `LICENSES.md` entry, or a CC-BY one has no credit;
   - a sacred slot's config doesn't say `"ai"` explicitly, or a downloaded or AI-made sacred form isn't `interim`;
   - web code outside the scene loads the manifest or a model, or names a built model's path (spec 08). The favicon and app icon are checked by review.
-- `npm run deploy:web` refuses to run while the manifest has a model tagged both `sacred` and `ai` (a local test model, spec 08 § Depiction).
+- `npm run deploy:web` refuses to run while the manifest has a model tagged both `sacred` and `ai` (a test model, spec 08 § Depiction), except to staging with `--allow-ai-test-models`.
 - A slot without a model, or whose model fails to load, shows its greybox shape.
 - Lite-tier scene bytes ≤ 5 MB and Full-tier ≤ 12 MB (spec 10).
 

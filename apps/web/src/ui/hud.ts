@@ -20,7 +20,7 @@ import type { NetStatus } from "../net/connection";
 import type { SettingsStore } from "../platform/settings";
 import { TIERS } from "../platform/tier";
 
-export type ContextAction = "sit" | "stand" | "bell";
+export type ContextAction = "sit" | "stand" | "bell" | "wash";
 export type RestKind = "other-tab" | "idle";
 export type Gesture = "namaste" | "pranam";
 
@@ -36,6 +36,10 @@ export interface HudCallbacks {
   resume(): void;
   liteAccept(): void;
   liteDismiss(): void;
+  /** The sound button or key M: turn sound on or off (spec 06 § Unlock). */
+  sound(): void;
+  /** The meditation button: start or stop this visitor's meditation loop (spec 06). */
+  meditate(): void;
 }
 
 /** What the "Who's here" sheet shows. */
@@ -59,7 +63,13 @@ const PALMS =
 /** A figure bowing, with joined hands raised before the forehead. */
 const BOW =
   '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="7" r="2.1"/><path d="M7 21c0-5.5 1.8-9.4 5.2-11.4"/><path d="M12.4 10.3 15.6 9 17.4 5.6"/></svg>';
-/** People, for "Who's here". */
+/** A lotus, as a simple outline: meditation (spec 11 § UI icon set). */
+const LOTUS =
+  '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5c-2 2.2-3 4.6-3 7.2 0 2.3 1.2 4.2 3 5.3 1.8-1.1 3-3 3-5.3 0-2.6-1-5-3-7.2Z"/><path d="M9.3 10.2C7 9.4 4.9 9.5 3 10.5c.4 3.9 3.8 7 9 7"/><path d="M14.7 10.2c2.3-.8 4.4-.7 6.3.3-.4 3.9-3.8 7-9 7"/><path d="M5 20.5h14"/></svg>';
+/** A hanging temple bell (spec 11 § UI icon set): the sound switch. */
+const BELL =
+  '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5v2"/><path d="M7 16.5c0-6 1.6-10 5-10s5 4 5 10"/><path d="M5.5 16.5h13"/><path d="M10.6 19.5a1.6 1.6 0 0 0 2.8 0"/></svg>';
+
 const PEOPLE =
   '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c.8-3.4 3-5 5.5-5s4.7 1.6 5.5 5"/><circle cx="16.5" cy="9" r="2.3"/><path d="M15.5 14.2c2.4-.3 4.3 1.2 5 4.3"/></svg>';
 
@@ -104,6 +114,8 @@ export class Hud {
   private readonly hallChip: HTMLElement;
   private readonly hallBtn: HTMLButtonElement;
   private readonly hereBtn: HTMLButtonElement;
+  private readonly soundBtn: HTMLButtonElement;
+  private readonly meditateBtn: HTMLButtonElement;
   private readonly notice: HTMLElement;
   private readonly live: HTMLElement;
   private readonly nameTag: HTMLElement;
@@ -115,6 +127,8 @@ export class Hud {
   private restKind: RestKind | null = null;
   private conn: NetStatus = "connecting";
   private liteShown = false;
+  /** An onboarding hint, the least urgent notice (spec 07 § Onboarding). */
+  private hint: StringKey | null = null;
   private hall: { id: HallId; number: number } | null = null;
   private here = 0;
   private rooms: RoomsResponse | null = null;
@@ -132,7 +146,7 @@ export class Hud {
   ) {
     this.root = el("div", { class: "hud" });
 
-    // Top bar: the hall chip on the left, settings on the right.
+    // Top bar: the hall chip on the left, sound and settings on the right.
     this.hallChip = el("div", { class: "hud-hall", hidden: "" });
     this.hallBtn = el("button", { type: "button", class: "hud-btn", "aria-haspopup": "dialog" });
     this.hallBtn.addEventListener("click", () => this.openHalls());
@@ -157,7 +171,10 @@ export class Hud {
       SLIDERS,
     );
     settingsBtn.addEventListener("click", () => this.open(this.sheetEl, () => this.syncSheet()));
-    top.append(settingsBtn);
+    // "Turn sound on" in words until sound plays; then just the bell (spec 06 § Unlock).
+    this.soundBtn = iconButton(BELL, "sound.on");
+    this.soundBtn.addEventListener("click", () => cb.sound());
+    top.append(this.soundBtn, settingsBtn);
 
     this.notice = el("div", { class: "hud-notice", hidden: "" });
 
@@ -175,7 +192,11 @@ export class Hud {
     this.darshanBtn = iconButton(EYE, "action.darshan");
     this.darshanBtn.setAttribute("aria-pressed", "false");
     this.darshanBtn.addEventListener("click", () => cb.darshan());
-    dock.append(namaste, pranam, this.darshanBtn);
+    this.meditateBtn = iconButton(LOTUS, "action.meditate");
+    this.meditateBtn.setAttribute("aria-pressed", "false");
+    this.meditateBtn.hidden = true;
+    this.meditateBtn.addEventListener("click", () => cb.meditate());
+    dock.append(namaste, pranam, this.darshanBtn, this.meditateBtn);
     bottom.append(this.contextBtn, dock);
 
     this.live = el("div", { class: "sr-only", "aria-live": "polite" });
@@ -204,6 +225,26 @@ export class Hud {
     this.context = action;
     this.contextBtn.hidden = action === null;
     this.refreshContext();
+  }
+
+  setSound(on: boolean): void {
+    const b = this.soundBtn;
+    const label = b.querySelector("span");
+    if (!label) return;
+    b.classList.toggle("hud-icon", on);
+    label.hidden = on;
+    if (on) b.dataset.tLabel = "sound.off";
+    else {
+      delete b.dataset.tLabel;
+      b.removeAttribute("aria-label");
+    }
+    applyStrings(this.root);
+  }
+
+  /** Pressed while meditation plays; hidden when there's no meditation to play. */
+  setMeditation(on: boolean, available: boolean): void {
+    this.meditateBtn.hidden = !available;
+    this.meditateBtn.setAttribute("aria-pressed", String(on));
   }
 
   setDarshan(on: boolean): void {
@@ -271,6 +312,12 @@ export class Hud {
     this.renderNotice();
   }
 
+  showHint(key: StringKey | null): void {
+    if (key === this.hint) return;
+    this.hint = key;
+    this.renderNotice();
+  }
+
   showLiteSuggestion(show: boolean): void {
     this.liteShown = show;
     this.renderNotice();
@@ -297,6 +344,9 @@ export class Hud {
       later.addEventListener("click", () => this.cb.liteDismiss());
       this.notice.append(el("p", { "data-t": "lite.suggest" }), use, later);
       this.notice.removeAttribute("role");
+    } else if (this.hint) {
+      this.notice.append(el("p", { "data-t": this.hint }));
+      this.notice.setAttribute("role", "status");
     }
     this.notice.hidden = this.notice.childElementCount === 0;
     applyStrings(this.notice);
@@ -408,6 +458,7 @@ export class Hud {
       sit: "action.sit",
       stand: "action.stand",
       bell: "action.bell",
+      wash: "action.wash",
     };
     this.contextBtn.textContent = t(key[this.context]);
   }

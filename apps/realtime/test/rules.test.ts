@@ -12,6 +12,7 @@ import {
   type PosMessage,
 } from "@sannidhi/protocol";
 import { BellWindows, inBellReach } from "../src/rules/bells";
+import { inTapReach } from "../src/rules/taps";
 import { newResumeToken, newVisitor, newVisitorId } from "../src/rules/identity";
 import { Buckets, STRIKE_WINDOW_MS, addStrike } from "../src/rules/limits";
 import { nearestFreeMat } from "../src/rules/mats";
@@ -40,8 +41,8 @@ describe("movement rule: no step ends on or crosses a sacred zone", () => {
   const cases = [
     { zone: "garbhagriha", from: at(3.2, -1.5), to: { x: 2.4, z: -1.5 } },
     { zone: "garbhagriha (from the jal spot)", from: at(1.9, 3.4), to: { x: 1.9, z: 2.4 } },
-    { zone: "nandi-axis (from the mandapa)", from: at(1.6, 12), to: { x: 1.1, z: 12 } },
-    { zone: "nandi-axis (hopping across)", from: at(1.5, 15), to: { x: -1.5, z: 15 } },
+    { zone: "nandi-axis (from the mandapa)", from: at(0.8, 12), to: { x: 0.3, z: 12 } },
+    { zone: "nandi-axis (hopping across)", from: at(1.1, 15), to: { x: -1.1, z: 15 } },
     { zone: "kund-water", from: at(12.4, 32), to: { x: 13.4, z: 32 } },
     { zone: "somasutra (on it)", from: at(10.5, 0.6), to: { x: 10.5, z: 0 } },
     { zone: "somasutra (hopping across)", from: at(10.5, 0.5), to: { x: 10.5, z: -0.5 } },
@@ -155,6 +156,16 @@ describe("bells", () => {
     expect(rung).toBe(BELL_MAX_PER_SEC);
     expect(w.allow("path-1", 30)).toBe(true);
     expect(w.allow("gate", 1001)).toBe(true);
+  });
+});
+
+describe("taps", () => {
+  it("reaches TAP_REACH_M + 1 m", () => {
+    // tap-3's spout is at (−3.6, 49.6); the server allows 1.2 m + 1 m.
+    expect(inTapReach({ x: -2.55, z: 49.6 }, "tap-3")).toBe(true);
+    expect(inTapReach({ x: -1.4, z: 49.6 }, "tap-3")).toBe(true);
+    expect(inTapReach({ x: -1.3, z: 49.6 }, "tap-3")).toBe(false);
+    expect(inTapReach({ x: 0, z: 53.5 }, "tap-3")).toBe(false);
   });
 });
 

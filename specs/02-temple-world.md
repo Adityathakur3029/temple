@@ -17,7 +17,7 @@ A fictional small stone temple on a forested Himalayan ridge at about 2,000 m. D
 | Jaladhari / somasutra outlet | north wall (2.6, 0) → channel to the compound wall (15.8, 0) | Visible stone spout, and a channel running north across the pradakshina path and the lawn, draining out under the compound wall |
 | Antarala and threshold | z 2.6 … 5 | The jal-offering spot is at the threshold, beside the door (see 03) |
 | Mandapa (open hall) | x −7 … 7, z 5 … 19 | 12 pillars, raised plinth, two blocks of mats either side of a clear central aisle |
-| Nandi on a platform, facing −z | (0, 22) | The **Nandi axis** x −1.2 … 1.2, z 0 … 22 is a no-stand, no-walk zone |
+| Nandi on a platform, facing −z | (0, 22) | The **Nandi axis** x −0.4 … 0.4, z 0 … 22 is a no-stand, no-walk zone in plain pale stone. Either side of it lies a walkable **darshan carpet** (red, brass-coloured border) at x ±0.45 … 1.3, from the antarala (z 2.8) over the mandapa steps into the courtyard, ending just in front of Nandi's platform (z 20.85). No carpet runs beside the platform. Visitors walk on these carpets for darshan; the axis between them stays closed (owner, 2026-11-23) |
 | Mandapa bells | (±2.2, 19.5) | Hung from the mandapa entrance beam |
 | Courtyard | x −12 … 12, z 19 … 30 | Plain stone paving, like the open yard round the temple inside the compound wall |
 | Deepa stand (108-lamp tiered stand) | (−8.5, 25) | Up to 4 visitors at a time stand at marked spots around it |
@@ -28,7 +28,8 @@ A fictional small stone temple on a forested Himalayan ridge at about 2,000 m. D
 | Ganesha shrine (small, open-fronted) | (−5, 42.4), just inside the gate, facing +x | Small murti; visitors may bow here (pranam is the only action) |
 | Gate (torana) with gate bell | (0, 46) | Visitors arrive on the paved approach outside the gate, far enough out to see the whole torana, and walk in |
 | Compound wall (prakara) | all four sides, from the gate pillars round | An old, weathered low stone wall, 1.4 m to its coping, 0.4 m thick: a plinth course, bays about 5 m long each with a raised panel and a small plain carved diamond on both faces, a stepped coping, and a carved stone pillar (about 1.9 m, with a base, a band, a capital and a small stone finial) between the bays, larger ones at the corners. Plain geometric carving only: no figures or sacred symbols. Front: z 46.2 from x ±2.6 out to ±12.2, then back to z 38.8. West: out to x −16 and back to z −13.5. Back: z −13.5, x −16 … 16. East: x 16 up to z 25.2, then out round the kund (x 22.4, z 25.2 … 38.8) and in to x 12.2. Its inner face is the edge of the walkable lawn, so visitors walk on the grass right up to it; the torana is the only way in |
-| Temple-wide "today" board | (3, 44.4) | Painted wooden board: diyas lit, malas completed, parikramas today |
+| Washing trough with taps | west side of the approach, x −3.6 … −3.0, z 47.6 … 51.6 | A long, low stone trough on the left as a visitor arrives, with a plain stone back wall carrying five brass taps (`tap-1` … `tap-5`) whose spouts face the approach (+x). Water drains along the trough. Plain stonework, no figures or sacred symbols. For washing hands before entering ([03](03-rituals.md)) |
+| Temple-wide "today" board | (3, 48.6) | Painted wooden board just outside the gate, beside the approach, turned towards the arrival spot so visitors read it as they come in. Now: the aarti timings, Hindi above English, written from `AARTI_TIMES_IST` (`board.*` strings, spec 07). Later: diyas lit, malas completed, parikramas today ([03](03-rituals.md)) |
 
 These positions are the defaults for the greybox (M1). Final art MAY adjust them by up to 2 m without a spec change. Larger moves update this table and `packages/protocol/src/world.ts`.
 
@@ -37,7 +38,7 @@ These positions are the defaults for the greybox (M1). Final art MAY adjust them
 These are defined in `packages/protocol/src/world.ts` and enforced by both client (collision) and server (position correction):
 
 1. **Garbhagriha interior:** never enterable. The camera can't pass through the door either.
-2. **Nandi axis:** the strip between Nandi and the sanctum door. Avatars walk around it, never across it, so the route to the threshold goes along the sides of the mandapa.
+2. **Nandi axis:** the strip between Nandi and the sanctum door. Avatars walk around it, never across it, so the route to the threshold goes along the darshan carpets either side of it.
 3. **Kund water:** the water and below the second step.
 4. **Somasutra channel:** in half-pradakshina mode the channel is a blocking line from the shrine wall to the compound wall, so it can't be crossed on the path or walked around beside it (see below). In full mode only the bridge slab crosses it.
 5. **Outside the boundary:** the compound wall is the boundary. Inside it, visitors may leave the paving and walk on the lawn, round its trees and the bell posts.
@@ -55,7 +56,8 @@ The M1 greybox fixes these details in `world.ts`. Like the layout table, final a
 
 | Item | Value |
 |---|---|
-| Walkable area | The paved compound (x −14.7 … 14.7, z −12.2 … 30), edged with flat stone flush with the lawn; the lawn inside the compound wall, up to its inner face (x −15.8 … 15.8, z −13.3 … 38.6; x 15.8 … 22.2, z 25.4 … 38.6 round the kund; and x −12 … 12, z 38.6 … 46 either side of the gate path); a 1 m surround of the kund (x 11 … 21, z 27 … 37); the gate path, 3.6 m wide, straight along x = 0 from z 45.2 to z 30; the space in front of the Ganesha shrine (x −4.3 … −0.5, z 41 … 43.8); the area just inside the gate (x −2.6 … 2.6, z 42.4 … 46.3); and the approach outside the gate (x −1.8 … 1.8, z 46 … 55) |
+| Walkable area | The paved compound (x −14.7 … 14.7, z −12.2 … 30), edged with flat stone flush with the lawn; the lawn inside the compound wall, up to its inner face (x −15.8 … 15.8, z −13.3 … 38.6; x 15.8 … 22.2, z 25.4 … 38.6 round the kund; and x −12 … 12, z 38.6 … 46 either side of the gate path); a 1 m surround of the kund (x 11 … 21, z 27 … 37); the gate path, 3.6 m wide, straight along x = 0 from z 45.2 to z 30; the space in front of the Ganesha shrine (x −4.3 … −0.5, z 41 … 43.8); the area just inside the gate (x −2.6 … 2.6, z 42.4 … 46.3); the approach outside the gate (x −1.8 … 1.8, z 46 … 55); and the washing area in front of the trough (x −2.9 … −1.8, z 47.4 … 51.8) |
+| Taps | `tap-1` … `tap-5` on the trough's back wall at x −3.6, z 47.8, 48.7, 49.6, 50.5, 51.4 (0.9 m apart) in that order, nearest the gate first; ids are on the wire. The washing spot for each is at x −2.55 on the same z, facing the tap (−x, yaw −π/2) |
 | Raised plinth | The mandapa, antarala and sanctum share a 0.45 m plinth. The only way up is the steps along the mandapa's east side (z 19 … 20). Its other edges are blocked |
 | Sanctum door | 1.5 m wide, centred on the axis in the east wall (z 2.6) |
 | Antarala | x −2.6 … 2.6, z 2.6 … 5. Walkable only beside the axis (x 1.2 … 2.6 and −2.6 … −1.2) |
@@ -68,7 +70,7 @@ The M1 greybox fixes these details in `world.ts`. Like the layout table, final a
 | Kund steps | Each step is 0.6 m wide, so the water zone starts 1.2 m in from the rim: x 13.2 … 18.8, z 29.2 … 34.8 |
 | Somasutra | A 0.7 m blocking strip along z = 0 from the north wall (x 2.6) to the compound wall's inner face (x 15.8). In `full` mode the bridge covers it at x 9.3 … 11.7 |
 | Diya spots order | Spot 0 is north of the stand, then east, south and west |
-| Other obstacles | Nandi's platform (x −1 … 1, z 21 … 23); the deepa stand (radius 0.8 m); the Ganesha shrine (x −6.3 … −4.3, z 41.3 … 43.5); the today board (x 2.8 … 3.2, z 43.6 … 45.2); the two gate pillars (radius 0.45 m at x ±2, the thick stone bases); the eight bell posts beside the gate path, each with its lamp (a 0.17 m capsule from the post 0.18 m towards the path; the posts stand 0.4 m off the path edge); the trunks of the trees that stand on the lawn (`TREE_TRUNKS`, generated from the client's tree layout by `tools/world/tree-trunks.ts`); and the plinth edges, 0.4 m strips outside the mandapa's north, south and west sides (from z 4.6) and the antarala's sides |
+| Other obstacles | Nandi's platform (x −1 … 1, z 21 … 23); the deepa stand (radius 0.8 m); the Ganesha shrine (x −6.3 … −4.3, z 41.3 … 43.5); the today board (a 0.2 m capsule, 1.6 m long, along its face, centred at (3, 48.6)); the two gate pillars (radius 0.45 m at x ±2, the thick stone bases); the eight bell posts beside the gate path, each with its lamp (a 0.17 m capsule from the post 0.18 m towards the path; the posts stand 0.4 m off the path edge); the trunks of the trees that stand on the lawn (`TREE_TRUNKS`, generated from the client's tree layout by `tools/world/tree-trunks.ts`); and the plinth edges, 0.4 m strips outside the mandapa's north, south and west sides (from z 4.6) and the antarala's sides |
 
 The server checks each step, the segment from a visitor's last accepted position to the new one, against these shapes ([05 § Movement rule](05-server.md#movement-rule-pos)). Every shape includes its edges, and where a walkable area meets a blocked one, the shared edge is blocked. The client keeps a 0.25 m body radius (`BODY_RADIUS`) clear of them, so a client that follows its own collision is never corrected.
 

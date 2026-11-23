@@ -467,7 +467,7 @@ for j in range(len(fz) - 1):
     for i in range(len(fx) - 1):
         cx = (fx[i] + fx[i + 1]) / 2
         face([(fx[i], PLINTH, fz[j]), (fx[i + 1], PLINTH, fz[j]), (fx[i + 1], PLINTH, fz[j + 1]),
-              (fx[i], PLINTH, fz[j + 1])], (0, 1, 0), "aisle" if abs(cx) < 1.2 else "floor", 0.05,
+              (fx[i], PLINTH, fz[j + 1])], (0, 1, 0), "aisle" if abs(cx) < 0.4 else "floor", 0.05,
              weather=False)
 # Low walls between the pilasters (the mandapa's wall profile), inner face at x 2.6.
 WALL = [(0.0, PLINTH), (0.22, PLINTH), (0.22, 0.52), (0.18, 0.55), (0.18, 0.95), (0.24, 0.98),

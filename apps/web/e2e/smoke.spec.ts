@@ -49,6 +49,33 @@ test("the boot screen shows in English by default, with a CSS-only retry link af
   expect(await retry.evaluate((el) => getComputedStyle(el).animationDelay)).toBe("15s");
 });
 
+test.describe("first visit", () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  test("the boot notice waits for Enter, and later visits skip it", async ({ page }) => {
+    test.setTimeout(90_000);
+    await page.goto("/");
+    const notice = page.getByRole("region", { name: "Before you enter" });
+    await expect(notice).toBeVisible();
+    await expect(notice).toContainText("not meant to hurt anyone's religious feelings");
+    await expect(notice).toContainText("not medical care or advice");
+    // The temple doesn't open behind the notice.
+    await page.waitForTimeout(3_000);
+    await expect(page.locator("body")).toHaveAttribute("data-screen", "boot");
+
+    await page.getByRole("button", { name: "Enter the temple" }).click();
+    await expect(page.locator("body")).toHaveAttribute("data-screen", "temple", {
+      timeout: 60_000,
+    });
+
+    await page.reload();
+    await expect(notice).toBeHidden();
+    await expect(page.locator("body")).toHaveAttribute("data-screen", "temple", {
+      timeout: 60_000,
+    });
+  });
+});
+
 test("devices without WebGL2 see the unsupported screen", async ({ page }) => {
   await page.addInitScript(NO_WEBGL2);
   await page.goto("/");

@@ -34,6 +34,7 @@ All keys are prefixed `sannidhi:`. All storage access is wrapped in try/catch, a
 | `settings-v1` | local | Lite mode, picture quality (automatic or a chosen tier), reduced motion, whether the Lite suggestion was shown; later joystick and lyrics |
 | `audio-v1` | local | Master on/off, channel volumes |
 | `onboarding-v1` | local | Which hints were completed |
+| `notice-v1` | local | `"1"` once the boot notice was read (spec 07 § Boot notice) |
 | `japa-v1` | local | Current bead, malas today (local count) |
 | `view-v1` | session | Camera, the visitor's position, facing and mat, hall, instance and mala bead, for restore within 30 min |
 | `resume-v1` | session | Resume token |

@@ -22,6 +22,16 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:5173",
     trace: "retain-on-failure",
+    // Every test starts past the first-visit boot notice (spec 07); smoke.spec.ts clears this to test it.
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: "http://localhost:5173",
+          localStorage: [{ name: "sannidhi:notice-v1", value: "1" }],
+        },
+      ],
+    },
   },
   projects: [
     {

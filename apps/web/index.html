@@ -136,6 +136,43 @@
       body:not([data-screen="boot"]) .boot-retry {
         display: none;
       }
+      .boot-notice {
+        display: none;
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 34rem;
+        max-height: 46vh;
+        margin: 8px 0 0;
+        padding: 14px 16px;
+        overflow-y: auto;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--panel);
+        color: var(--muted);
+        font-size: 0.9375rem;
+        line-height: 1.55;
+        text-align: start;
+      }
+      /* First visit only (spec 07 § Boot notice): stays until the visitor taps Enter. */
+      [data-notice="open"][data-screen="boot"] .boot-notice {
+        display: block;
+      }
+      [data-notice="open"] .boot-retry {
+        display: none;
+      }
+      .boot-notice h2 {
+        margin: 0 0 8px;
+        color: var(--fg);
+        font-size: 1.0625rem;
+        font-weight: 600;
+      }
+      .boot-notice p {
+        margin: 0 0 8px;
+      }
+      .boot-notice .boot-button {
+        display: block;
+        margin: 12px auto 0;
+      }
       .boot-lang {
         position: absolute;
         bottom: max(24px, env(safe-area-inset-bottom));
@@ -201,6 +238,14 @@
         <button type="button" class="boot-button" data-action="retry">{{t:boot.retry}}</button>
       </div>
       <a class="boot-retry" href="">{{t:boot.retry}}</a>
+      <section class="boot-notice" aria-labelledby="boot-notice-title">
+        <h2 id="boot-notice-title">{{t:notice.title}}</h2>
+        <p>{{t:notice.purpose}}</p>
+        <p>{{t:notice.fictional}}</p>
+        <p>{{t:notice.medical}}</p>
+        <p>{{t:notice.symbolic}}</p>
+        <button type="button" class="boot-button" data-action="enter">{{t:notice.enter}}</button>
+      </section>
       <div class="boot-lang">
         <button type="button" class="boot-button" data-lang="hi" lang="hi">{{raw:lang.hi}}</button>
         <button type="button" class="boot-button" data-lang="en" lang="en">{{raw:lang.en}}</button>

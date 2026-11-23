@@ -87,7 +87,7 @@ export const SLOTS: Readonly<Record<SlotId, SlotSpec>> = {
     place: { x: GATE.x, y: 0, z: GATE.z, yaw: 0 },
   },
   "today-board": {
-    label: "The painted board beside the path, blank (its text is drawn in code)",
+    label: "The painted board just outside the gate, blank (its text is drawn in code)",
     kind: "single",
     priority: "P0",
     sacred: false,

@@ -15,7 +15,7 @@ coordinates and converts with W(): Blender (x, y, z) = (world x, 12.1 - world z,
 Lines up with packages/protocol/src/world.ts and apps/web/src/scene/ground.ts (spec 11: the
 walking rules don't change with the model, so the model follows them):
 - Floor at exactly 0.45 m (PLINTH) over x -7 ... 7, z 5 ... 19, with the paler aisle stone on the
-  Nandi axis (x -1.2 ... 1.2). Plain stone: no symbol on the floor or the steps (spec 08).
+  Nandi axis (x -0.4 ... 0.4). Plain stone: no symbol on the floor or the steps (spec 08).
 - Two steps down the east side, z 19 ... 19.67, full width, tops at 0.30 and 0.15 m, which match
   the walking slope in ground.ts.
 - 12 pillars at MANDAPA_PILLARS (x +/-6.5 at z 5.6, 10, 14.4, 18.6; x +/-2.9 at z 5.6 and 18.6),
@@ -169,7 +169,8 @@ def extrude_x(profile_yz, x0, x1, color, **kw):
 # World layout (world.ts, ground.ts)
 PLINTH = 0.45
 MX, MZ0, MZ1 = 7.0, 5.0, 19.0  # MANDAPA
-AISLE = 1.2  # NANDI_AXIS half width
+AISLE = 0.4  # NANDI_AXIS half width
+CEIL_AISLE = 1.2  # ceiling panel edge over the aisle; unchanged
 PILLARS = [(x, z) for z in (5.6, 10, 14.4, 18.6) for x in (6.5, -6.5)] + \
           [(x, z) for z in (5.6, 18.6) for x in (2.9, -2.9)]
 PILLAR_TOP = 4.2
@@ -191,7 +192,7 @@ rings = [rect_ring_w(-MX - o, MX + o, MZ0 - o, MZ1, y) for o, y in PROFILE]
 loft(rings, PCOL, cap_bottom=False, cap_top=False, jitter=0.02)
 
 # --- Floor: square stone slabs, the aisle in paler stone --------------------------------------------
-fx = [-7, -6, -5, -4, -3, -2, -AISLE, -0.4, 0.4, AISLE, 2, 3, 4, 5, 6, 7]
+fx = [-7, -6, -5, -4, -3, -2, -1.2, -AISLE, AISLE, 1.2, 2, 3, 4, 5, 6, 7]
 fz = [float(z) for z in range(5, 20)]
 grid = [[bm.verts.new(W(x, PLINTH, z)) for x in fx] for z in fz]
 for j in range(len(fz) - 1):
@@ -254,7 +255,7 @@ for x in (6.5, -6.5):
         extrude_y(beam_profile(x, PILLAR_TOP + 0.04), OZ - (zb - 0.2), OZ - (za + 0.2), "stoneDark")
 
 # --- Ceiling: the underside of the roof, darker deeper in ---------------------------------------------
-cx_ = [-EAVE_X, -6.7, -6.3, -2.9, -AISLE, AISLE, 2.9, 6.3, 6.7, EAVE_X]
+cx_ = [-EAVE_X, -6.7, -6.3, -2.9, -CEIL_AISLE, CEIL_AISLE, 2.9, 6.3, 6.7, EAVE_X]
 cz_ = [EAVE_Z0, 5.4, 5.8, 9.8, 10.2, 14.2, 14.6, 18.4, 18.8, EAVE_Z1]
 
 

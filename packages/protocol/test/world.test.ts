@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
+  JAL_SPOT_REACH_M,
+  CHARANAMRIT_SPOT,
+  LAY_SPOT,
+  JAL_NEAR_M,
+  OFFERING_PLATE,
+  OFFERING_PLATE_RADIUS,
+  TIRTHA_POT,
+  NANDI_EAR_SPOTS,
+  NANDI_HEAD,
+  SHRINGA_REACH_M,
+  SHRINGA_SPOT,
   TAPS,
   TAP_IDS,
   TAP_REACH_M,
@@ -7,7 +18,6 @@ import {
   WASH_AREA,
   WASH_TROUGH,
   AARTI_PLATE,
-  ANTARALA,
   BELLS,
   BELL_IDS,
   BELL_REACH_M,
@@ -27,8 +37,15 @@ import {
   KUND_WATER,
   LINGA,
   MANDAPA,
+  SANCTUM_DOOR,
   MAT_COLUMNS_X,
   MAT_COUNT,
+  BENCHES,
+  BENCH_SEATS,
+  BENCH_SEAT_COUNT,
+  SEATS,
+  SEAT_COUNT,
+  seatKind,
   MAT_ROWS_Z,
   MATS,
   NANDI,
@@ -150,11 +167,6 @@ describe("world.ts matches spec 02", () => {
     expect(ranges(row(layout, "Mandapa (open hall)"))).toEqual(rectBounds(MANDAPA));
     expect(ranges(row(layout, "Courtyard"))).toEqual(rectBounds(COURTYARD));
     expect(ranges(row(layout, "Nandi on a platform"))).toEqual(rectBounds(NANDI_AXIS));
-    const antarala = new RegExp(String.raw`z (${NUM}) … (${NUM})`).exec(row(layout, "Antarala"));
-    expect([num(antarala?.[1] ?? ""), num(antarala?.[2] ?? "")]).toEqual([
-      ANTARALA.z0,
-      ANTARALA.z1,
-    ]);
   });
 
   it("hangs both mandapa bells and every path bell where the spec says", () => {
@@ -186,7 +198,12 @@ describe("world.ts matches spec 02", () => {
     const area = new RegExp(
       String.raw`washing area in front of the trough \(x (${NUM}) … (${NUM}), z (${NUM}) … (${NUM})\)`,
     ).exec(row(greybox, "Walkable area"));
-    expect(area?.slice(1).map(num)).toEqual([WASH_AREA.x0, WASH_AREA.x1, WASH_AREA.z0, WASH_AREA.z1]);
+    expect(area?.slice(1).map(num)).toEqual([
+      WASH_AREA.x0,
+      WASH_AREA.x1,
+      WASH_AREA.z0,
+      WASH_AREA.z1,
+    ]);
     const text = row(greybox, "Taps");
     const x = num(new RegExp(String.raw`back wall at x (${NUM})`).exec(text)?.[1] ?? "");
     const zs = /z ((?:\d+(?:\.\d+)?(?:, )?)+)/.exec(text)?.[1]?.split(",").map(num);
@@ -217,6 +234,21 @@ describe("world.ts matches spec 02", () => {
     expect(ranges(row(greybox, "Kund steps"))).toEqual(rectBounds(KUND_WATER));
     expect(coords(row(greybox, "Spawn"))[0]).toEqual({ x: SPAWN.x, z: SPAWN.z });
     expect(coords(row(greybox, "Jal spot"))[0]).toEqual({ x: JAL_SPOT.x, z: JAL_SPOT.z });
+    expect(coords(row(greybox, "Offering plate"))[0]).toEqual(OFFERING_PLATE);
+    expect(coords(row(greybox, "Tirtha pot"))[0]).toEqual(TIRTHA_POT);
+    expect(coords(row(greybox, "Lay spot"))[0]).toEqual(LAY_SPOT);
+    expect(coords(row(greybox, "Charanamrit spot"))[0]).toEqual({
+      x: CHARANAMRIT_SPOT.x,
+      z: CHARANAMRIT_SPOT.z,
+    });
+    expect(coords(row(greybox, "Nandi's head"))[0]).toEqual(NANDI_HEAD);
+    expect(coords(row(greybox, "Nandi ear spots")).slice(0, 2)).toEqual(
+      NANDI_EAR_SPOTS.map((e) => ({ x: e.x, z: e.z })),
+    );
+    expect(coords(row(greybox, "Shringa spot"))[0]).toEqual({
+      x: SHRINGA_SPOT.x,
+      z: SHRINGA_SPOT.z,
+    });
   });
 });
 
@@ -239,14 +271,17 @@ describe("sacred and blocked zones", () => {
     for (let z = 0; z <= 22; z += 0.05) expect(inSacredZone(0, z, mode)).toBe(true);
   });
 
-  it.each(MODES)("both darshan carpets are walkable from the door to Nandi's platform (%s)", (mode) => {
-    // A visitor's feet anywhere on either carpet, 10 cm in from its edges.
-    for (const s of [1, -1])
-      for (let x = DARSHAN_CARPET.x0 + 0.1; x <= DARSHAN_CARPET.x1 - 0.1; x += 0.05)
-        for (let z = 3; z <= NANDI_PLATFORM.z0 - 0.2; z += 0.1)
-          expect(isWalkable(s * x, z, mode), JSON.stringify({ x: s * x, z })).toBe(true);
-    expect(DARSHAN_CARPET.x0).toBeGreaterThanOrEqual(NANDI_AXIS.x1);
-  });
+  it.each(MODES)(
+    "both darshan carpets are walkable from the door to Nandi's platform (%s)",
+    (mode) => {
+      // A visitor's feet anywhere on either carpet, 10 cm in from its edges.
+      for (const s of [1, -1])
+        for (let x = DARSHAN_CARPET.x0 + 0.1; x <= DARSHAN_CARPET.x1 - 0.1; x += 0.05)
+          for (let z = 3; z <= NANDI_PLATFORM.z0 - 0.2; z += 0.1)
+            expect(isWalkable(s * x, z, mode), JSON.stringify({ x: s * x, z })).toBe(true);
+      expect(DARSHAN_CARPET.x0).toBeGreaterThanOrEqual(NANDI_AXIS.x1);
+    },
+  );
 
   it.each(MODES)("the kund water and below the second step are blocked (%s)", (mode) => {
     for (const p of samplesIn(KUND_WATER)) expect(isWalkable(p.x, p.z, mode)).toBe(false);
@@ -263,7 +298,9 @@ describe("sacred and blocked zones", () => {
       }
     }
     // It reaches the compound wall's inner face, so nobody can walk round its end on the lawn.
-    expect(SOMASUTRA.x1).toBe(Math.max(...LAWN.filter((l) => l.z0 <= 0 && l.z1 >= 0).map((l) => l.x1)));
+    expect(SOMASUTRA.x1).toBe(
+      Math.max(...LAWN.filter((l) => l.z0 <= 0 && l.z1 >= 0).map((l) => l.x1)),
+    );
     for (const s of WALKABLE) {
       const nearChannel = samplesIn(s, 0.25).some((p) => Math.abs(p.z) <= SOMASUTRA.halfWidth);
       if (nearChannel) expect(maxX(s)).toBeLessThanOrEqual(SOMASUTRA.x1);
@@ -330,6 +367,32 @@ describe("ritual spots", () => {
       expect(angleBetween(m.yaw, yawTowards(m, LINGA))).toBeLessThan((10 * Math.PI) / 180);
   });
 
+  it("has two seats in front of each lawn bench, after the mats, facing the temple", () => {
+    expect(BENCH_SEATS).toHaveLength(BENCH_SEAT_COUNT);
+    expect(BENCH_SEATS).toHaveLength(BENCHES.length * 2);
+    expect(SEATS).toHaveLength(SEAT_COUNT);
+    expect(SEATS.slice(MAT_COUNT)).toEqual(BENCH_SEATS);
+    expect([
+      seatKind(0),
+      seatKind(MAT_COUNT - 1),
+      seatKind(MAT_COUNT),
+      seatKind(SEAT_COUNT - 1),
+    ]).toEqual(["mat", "mat", "bench", "bench"]);
+    expect([seatKind(-1), seatKind(SEAT_COUNT), seatKind(1.5)]).toEqual([null, null, null]);
+    BENCH_SEATS.forEach((s, i) => {
+      const bench = BENCHES[Math.floor(i / 2)];
+      if (!bench) throw new Error(`no bench for seat ${i}`);
+      // Clear of the bench (and everything else), just in front of it, on the lawn.
+      expect(clearFor(s), JSON.stringify(s)).toBe(true);
+      expect(inMandapa(s.x, s.z)).toBe(false);
+      expect(bench.z - s.z).toBeCloseTo(0.52);
+      expect(Math.abs(s.x - bench.x)).toBeCloseTo(0.4);
+      // Facing the temple: −z, with the linga within 30° of straight ahead.
+      expect(s.yaw).toBe(Math.PI);
+      expect(angleBetween(s.yaw, yawTowards(s, LINGA))).toBeLessThan((30 * Math.PI) / 180);
+    });
+  });
+
   it("leaves room between mats", () => {
     for (let i = 0; i < MATS.length; i++) {
       for (let j = i + 1; j < MATS.length; j++) {
@@ -348,7 +411,8 @@ describe("ritual spots", () => {
 
   it("puts the jal spot at the threshold, beside the door and off the axis", () => {
     expect(clearFor(JAL_SPOT)).toBe(true);
-    expect(inShape(ANTARALA, JAL_SPOT.x, JAL_SPOT.z)).toBe(true);
+    expect(inShape(MANDAPA, JAL_SPOT.x, JAL_SPOT.z)).toBe(true);
+    expect(JAL_SPOT.z - SANCTUM_DOOR.z).toBeLessThan(1);
     expect(JAL_SPOT.x).toBeGreaterThan(NANDI_AXIS.x1 + 0.25);
   });
 
@@ -373,6 +437,45 @@ describe("ritual spots", () => {
       expect(distance(spot, TAPS[id]), id).toBeLessThanOrEqual(TAP_REACH_M);
       expect(spot.yaw, id).toBeCloseTo(yawTowards(spot, TAPS[id]));
     }
+  });
+
+  it("puts the offering plate beside the door, clear of the axis, the carpet and the jal spot", () => {
+    expect(inShape(MANDAPA, OFFERING_PLATE.x, OFFERING_PLATE.z)).toBe(true);
+    expect(OFFERING_PLATE.x - OFFERING_PLATE_RADIUS).toBeGreaterThan(DARSHAN_CARPET.x1 + 0.1);
+    expect(isWalkable(OFFERING_PLATE.x, OFFERING_PLATE.z)).toBe(false);
+    expect(clearFor(JAL_SPOT)).toBe(true);
+    expect(distance(OFFERING_PLATE, JAL_SPOT)).toBeLessThan(1);
+    // Laid from close by, within reach of the spot the server checks.
+    expect(clearFor(LAY_SPOT)).toBe(true);
+    expect(distance(LAY_SPOT, OFFERING_PLATE)).toBeLessThan(0.5);
+    expect(distance(LAY_SPOT, JAL_SPOT)).toBeLessThan(JAL_SPOT_REACH_M);
+  });
+
+  it("puts the tirtha pot on the side ledge and its spot clear, near the jal spot", () => {
+    expect(isWalkable(TIRTHA_POT.x, TIRTHA_POT.z)).toBe(false);
+    expect(clearFor(CHARANAMRIT_SPOT)).toBe(true);
+    expect(distance(CHARANAMRIT_SPOT, JAL_SPOT)).toBeLessThan(JAL_NEAR_M);
+    expect(CHARANAMRIT_SPOT.yaw).toBeCloseTo(yawTowards(CHARANAMRIT_SPOT, TIRTHA_POT));
+  });
+
+  it("puts an ear spot beside Nandi's head on each side, off the axis, facing his head", () => {
+    expect(NANDI_EAR_SPOTS).toHaveLength(2);
+    expect(NANDI_EAR_SPOTS.map((s) => Math.sign(s.x)).sort()).toEqual([-1, 1]);
+    for (const s of NANDI_EAR_SPOTS) {
+      expect(clearFor(s), JSON.stringify(s)).toBe(true);
+      expect(inSacredZone(s.x, s.z)).toBe(false);
+      expect(Math.abs(s.x)).toBeGreaterThan(NANDI_PLATFORM.x1);
+      expect(distance(s, NANDI_HEAD)).toBeLessThan(1.5);
+      expect(s.yaw).toBeCloseTo(yawTowards(s, NANDI_HEAD));
+    }
+  });
+
+  it("puts the shringa spot behind Nandi, off the axis, facing the sanctum", () => {
+    expect(clearFor(SHRINGA_SPOT)).toBe(true);
+    expect(inSacredZone(SHRINGA_SPOT.x, SHRINGA_SPOT.z)).toBe(false);
+    expect(SHRINGA_SPOT.z).toBeGreaterThan(NANDI_PLATFORM.z1);
+    expect(SHRINGA_SPOT.z - NANDI_PLATFORM.z1).toBeLessThan(SHRINGA_REACH_M);
+    expect(Math.cos(SHRINGA_SPOT.yaw)).toBeCloseTo(-1);
   });
 
   it("can stand at the spawn, the checkpoints and in front of the shrines", () => {

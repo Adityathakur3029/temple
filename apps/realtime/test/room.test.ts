@@ -6,7 +6,11 @@ import {
   CLOSE_CODES,
   GESTURE_COOLDOWN_MS,
   INSTANCE_CAPACITY,
+  JAL_SPOT,
   MATS,
+  MAT_COUNT,
+  SEATS,
+  NANDI_EAR_SPOTS,
   PROTOCOL_VERSION,
   SERVER_IDLE_TIMEOUT_MS,
   SPAWN,
@@ -105,7 +109,7 @@ describe("joining", () => {
     const stub = roomStub("hall-05");
     const direct = async (): Promise<WebSocket> => {
       const res = await stub.fetch(
-        new Request("http://room/ws?hall=hall-05&v=1", {
+        new Request(`http://room/ws?hall=hall-05&v=${PROTOCOL_VERSION}`, {
           headers: { Upgrade: "websocket", "x-sannidhi-room": "hall-05#1" },
         }),
       );
@@ -228,9 +232,9 @@ describe("gestures and bells", () => {
       kind: "bell",
       bell: "gate",
     });
-    expect(Math.hypot(BELLS["path-3"].x - AT_GATE.x, BELLS["path-3"].z - AT_GATE.z)).toBeGreaterThan(
-      5,
-    );
+    expect(
+      Math.hypot(BELLS["path-3"].x - AT_GATE.x, BELLS["path-3"].z - AT_GATE.z),
+    ).toBeGreaterThan(5);
     await Promise.all([a.close(), b.close()]);
   });
 
@@ -274,6 +278,152 @@ describe("wash hands", () => {
   }, 20000);
 });
 
+describe("whisper to Nandi", () => {
+  it("is accepted only beside Nandi's ear, once per cooldown, and shown to others", async () => {
+    const { c: a, welcome: wa } = await TestClient.join({ hall: "hall-18" });
+    const { c: b } = await TestClient.join({ hall: "hall-18" });
+    const ear = NANDI_EAR_SPOTS[0];
+    if (!ear) throw new Error("no ear spot");
+    // First position (anywhere walkable): 2.4 m out from the ear spot, beyond the server's reach.
+    const away = { x: ear.x + 2.4, z: ear.z };
+    a.send({ t: "pos", x: away.x, z: away.z, yaw: 0, pose: "stand" });
+    await wait(150);
+    a.send({ t: "gesture", g: "whisper" });
+    expect(await b.none("event", 300)).toBe(true);
+    await wait(GESTURE_COOLDOWN_MS);
+    await walk(a, away, ear);
+    a.send({ t: "gesture", g: "whisper" });
+    expect(await b.next("event")).toEqual({ t: "event", from: wa.you.id, kind: "whisper" });
+    expect(await a.none("event")).toBe(true); // not echoed to the sender
+    a.send({ t: "gesture", g: "whisper" }); // within the cooldown: dropped
+    expect(await b.none("event", 300)).toBe(true);
+    await Promise.all([a.close(), b.close()]);
+  }, 20000);
+});
+
+describe("jal spot (spec 03 § Offer water, bel patra or a flower)", () => {
+  it("queues a second visitor, shows the offering, passes the turn, then allows charanamrit", async () => {
+    const { c: a, welcome: wa } = await TestClient.join({ hall: "hall-19" });
+    const { c: b, welcome: wb } = await TestClient.join({ hall: "hall-19" });
+    // First positions may be anywhere walkable: A at the jal spot, B nearby in the mandapa.
+    a.send({ t: "pos", x: JAL_SPOT.x, z: JAL_SPOT.z, yaw: 0, pose: "stand" });
+    b.send({ t: "pos", x: 1.9, z: 5.6, yaw: 0, pose: "stand" });
+    await wait(150);
+    a.send({ t: "jal.request", req: 1, kind: "water", side: "n" });
+    expect((await a.next("jal.turn")).req).toBe(1);
+    b.send({ t: "jal.request", req: 1, kind: "flower", side: "n" });
+    expect(await b.next("jal.queue")).toEqual({ t: "jal.queue", pos: 0 });
+    // The offering pose is allowed for the turn holder only.
+    a.send({ t: "pos", x: JAL_SPOT.x, z: JAL_SPOT.z, yaw: 0, pose: "offer" });
+    b.send({ t: "pos", x: 1.9, z: 5.6, yaw: 0, pose: "offer" });
+    expect(await b.next("correct")).toBeTruthy();
+    expect(await a.none("correct", 300)).toBe(true);
+    // Charanamrit before any offering is ignored.
+    a.send({ t: "gesture", g: "charanamrit" });
+    expect(await b.none("event", 300)).toBe(true);
+    a.send({ t: "jal.done", req: 1 });
+    expect(await b.next("event")).toEqual({ t: "event", from: wa.you.id, kind: "jal" });
+    expect((await b.next("jal.turn")).req).toBe(1);
+    // A second offering within the cooldown is refused (after the 1 s rate limit).
+    await wait(1000);
+    a.send({ t: "jal.request", req: 2, kind: "bilva", side: "n" });
+    expect(await a.next("jal.no")).toEqual({ t: "jal.no", req: 2, why: "cooldown" });
+    await wait(GESTURE_COOLDOWN_MS);
+    a.send({ t: "gesture", g: "charanamrit" });
+    expect(await b.next("event")).toEqual({ t: "event", from: wa.you.id, kind: "charanamrit" });
+    await wait(GESTURE_COOLDOWN_MS);
+    a.send({ t: "gesture", g: "charanamrit" }); // once per offering
+    expect(await b.none("event", 300)).toBe(true);
+    // B leaves the turn; nobody is waiting, so the spot is free for anyone not cooling down.
+    b.send({ t: "jal.cancel" });
+    await wait(150);
+    const { c: c3 } = await TestClient.join({ hall: "hall-19" });
+    c3.send({ t: "pos", x: JAL_SPOT.x - 0.5, z: JAL_SPOT.z + 0.6, yaw: 0, pose: "stand" });
+    await wait(150);
+    c3.send({ t: "jal.request", req: 5, kind: "flower", side: "n" });
+    expect((await c3.next("jal.turn")).req).toBe(5);
+    expect(wb.you.id).not.toBe(wa.you.id);
+    await Promise.all([a.close(), b.close(), c3.close()]);
+  }, 30000);
+});
+
+describe("jal spots: one turn each side", () => {
+  it("lets two visitors offer at once from opposite sides", async () => {
+    const { c: a, welcome: wa } = await TestClient.join({ hall: "hall-15" });
+    const { c: b, welcome: wb } = await TestClient.join({ hall: "hall-15" });
+    a.send({ t: "pos", x: JAL_SPOT.x, z: JAL_SPOT.z, yaw: 0, pose: "stand" });
+    b.send({ t: "pos", x: -JAL_SPOT.x, z: JAL_SPOT.z, yaw: 0, pose: "stand" });
+    await wait(150);
+    a.send({ t: "jal.request", req: 1, kind: "water", side: "n" });
+    b.send({ t: "jal.request", req: 1, kind: "bilva", side: "s" });
+    expect((await a.next("jal.turn")).req).toBe(1);
+    expect((await b.next("jal.turn")).req).toBe(1);
+    // Both may hold the offering pose.
+    a.send({ t: "pos", x: JAL_SPOT.x, z: JAL_SPOT.z, yaw: 0, pose: "offer" });
+    b.send({ t: "pos", x: -JAL_SPOT.x, z: JAL_SPOT.z, yaw: 0, pose: "offer" });
+    expect(await a.none("correct", 300)).toBe(true);
+    expect(await b.none("correct", 300)).toBe(true);
+    a.send({ t: "jal.done", req: 1 });
+    expect(await b.next("event")).toEqual({ t: "event", from: wa.you.id, kind: "jal" });
+    b.send({ t: "jal.done", req: 1 });
+    expect(await a.next("event")).toEqual({ t: "event", from: wb.you.id, kind: "bilva" });
+    await Promise.all([a.close(), b.close()]);
+  }, 20000);
+});
+
+describe("jal spot: timeouts and resume", () => {
+  it("passes a timed-out turn to the next visitor", async () => {
+    const { c: a } = await TestClient.join({ hall: "hall-16" });
+    const { c: b } = await TestClient.join({ hall: "hall-16" });
+    a.send({ t: "pos", x: JAL_SPOT.x, z: JAL_SPOT.z, yaw: 0, pose: "stand" });
+    b.send({ t: "pos", x: 1.9, z: 5.6, yaw: 0, pose: "stand" });
+    await wait(150);
+    a.send({ t: "jal.request", req: 1, kind: "water", side: "n" });
+    await a.next("jal.turn");
+    b.send({ t: "jal.request", req: 4, kind: "bilva", side: "n" });
+    await b.next("jal.queue");
+    // Age A's turn past its deadline, then let the alarm pass it on.
+    const stub = roomStub("hall-16");
+    await runInDurableObject(stub, (room: RoomDO) => {
+      const jal = (room as unknown as { jal: { turn: { until: number } | null }[] }).jal;
+      const north = jal[0];
+      if (north?.turn) north.turn.until = Date.now() - 1;
+    });
+    await runDurableObjectAlarm(stub);
+    expect((await b.next("jal.turn")).req).toBe(4);
+    // A's late jal.done is ignored: nobody sees an offering.
+    a.send({ t: "jal.done", req: 1 });
+    expect(await b.none("event", 300)).toBe(true);
+    await Promise.all([a.close(), b.close()]);
+  }, 20000);
+
+  it("keeps the cooldown and charanamrit across a resume", async () => {
+    const { c: a, welcome } = await TestClient.join({ hall: "hall-17" });
+    const { c: b } = await TestClient.join({ hall: "hall-17" });
+    a.send({ t: "pos", x: JAL_SPOT.x, z: JAL_SPOT.z, yaw: 0, pose: "stand" });
+    await wait(150);
+    a.send({ t: "jal.request", req: 1, kind: "flower", side: "n" });
+    await a.next("jal.turn");
+    a.send({ t: "jal.done", req: 1 });
+    expect((await b.next("event")).kind).toBe("flower");
+    a.ws.close(4999, "network gone");
+    await a.closed;
+    await wait(100);
+    const { c: back } = await TestClient.join({ hall: "hall-17", resume: welcome.resume });
+    back.send({ t: "pos", x: JAL_SPOT.x, z: JAL_SPOT.z, yaw: 0, pose: "stand" });
+    await wait(150);
+    back.send({ t: "jal.request", req: 2, kind: "water", side: "n" });
+    expect(await back.next("jal.no")).toEqual({ t: "jal.no", req: 2, why: "cooldown" });
+    back.send({ t: "gesture", g: "charanamrit" });
+    expect(await b.next("event")).toEqual({
+      t: "event",
+      from: welcome.you.id,
+      kind: "charanamrit",
+    });
+    await Promise.all([back.close(), b.close()]);
+  }, 20000);
+});
+
 describe("mats", () => {
   async function inMandapa(hall: HallId): Promise<{ c: TestClient; id: string }> {
     const { c, welcome } = await TestClient.join({ hall });
@@ -313,7 +463,47 @@ describe("mats", () => {
     await Promise.all([a.c.close(), b.c.close()]);
   });
 
-  it("only seats visitors who are in the mandapa", async () => {
+  it("seats a visitor by a bench on it, facing the temple, and lets them walk off again", async () => {
+    const seatNo = MAT_COUNT;
+    const s = SEATS[seatNo];
+    if (!s) throw new Error("no bench seat");
+    const { c: a, welcome } = await TestClient.join({ hall: "hall-13" });
+    const b = await inMandapa("hall-13");
+    a.send({ t: "pos", x: s.x, z: s.z - 1, yaw: 0, pose: "stand" }); // first position: on the lawn
+    await wait(150);
+    a.send({ t: "sit", req: 1 });
+    expect(await a.next("sit.ok")).toEqual({ t: "sit.ok", req: 1, mat: seatNo });
+    // From the mandapa, that bench seat is out of reach (and taken).
+    b.c.send({ t: "sit", req: 2, mat: seatNo + 1 });
+    expect(await b.c.next("sit.no")).toEqual({ t: "sit.no", req: 2 });
+
+    await walk(a, { x: s.x, z: s.z - 1 }, { x: s.x, z: s.z });
+    a.send({ t: "pos", x: s.x, z: s.z, yaw: 0, pose: "sit" });
+    const seated = await b.c.next(
+      "delta",
+      (d) => d.up?.some(([id, , , , pose]) => id === welcome.you.id && pose === 2) ?? false,
+    );
+    const t = seated.up?.find(([id]) => id === welcome.you.id);
+    expect(t?.slice(1, 3)).toEqual([s.x, s.z]);
+    expect(t?.[3]).toBeCloseTo(Math.PI, 2);
+    expect(t?.[5]).toBe(seatNo);
+
+    // Standing up, the visitor walks away towards the temple; nothing holds them on the bench.
+    await wait(1000);
+    a.send({ t: "stand" });
+    await wait(300);
+    await walk(a, { x: s.x, z: s.z }, { x: s.x, z: s.z - 1.2 });
+    const away = await b.c.next(
+      "delta",
+      (d) =>
+        d.up?.some(([id, , z]) => id === welcome.you.id && Math.abs(z - (s.z - 1.2)) < 0.02) ??
+        false,
+    );
+    expect(away.up?.find(([id]) => id === welcome.you.id)?.[5]).toBe(-1);
+    await Promise.all([a.close(), b.c.close()]);
+  });
+
+  it("only seats visitors who are in the mandapa or by a bench", async () => {
     const { c } = await TestClient.join({ hall: "hall-11" });
     c.send({ t: "sit", req: 9 });
     expect(await c.next("sit.no")).toEqual({ t: "sit.no", req: 9 });

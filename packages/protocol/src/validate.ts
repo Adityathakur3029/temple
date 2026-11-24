@@ -2,12 +2,13 @@
  * Type guards for inbound messages. No dependencies, never throws.
  * The server runs every client frame through `decodeClientMessage` (spec 05 § Handling a message).
  */
-import { MAT_COUNT, MAX_CLIENT_MESSAGE_BYTES } from "./constants";
+import { MAX_CLIENT_MESSAGE_BYTES, SEAT_COUNT } from "./constants";
 import {
   BELL_IDS,
   GESTURES,
   HALL_IDS,
   JAL_KINDS,
+  JAL_SIDES,
   POSES,
   TAP_IDS,
   type ClientMessage,
@@ -35,7 +36,7 @@ function isReq(v: unknown): v is number {
 }
 
 function isMatIndex(v: unknown): v is number {
-  return Number.isInteger(v) && (v as number) >= 0 && (v as number) < MAT_COUNT;
+  return Number.isInteger(v) && (v as number) >= 0 && (v as number) < SEAT_COUNT;
 }
 
 /** Rejects any key outside `keys`, so a message can't smuggle extra data. */
@@ -65,7 +66,10 @@ const VALIDATORS: { readonly [K in ClientMessageType]: (o: Obj) => boolean } = {
   "diya.light": withReq,
   "diya.cancel": bare,
   "jal.request": (o) =>
-    hasOnly(o, ["t", "req", "kind"]) && isReq(o.req) && isOneOf(o.kind, JAL_KINDS),
+    hasOnly(o, ["t", "req", "kind", "side"]) &&
+    isReq(o.req) &&
+    isOneOf(o.kind, JAL_KINDS) &&
+    isOneOf(o.side, JAL_SIDES),
   "jal.done": withReq,
   "jal.cancel": bare,
   "japa.mala": bare,

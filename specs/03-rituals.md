@@ -142,24 +142,69 @@ General rules for all rituals:
   - A lamp lit by a visitor who then leaves keeps burning for the full duration and is visible to newcomers.
   - A second request while one's lamp burns gets `"has-lamp"`.
 
-## Offer water — jal (जल अर्पित करें)
+## Offer water, bel patra or a flower — jal (जल अर्पित करें)
 
-- **Purpose:** offer water to Shiva, symbolically. The linga is never touched by an avatar.
-- **Where:** the threshold spot beside the sanctum door, reached along the side of the mandapa, never along the Nandi axis.
+- **Purpose:** offer water, a bel patra (bilva leaf) or a flower to Shiva, symbolically. The linga is never touched by an avatar.
+- **Where:** two jal spots at the threshold, one each side of the sanctum door: `JAL_SPOTS` north (1.9, 3.4) and south (−1.9, 3.4), reached along the sides of the mandapa, never along the Nandi axis. Each side has its own turn and queue, so two visitors may offer at once, one at each side. Beyond each spot, against the sanctum's front wall, stands a low stone offering bench (`OFFERING_BENCHES`, (±3.55, 2.86), 0.9 × 0.4 m, 0.3 m high) holding a copper lota of water, a basket of bel patra and a basket of flowers (owner, 2026-11-24).
+- **Input:**
+  - Within `JAL_NEAR_M` (3 m) of either jal spot, the context area shows three buttons: "Offer water", "Offer bel patra" and "Offer a flower". Key `E` offers water.
+  - Each one asks for the nearer side's spot: `jal.request {req, kind, side}`, where `kind` is `"water"`, `"bilva"` or `"flower"` and `side` is `"n"` or `"s"`.
 - **Flow:**
-  - The same queue pattern as the diya, with a single spot: `jal.request {req}` → `jal.turn {req}` / `jal.queue {pos}` / `jal.no {req, why}`.
-  - On arrival, the client plays the 8 s pouring animation and sends `jal.done {req}`.
-  - The server broadcasts `event {kind:"jal", from}` and frees the spot.
-- **Variant:** a "bilva" toggle in the context menu offers a bel patra leaf instead of water, with the same flow and `event {kind:"bilva"}`.
+  1. The server either gives the spot at once (`jal.turn {req, until}`), queues the visitor (`jal.queue {pos}`, sent again as the queue moves), or refuses (`jal.no {req, why}`, where `why` is `"cooldown"`, `"busy"` (already queued or offering, on either side) or `"not-near"` (too far from that side's spot)).
+  2. On `jal.turn`, the avatar walks to its side's offering bench (`PICK_SPOTS`, 0.6 m in front of it), faces it and pauses 1.2 s to take up the lota, a leaf or a flower, then walks to that side's jal spot, faces the linga and plays the offering. It then sends `jal.done {req}`.
+  3. The server checks the visitor holds the turn, is within `JAL_SPOT_REACH_M` (1 m) of that side's spot and the turn hasn't expired. It broadcasts `event {kind, from}` to everyone else, where `kind` is `"jal"`, `"bilva"` or `"flower"`, and starts the visitor's `JAL_COOLDOWN_MS`.
+  4. The spot frees and the next visitor in that side's queue gets `jal.turn`.
+  - The client keeps the turn's `until`. If it passes before the offering begins, the client gives the turn up quietly; a late `jal.done` is ignored by the server, and then no cooldown or charanamrit follows.
+  - A request with no reply within 4 s is given up, and requests go at most one a second.
+  - A tab that resumes with a turn or queue place it no longer wants (after a reload) gives it up with `jal.cancel`.
+  - A seated visitor isn't offered the buttons.
+- **UI:**
+  - While queued, the notice reads "*n* ahead of you" with "Leave queue". "Your turn" shows briefly when the turn comes.
+  - Walking away, "Leave queue" or `Esc` sends `jal.cancel`.
+  - A refusal for `"cooldown"` shows "You can offer again in a few minutes." Nothing is shown for `"busy"` or `"not-near"`.
 - **Server rule:**
-  - One visitor at the spot at a time.
-  - Per-visitor cooldown `JAL_COOLDOWN_MS`.
-  - Turn timeout `JAL_TURN_TIMEOUT_MS`.
-- **Animation:** stand at the threshold, pour a thin stream from a copper lota towards the linga. The water is shown flowing out along the jaladhari channel.
-- **Sound:** soft water trickle (effects, spatial).
+  - One visitor at each spot at a time. Each side's queue is first come, first served (spec 05).
+  - A visitor may be in one queue only, once.
+  - Per-visitor cooldown `JAL_COOLDOWN_MS` after an offering.
+  - A turn not finished within `JAL_TURN_TIMEOUT_MS` passes to the next visitor.
+  - The pose `offer` is accepted only from a visitor holding a turn.
+  - Both sides' queues and turns are kept in Durable Object storage (`queues`), so they survive hibernation. A disconnected visitor keeps their queue place for the resume window (spec 05).
+- **Animation:**
+  - **Water** (8 s): the visitor holds a small copper lota in both hands and pours a thin stream towards the linga. For a few seconds after, a little water is seen flowing from the jaladhari spout on the north wall along its channel.
+  - **Bel patra or flower** (4 s): the visitor steps to their side's `LAY_SPOTS` (±1.82, 3.25), close to the plate, bows slightly and lays the leaf or flower with both hands on that side's brass offering plate on the mandapa floor, `OFFERING_PLATES` (±1.6, 2.85), against the front wall beside the door, off the Nandi axis and the darshan carpets.
+  - Each plate shows the most recent leaves and flowers offered on it in this instance (at most 12 per plate); a remote offering is laid on the plate nearer the visitor who made it. Each one fades after 10 minutes. This is drawn by each client from the events it receives, so a newcomer sees the plate empty.
+  - The flower is a small white flower (see spec 08, check with advisor).
+  - Remote avatars play the same animation at the spot.
+- **Sound:** a soft water pour for water (effects, spatial for others). It plays once the `pour` sound file exists. Until then the offering is silent. Leaves and flowers make no sound.
+- **Accessibility:** the screen reader announces "You offered water.", "You offered a bel patra." or "You offered a flower." when the offering ends.
 - **Acceptance:**
   - The avatar's path to the spot never enters the Nandi axis or the garbhagriha.
-  - Two visitors: the second is queued until the first finishes or times out.
+  - Two visitors at the same side: the second is queued until the first finishes or times out, then gets the turn.
+  - Two visitors at opposite sides both get a turn at once.
+  - A second offering within the cooldown is refused with `"cooldown"`.
+  - `jal.done` from someone not holding the turn, or more than 1 m from the spot, is ignored.
+
+## Receive charanamrit (चरणामृत)
+
+- **Purpose:** receive a few drops of the blessed water after making an offering, as devotees do at the end of worship. It is symbolic: nothing is counted per visitor or shown (only anonymous totals, spec 09).
+- **Where:** within `JAL_NEAR_M` of either jal spot, from the small copper tirtha pot with its spoon that rests on a small stone stand beside the spot, `TIRTHA_POT` (2.75, 3.4).
+- **When:** for `CHARANAMRIT_WINDOW_MS` (2 minutes) after the visitor's own offering (water, bel patra or flower), once per offering.
+- **Input:** the context button "Receive charanamrit", or key `E`. The visitor steps onto `CHARANAMRIT_SPOT` (2.3, 3.75) facing the pot first, if not already there.
+- **Network:** `gesture {g:"charanamrit"}` → `event {kind:"charanamrit", from}`.
+- **Server rule:**
+  - The visitor must have completed an offering within `CHARANAMRIT_WINDOW_MS`, and not yet have received charanamrit for it.
+  - The visitor must be within `JAL_NEAR_M + 1` of either jal spot.
+  - Cooldown `GESTURE_COOLDOWN_MS`, shared with the other gestures.
+- **Animation** (3.5 s):
+  - The visitor turns to the tirtha pot.
+  - The right hand, cupped, rests over the left palm and receives a few drops.
+  - The hands are raised to the lips briefly, then the right hand passes lightly over the head.
+  - Remote avatars play the same.
+- **Sound:** none.
+- **Accessibility:** the screen reader announces "You received charanamrit." when it ends.
+- **Acceptance:**
+  - Without an offering, or more than 2 minutes after one, the server ignores the gesture.
+  - A second charanamrit for the same offering is ignored.
 
 ## Sit on a mat (बैठें)
 
@@ -176,11 +221,71 @@ General rules for all rituals:
   - Two visitors requesting the same mat at once: exactly one gets it.
   - A seated avatar's yaw always faces the sanctum.
 
+## Sit on a bench (बेंच पर बैठें)
+
+- **Purpose:** rest on the lawn and look at the temple, away from the hall.
+- **Where:** the seven lawn benches (`BENCHES`, spec 02): four by the gate path and three by the kund. Each bench seats two, so there are `BENCH_SEAT_COUNT` (14) bench seats. They share the seat numbers with the mats: mats are 0 … 39 and bench seats are 40 … 53 (`SEAT_COUNT` 54 in all), two per bench in `BENCHES` order, the −x seat first. A bench seat is 0.4 m either side of the bench's centre.
+- **Input:** the same "Sit" button as for a mat. Within `BENCH_SIT_NEAR_M` (4 m) of a bench seat, outside the mandapa, it asks for the nearest free bench seat. Tapping a bench asks for its nearest free seat. Seated, the screen reader hears `a11y.seated.bench`; with no free seat, `bench.taken` (spec 07).
+- **Network:** unchanged in shape: `sit {req, mat?}` → `sit.ok {req, mat}` or `sit.no {req}`, with `mat` 40 … 47 for a bench seat. `stand` frees it. The wider `mat` range is a breaking change, so `PROTOCOL_VERSION` goes up.
+  - Each seat has a **seat spot** on the lawn just in front of the bench (0.52 m in front of its centre line, clear of the bench), where the visitor walks to and is placed. The avatar is drawn sitting on the slab behind that spot; the spot is only where the visitor "is" for walking and the server.
+- **Server rule:** one visitor per seat. For a bench seat the visitor must be within `BENCH_SIT_NEAR_M` of that seat's spot (the mandapa rule still applies to mats). When `mat` is omitted, the server picks the nearest free mat inside the mandapa, or else the nearest free bench seat within reach, or answers `sit.no`. Seats are released like mats.
+- **Animation:** sitting upright on the bench, knees bent, both feet flat on the ground (soles down, never towards the sanctum), hands in the lap, facing the temple (yaw π). Japa may be counted while seated on a bench, as on a mat. The camera stays in the orbit view: the darshan view is not forced from the lawn.
+- **Sound:** none.
+- **Analytics:** counted as `sit`, like a mat.
+- **Accessibility:** the "Sit" button is keyboard and touch reachable as for mats.
+- **Acceptance:**
+  - Two visitors asking for the same bench seat at once: exactly one gets it.
+  - A visitor in the mandapa still gets a mat, never a bench seat; a visitor by a bench never gets a mat.
+  - A visitor seated on a bench faces the temple, and can stand and walk away without being stuck on the bench.
+
 ## Darshan view (दर्शन)
 
 - **Purpose:** look upon the deity.
 - **Input:** HUD "Darshan" (eye icon), or key `V` (see [07](07-ui-and-language.md#keyboard)).
 - **Behaviour:** the camera frames the linga through the sanctum door. This is local only, with no network message. It is the default view while seated. Any look input returns to the orbit camera (when standing).
+
+## Darshan between Nandi's horns — shringa darshan (शृंग दर्शन)
+
+- **Purpose:** look upon the linga between Nandi's horns, as devotees do from behind Nandi.
+- **Where:** within `SHRINGA_REACH_M` (1.2 m) of the shringa spot, `SHRINGA_SPOT` (0, 23.6), on the yard just behind Nandi's platform. It is off the Nandi axis (which ends at z 22), so the visitor stands there normally.
+- **Input:** the context button "Darshan between Nandi's horns", or key `E` when near.
+- **UI:**
+  - The avatar turns to face the sanctum (yaw π). Your own avatar is hidden while the view is open, because the camera is just above and ahead of it.
+  - The visitor steps onto the spot first if not already on it. The camera moves just behind Nandi's head, on the axis, a little above his horn tips, and looks at the linga between his horns, so they frame the sanctum door. The visitor can look around a little (±10° yaw and pitch).
+  - Moving, `Esc`, `E` again or the "Back" button returns to the orbit camera.
+  - With `prefers-reduced-motion`, the move is a cut.
+- **Viewpoint:** the eye point and field of view live in the client camera (`SHRINGA_VIEW` in `camera.ts`; the target is the linga) and are tuned to the Nandi model in use, because the horns sit differently on each model. With the greybox Nandi, the view frames the linga over his back.
+- **Network:** none. It is local only, like the darshan view. Others see the avatar standing behind Nandi, facing the sanctum.
+- **Server rule:** none beyond normal movement. Only the camera is ever on the axis, never an avatar (spec 08).
+- **Animation:** none in v1. Resting the fingers on the horns is left out (see Open decisions).
+- **Sound:** none.
+- **Accessibility:** the button label is "Darshan between Nandi's horns". The screen reader announces "Darshan between Nandi's horns: the linga, through the sanctum door." (`a11y.shringa`).
+- **Acceptance:**
+  - The button shows within 1.2 m of the spot and not elsewhere.
+  - In the view, the camera is behind Nandi's head on the axis, never inside Nandi or the garbhagriha, and the linga is visible through the sanctum door.
+  - Any move input closes the view, and no network message is sent while it is open.
+
+## Whisper to Nandi (नंदी के कान में)
+
+- **Purpose:** quietly tell Nandi one's prayer, as many devotees do, believing he carries it to Shiva. This is a description of the custom only: no visible text may promise that a prayer is carried or answered (spec 08).
+- **Where:** within `NANDI_EAR_REACH_M` (1.0 m) of an ear spot, `NANDI_EAR_SPOTS`: (1.3, 21.5) and (−1.3, 21.5), beside Nandi's head (`NANDI_HEAD`, 0, 21.3) on either side of his platform. These are where the pradakshina carpet arms end, off the Nandi axis. Both ears are offered by default (see spec 08, check with advisor).
+- **Input:** the context button "Whisper to Nandi", or key `E` when near. The visitor steps onto the nearer ear spot first if not already on it.
+- **UI:** pressing again while the whisper plays does nothing. Nothing is typed, recorded or shown. The prayer stays in the visitor's own mind.
+- **Network:** `gesture {g:"whisper"}` → `event {kind:"whisper", from}`.
+- **Server rule:**
+  - The visitor must be within `NANDI_EAR_REACH_M + 1` of an ear spot.
+  - Cooldown `GESTURE_COOLDOWN_MS`, shared with the other gestures.
+- **Animation:**
+  - The avatar turns to face Nandi's head.
+  - It leans a little towards the ear, with one hand cupped beside the mouth and the other at the chest, and holds for 3 s.
+  - It finishes with joined palms and a small nod. The total time is 4 s.
+  - The avatar never touches Nandi, and Nandi never moves. Remote avatars play the same.
+- **Sound:** none. No voice, whisper sound or microphone is used.
+- **Accessibility:** the button label is "Whisper to Nandi". When the whisper ends, the screen reader announces "You whispered your prayer to Nandi." (`a11y.whisper`).
+- **Acceptance:**
+  - Whispering from 3 m away from both ear spots is rejected by the server.
+  - Two clients in the same instance: A's whisper appears on B within 300 ms on a local network, and a repeat within the cooldown is ignored.
+  - The avatar faces Nandi's head before it leans.
 
 ## Aarti (आरती)
 
@@ -230,3 +335,5 @@ The per-ritual acceptance lines above, plus:
 2. **Dandavat (full prostration).** Add it later as a pranam variant in the mandapa?
 3. **Rudraksha vs tulsi mala.** Rudraksha is the default for a Shiva temple. Should the mala view offer other malas?
 4. **Personal mantra audio.** Use a single recorded "Om Namah Shivaya" loop, or none in v1?
+5. **Which ear of Nandi.** Customs differ by region (some say the left ear, some the right). Both ears are offered by default. `NANDI_EAR_SPOTS` can be cut to one side if the advisor prefers.
+6. **Fingers on the horns.** In many temples devotees rest the thumb and forefinger on Nandi's horns for shringa darshan. Should the view show the visitor's hands there, or keep the plain view?

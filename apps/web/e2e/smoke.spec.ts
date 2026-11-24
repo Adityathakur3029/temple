@@ -3,6 +3,7 @@
  * and the realtime Worker reachable from the app origin.
  */
 import type { Page } from "@playwright/test";
+import { PROTOCOL_VERSION } from "@sannidhi/protocol";
 import { REALTIME, expect, test } from "./fixtures";
 
 /** The h1 as assistive tech reads it: only the current language's text. */
@@ -124,28 +125,31 @@ test.describe("Hindi", () => {
 
 test("the realtime Worker answers the app origin over HTTP and WebSocket", async ({ page }) => {
   await page.goto("/");
-  const result = await page.evaluate(async (realtime) => {
-    const rooms = (await (await fetch(`${realtime}/api/rooms`)).json()) as { halls: unknown[] };
-    const ws = new WebSocket(`${realtime.replace(/^http/, "ws")}/ws?hall=hall-20&v=1`);
-    const replies: string[] = [];
-    await new Promise<void>((resolve, reject) => {
-      ws.onerror = () => reject(new Error("WebSocket error"));
-      ws.onmessage = (e) => {
-        replies.push(String(e.data));
-        // After the welcome, the heartbeat: the runtime answers ping with pong.
-        if (replies.length === 1) ws.send("ping");
-        if (replies.includes("pong")) resolve();
+  const result = await page.evaluate(
+    async ({ realtime, v }) => {
+      const rooms = (await (await fetch(`${realtime}/api/rooms`)).json()) as { halls: unknown[] };
+      const ws = new WebSocket(`${realtime.replace(/^http/, "ws")}/ws?hall=hall-20&v=${v}`);
+      const replies: string[] = [];
+      await new Promise<void>((resolve, reject) => {
+        ws.onerror = () => reject(new Error("WebSocket error"));
+        ws.onmessage = (e) => {
+          replies.push(String(e.data));
+          // After the welcome, the heartbeat: the runtime answers ping with pong.
+          if (replies.length === 1) ws.send("ping");
+          if (replies.includes("pong")) resolve();
+        };
+      });
+      ws.send('{"t":"leave"}');
+      ws.close(1000);
+      const welcome = JSON.parse(replies[0] ?? "{}") as { t?: string; hall?: string };
+      return {
+        halls: rooms.halls.length,
+        welcome: { t: welcome.t, hall: welcome.hall },
+        pong: replies.includes("pong"),
       };
-    });
-    ws.send('{"t":"leave"}');
-    ws.close(1000);
-    const welcome = JSON.parse(replies[0] ?? "{}") as { t?: string; hall?: string };
-    return {
-      halls: rooms.halls.length,
-      welcome: { t: welcome.t, hall: welcome.hall },
-      pong: replies.includes("pong"),
-    };
-  }, REALTIME);
+    },
+    { realtime: REALTIME, v: PROTOCOL_VERSION },
+  );
 
   expect(result.halls).toBe(20);
   expect(result.welcome).toEqual({ t: "welcome", hall: "hall-20" });

@@ -14,20 +14,20 @@ coordinates and converts with W(): Blender (x, y, z) = (world x, 12.1 - world z,
 
 Lines up with packages/protocol/src/world.ts and apps/web/src/scene/ground.ts (spec 11: the
 walking rules don't change with the model, so the model follows them):
-- Floor at exactly 0.45 m (PLINTH) over x -7 ... 7, z 5 ... 19, with the paler aisle stone on the
+- Floor at exactly 0.45 m (PLINTH) over x -7 ... 7, z 2.6 ... 19 (the west end meets the sanctum's
+  east wall, so the sanctum door opens straight into the hall; no antarala), with the paler aisle stone on the
   Nandi axis (x -0.4 ... 0.4). Plain stone: no symbol on the floor or the steps (spec 08).
 - Two steps down the east side, z 19 ... 19.67, full width, tops at 0.30 and 0.15 m, which match
   the walking slope in ground.ts.
-- 12 pillars at MANDAPA_PILLARS (x +/-6.5 at z 5.6, 10, 14.4, 18.6; x +/-2.9 at z 5.6 and 18.6),
+- 14 pillars at MANDAPA_PILLARS (x +/-6.5 at z 3.2, 5.6, 10, 14.4, 18.6; x +/-2.9 at z 5.6 and 18.6),
   0.44 m across (the obstacle is 0.5 m), capitals ending at 4.2 m (HEIGHTS.pillarTop). The outer
   pillars stay within 0.25 m of their centre at 3.42 m, where the code fixes the lamp brackets.
-- Beams under a flat ceiling at 4.42 m; the eave reaches x +/-7.6 and z 4.6 ... 19.8 (15.2 m wide,
+- Beams under a flat ceiling at 4.42 m; the eave reaches x +/-7.6 and z 2.2 ... 19.8 (15.2 m wide,
   the slot's size) with its underside at 4.42 m, where the mandapa bell chains end (x +/-2.2,
   z 19.5).
-- Plinth mouldings stay within the plinth-edge obstacles (x +/-7.4, z from 4.6). A low wall runs
-  along the north, south and west edges between the pillars; the east side is open to the steps.
-- Nothing stands or hangs in the aisle below 4.15 m, so the darshan view through the antarala to
-  the sanctum door stays clear.
+- Plinth mouldings stay within the plinth-edge obstacles (x +/-7.4, z from 2.2). A low wall runs
+  along the north and south edges and the west edge beside the sanctum; the east side is open.
+- Nothing stands or hangs in the aisle below 4.15 m, so the darshan view to the sanctum door stays clear.
 - A stepped (phamsana) stone roof with a ribbed crown and a brass kalasha, about 7.9 m high.
 No carved figures or sacred symbols. One material with vertex colours: one draw call.
 """
@@ -168,19 +168,19 @@ def extrude_x(profile_yz, x0, x1, color, **kw):
 
 # World layout (world.ts, ground.ts)
 PLINTH = 0.45
-MX, MZ0, MZ1 = 7.0, 5.0, 19.0  # MANDAPA
+MX, MZ0, MZ1 = 7.0, 2.6, 19.0  # MANDAPA
 AISLE = 0.4  # NANDI_AXIS half width
 CEIL_AISLE = 1.2  # ceiling panel edge over the aisle; unchanged
-PILLARS = [(x, z) for z in (5.6, 10, 14.4, 18.6) for x in (6.5, -6.5)] + \
+PILLARS = [(x, z) for z in (3.2, 5.6, 10, 14.4, 18.6) for x in (6.5, -6.5)] + \
           [(x, z) for z in (5.6, 18.6) for x in (2.9, -2.9)]
 PILLAR_TOP = 4.2
 CEIL = 4.42
-EAVE_X, EAVE_Z0, EAVE_Z1 = 7.6, 4.6, 19.8
+EAVE_X, EAVE_Z0, EAVE_Z1 = 7.6, 2.2, 19.8  # the west eave runs into the sanctum wall
 
 # --- Plinth: moulded sides round the north, south and west; the east face is behind the steps ------
 # (offset out from the floor's edge, height). Each point is higher than the last, so the east face
 # (where every ring meets z = 19) has no zero-area faces. The top is a chamfer, not a ledge, so
-# nothing lies flat at 0.45 m beside the antarala's own floor.
+# nothing lies flat at 0.45 m beside the sanctum's base.
 PROFILE = [
     (0.32, 0.0), (0.32, 0.07), (0.26, 0.10), (0.24, 0.13), (0.25, 0.17), (0.24, 0.21),
     (0.19, 0.25), (0.11, 0.27), (0.07, 0.28), (0.07, 0.32), (0.17, 0.355), (0.19, 0.38),
@@ -193,7 +193,7 @@ loft(rings, PCOL, cap_bottom=False, cap_top=False, jitter=0.02)
 
 # --- Floor: square stone slabs, the aisle in paler stone --------------------------------------------
 fx = [-7, -6, -5, -4, -3, -2, -1.2, -AISLE, AISLE, 1.2, 2, 3, 4, 5, 6, 7]
-fz = [float(z) for z in range(5, 20)]
+fz = [MZ0, 3.0] + [float(z) for z in range(4, 20)]
 grid = [[bm.verts.new(W(x, PLINTH, z)) for x in fx] for z in fz]
 for j in range(len(fz) - 1):
     for i in range(len(fx) - 1):
@@ -250,13 +250,17 @@ def beam_profile(c, bottom):
 ROWS = [5.6, 10, 14.4, 18.6]
 for z in ROWS:
     extrude_x(beam_profile(OZ - z, PILLAR_TOP), -6.85, 6.85, "stoneDark")
+# The west row: from each corner pillar to the sanctum wall, which carries the middle.
+for x0, x1 in ((2.6, 6.85), (-6.85, -2.6)):
+    extrude_x(beam_profile(OZ - 3.2, PILLAR_TOP), x0, x1, "stoneDark")
+ROWS = [3.2] + ROWS
 for x in (6.5, -6.5):
     for za, zb in zip(ROWS, ROWS[1:]):
         extrude_y(beam_profile(x, PILLAR_TOP + 0.04), OZ - (zb - 0.2), OZ - (za + 0.2), "stoneDark")
 
 # --- Ceiling: the underside of the roof, darker deeper in ---------------------------------------------
 cx_ = [-EAVE_X, -6.7, -6.3, -2.9, -CEIL_AISLE, CEIL_AISLE, 2.9, 6.3, 6.7, EAVE_X]
-cz_ = [EAVE_Z0, 5.4, 5.8, 9.8, 10.2, 14.2, 14.6, 18.4, 18.8, EAVE_Z1]
+cz_ = [EAVE_Z0, 3.0, 3.4, 5.4, 5.8, 9.8, 10.2, 14.2, 14.6, 18.4, 18.8, EAVE_Z1]
 
 
 def ceiling_k(x, z):
@@ -291,13 +295,13 @@ for s in (1, -1):
     pts = [(s * (WALL_IN + u), v) for u, v in WALL]
     if s < 0:
         pts = list(reversed(pts))
-    for za, zb in ((5.12, 5.31), (5.89, 9.71), (10.29, 14.11), (14.69, 18.31)):
+    for za, zb in ((2.62, 2.91), (3.49, 5.31), (5.89, 9.71), (10.29, 14.11), (14.69, 18.31)):
         extrude_y(pts, OZ - zb, OZ - za, "plinth")
-# West edge, from the inner pillars' feet out to the corners (world z 4.92 ... 5.12).
+# West edge, beside the sanctum (world z 2.62 ... 2.86, inner face at 2.86).
 # Blender y grows towards the shrine, so the outline keeps its turn and needs no reversing. Each
-# wall runs from the antarala's side wall (|x| 2.85) out to the corner.
-west = [(OZ - (5.12 - u), v) for u, v in WALL]
-for x0, x1 in ((2.85, 7.12), (-7.12, -2.85)):
+# wall runs from the sanctum's corner (|x| 2.6) out to the hall's corner.
+west = [(OZ - (2.86 - u), v) for u, v in WALL]
+for x0, x1 in ((2.6, 7.12), (-7.12, -2.6)):
     extrude_x(west, x0, x1, "plinth")
 
 # --- Roof: a sloping eave, four stepped tiers, a ribbed crown and the kalasha ------------------------

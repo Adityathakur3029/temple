@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { IDLE_SLEEP_MS, MATS, VIEW_CHECKPOINT_MS } from "@sannidhi/protocol";
+import { IDLE_SLEEP_MS, MATS, SEATS, VIEW_CHECKPOINT_MS } from "@sannidhi/protocol";
 import { FrameSampler, decide, suggestLiteAtStart } from "../src/platform/adapt";
 import { IdleMonitor, type Activity } from "../src/platform/idle";
 import {
@@ -300,7 +300,7 @@ describe("view restore (spec 10 § Background, tabs and idle)", () => {
   it.each([
     ["a position inside the garbhagriha", { ...view, me: { ...view.me, x: 0, z: 0 } }],
     ["a position on the Nandi axis", { ...view, me: { ...view.me, x: 0, z: 10 } }],
-    ["a mat that doesn't exist", { ...view, me: { ...view.me, mat: 40 } }],
+    ["a seat that doesn't exist", { ...view, me: { ...view.me, mat: SEATS.length } }],
     ["a camera mode that doesn't exist", { ...view, camera: { ...view.camera, mode: "free" } }],
     ["non-numbers", { ...view, me: { ...view.me, x: "4" } }],
   ])("rejects %s", (_name, bad) => {

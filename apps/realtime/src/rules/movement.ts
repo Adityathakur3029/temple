@@ -4,7 +4,7 @@
  * position streams without a socket.
  */
 import {
-  MATS,
+  SEATS,
   MOVE_MAX_DT_MS,
   POSES,
   SEAT_REACH_M,
@@ -58,14 +58,15 @@ export function isSeated(p: Pick<Place, "x" | "z" | "pose" | "mat">): boolean {
   return isSeatedAt(p.pose, p.mat, p.x, p.z);
 }
 
-export function checkMove(cur: Place, msg: PosMessage, now: number): MoveVerdict {
+/** `mayOffer`: the visitor holds the jal turn, so the `offer` pose is allowed (spec 05). */
+export function checkMove(cur: Place, msg: PosMessage, now: number, mayOffer = false): MoveVerdict {
   const pose = POSES.indexOf(msg.pose);
   const next = { x: roundCm(msg.x), z: roundCm(msg.z) };
-  const mat = cur.mat >= 0 ? MATS[cur.mat] : undefined;
+  const mat = cur.mat >= 0 ? SEATS[cur.mat] : undefined;
   const nearMat = mat !== undefined && distance(next, mat) <= SEAT_REACH_M;
 
-  // Pose transitions. `offer` belongs to a diya or jal turn, which arrive in M3.
-  if (pose === POSE.offer) return { ok: false, why: "pose" };
+  // Pose transitions. `offer` belongs to a jal turn (and the diya's, in M3).
+  if (pose === POSE.offer && !mayOffer) return { ok: false, why: "pose" };
   if (pose === POSE.sit && !nearMat) return { ok: false, why: "pose" };
   const seatedNow = isSeated(cur);
   const staysSeated = (pose === POSE.sit || pose === POSE.japa) && nearMat;
@@ -86,7 +87,8 @@ export function checkMove(cur: Place, msg: PosMessage, now: number): MoveVerdict
   }
 
   if (staysSeated && mat) {
-    // Seated visitors sit exactly on the mat, facing the sanctum (spec 03 § Sit on a mat).
+    // Seated visitors sit exactly on their seat, facing its way: a mat faces the sanctum, a bench
+    // seat the temple (spec 03 § Sit on a mat, § Sit on a bench).
     return {
       ok: true,
       place: {

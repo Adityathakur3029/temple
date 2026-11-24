@@ -46,7 +46,7 @@ The single job of the product: **give people a few calm minutes of devotion in c
 |---|---|
 | Aarti (आरती) | Worship with a lamp waved before the deity, with song and bells. Scheduled twice daily. |
 | Aarti lena | After aarti, passing the hands over the flame and then over the eyes and head |
-| Antarala | Vestibule between the mandapa and the sanctum |
+| Antarala | Vestibule between the mandapa and the sanctum. Sannidhi has none: the door opens straight into the mandapa |
 | Bilva / bel patra | Trifoliate leaf offered to Shiva |
 | Darshan (दर्शन) | Seeing and being seen by the deity. Here it is a camera view that frames the sanctum. |
 | Deepa / diya (दीया) | Oil lamp |

@@ -44,7 +44,7 @@ All keys are prefixed `sannidhi:`. All storage access is wrapped in try/catch, a
 
 **Counted on the server** (the server already sees the action, so no extra client traffic):
 
-`visit_start` (welcome without resume) · `namaste` · `pranam` · `bell` · `diya_lit` · `jal` · `bilva` · `mala` · `parikrama` · `sit` · `aarti_attend` (connected for ≥ 60 s during an aarti) · `take_aarti` · `prasad` · `hall_full` · `close_<code>`
+`visit_start` (welcome without resume) · `namaste` · `pranam` · `bell` · `diya_lit` · `jal` · `bilva` · `flower` · `charanamrit` · `mala` · `parikrama` · `sit` · `aarti_attend` (connected for ≥ 60 s during an aarti) · `take_aarti` · `prasad` · `hall_full` · `close_<code>`
 
 **Sent by a client beacon** (`POST /api/beacon`, only for things the server can't see):
 

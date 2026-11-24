@@ -7,6 +7,7 @@ import {
   EVENT_KINDS,
   GESTURES,
   JAL_KINDS,
+  JAL_SIDES,
   JAL_REFUSALS,
   POSES,
   SERVER_MESSAGE_TYPES,
@@ -63,9 +64,9 @@ describe("enumerations match spec 04", () => {
     expect([...BELL_IDS].sort()).toEqual([...quoted(line), ...paths].sort());
   });
 
-  it("JAL_KINDS", () => {
+  it("JAL_KINDS and JAL_SIDES", () => {
     const row = clientRows.find(([names = ""]) => codeSpans(names).includes("jal.request"));
-    expect([...JAL_KINDS]).toEqual(quoted(row?.[1] ?? ""));
+    expect([...JAL_KINDS, ...JAL_SIDES]).toEqual(quoted(row?.[1] ?? ""));
   });
 
   it("EVENT_KINDS", () => {

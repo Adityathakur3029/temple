@@ -5,7 +5,7 @@
  */
 
 /** Integer. Bump on any breaking message change (spec 04 § Versioning). */
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2;
 
 export const HALL_COUNT = 20;
 export const INSTANCES_PER_HALL = 8;
@@ -47,6 +47,10 @@ export const BELL_MAX_PER_SEC = 2;
 export const TAP_REACH_M = 1.2;
 /** Per visitor. The washing animation lasts 4 s. */
 export const WASH_COOLDOWN_MS = 6000;
+/** The client shows "Whisper to Nandi" inside this distance of an ear spot; the server allows +1 m. */
+export const NANDI_EAR_REACH_M = 1.0;
+/** The client shows "Darshan between Nandi's horns" inside this distance of the shringa spot. */
+export const SHRINGA_REACH_M = 1.2;
 
 /** Minimum time between counted malas. */
 export const JAPA_MALA_MIN_MS = 60000;
@@ -69,9 +73,21 @@ export const DIYA_TURN_TIMEOUT_MS = 30000;
 /** Per visitor. */
 export const JAL_COOLDOWN_MS = 120000;
 export const JAL_TURN_TIMEOUT_MS = 30000;
+/** The client offers water, bel patra and a flower inside this distance of the jal spot; the server allows +1 m. */
+export const JAL_NEAR_M = 3;
+/** `jal.done` is accepted only this close to the jal spot. */
+export const JAL_SPOT_REACH_M = 1;
+/** Charanamrit may be received this long after the visitor's own offering, once per offering. */
+export const CHARANAMRIT_WINDOW_MS = 120000;
 
 /** Two blocks of 20. */
 export const MAT_COUNT = 40;
+/** Two seats on each of the seven lawn benches (spec 03 § Sit on a bench). */
+export const BENCH_SEAT_COUNT = 14;
+/** Mats 0 … 39, then bench seats 40 … 53: the `mat` field's range. */
+export const SEAT_COUNT = MAT_COUNT + BENCH_SEAT_COUNT;
+/** "Sit" asks for a bench seat within this distance of its seat spot (the server checks it too). */
+export const BENCH_SIT_NEAR_M = 4;
 
 /** Local IST wall-clock times, "HH:MM". */
 export const AARTI_TIMES_IST = ["06:00", "19:00"] as const;

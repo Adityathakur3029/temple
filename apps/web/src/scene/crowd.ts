@@ -19,6 +19,7 @@ import {
   POSES,
   bowTarget,
   isSeatedAt,
+  seatKind,
   yawTowards,
   type VisitorId,
 } from "@sannidhi/protocol";
@@ -123,13 +124,7 @@ export class Crowd {
    * behind, has caught up with the moment it was sent, so a bow never starts mid-turn.
    * `onStart` runs when it starts (for example the tap's water), and only if it does.
    */
-  play(
-    id: VisitorId,
-    kind: GestureAnim,
-    now: number,
-    delayMs: number,
-    onStart?: () => void,
-  ): void {
+  play(id: VisitorId, kind: GestureAnim, now: number, delayMs: number, onStart?: () => void): void {
     const m = this.members.get(id);
     if (m) m.queued = onStart ? { kind, at: now + delayMs, onStart } : { kind, at: now + delayMs };
   }
@@ -159,8 +154,9 @@ export class Crowd {
       m.z = a.z;
       m.seen = true;
       const avatar = m.avatar;
-      // Seated only where the server would seat them: on their own mat (shared rule).
-      avatar.setSeated(isSeatedAt(a.pose, a.mat, a.x, a.z));
+      // Seated only where the server would seat them: on their own seat (shared rule).
+      const seated = isSeatedAt(a.pose, a.mat, a.x, a.z);
+      avatar.setSeated(seated && seatKind(a.mat) === "bench" ? "bench" : seated);
       if (m.queued && now >= m.queued.at) {
         avatar.play(m.queued.kind);
         m.queued.onStart?.();

@@ -247,8 +247,76 @@ test("washes hands at a tap, and others see it (spec 03 § Wash hands)", async (
       (await net(other.page)).events.some((e) => e.kind === "wash" && e.from === a.you?.id),
     )
     .toBe(true);
+  await expect.poll(async () => (await net(other.page)).gestures[a.you?.id ?? ""]).toBe("wash");
+  await other.context.close();
+});
+
+test("whispers to Nandi beside his ear, and others see it (spec 03 § Whisper to Nandi)", async ({
+  page,
+  browser,
+}) => {
+  const a = await open(page, "hall-14");
+  const other = await visitor(browser);
+  await open(other.page, "hall-14");
+  // Beside Nandi's platform, a little out from the ear spot at (1.3, 21.5).
+  await walkTo(page, 2, 21.6);
+  const whisper = page.getByRole("button", { name: "Whisper to Nandi" });
+  await expect(whisper).toBeVisible();
+  await whisper.click();
   await expect
-    .poll(async () => (await net(other.page)).gestures[a.you?.id ?? ""])
-    .toBe("wash");
+    .poll(async () =>
+      (await net(other.page)).events.some((e) => e.kind === "whisper" && e.from === a.you?.id),
+    )
+    .toBe(true);
+  await expect.poll(async () => (await net(other.page)).gestures[a.you?.id ?? ""]).toBe("whisper");
+  await other.context.close();
+});
+
+test("offers at the jal spot in turn, and receives charanamrit (spec 12 scenario 5)", async ({
+  page,
+  browser,
+}) => {
+  test.setTimeout(300_000);
+  const a = await open(page, "hall-13");
+  const other = await visitor(browser);
+  const b = await open(other.page, "hall-13");
+  // Both walk up into the mandapa, near the threshold (fast-forwarded, then back online).
+  await walkTo(page, 2.4, 5.6, 10);
+  await walkTo(other.page, 1.0, 6.0, 10);
+  for (const p of [page, other.page]) {
+    await expect.poll(async () => (await net(p)).status, { timeout: 60_000 }).toBe("online");
+  }
+  await page.getByRole("button", { name: "Offer water" }).click();
+  await expect.poll(async () => (await state(page)).walking, { timeout: 10_000 }).toBe(true);
+  // B asks while A has the spot: B waits, one ahead.
+  await other.page.getByRole("button", { name: "Offer a flower" }).click();
+  await expect(other.page.getByText("1 ahead of you")).toBeVisible();
+  // A pours (8 s); B sees it, then gets the turn and lays the flower.
+  await expect
+    .poll(
+      async () =>
+        (await net(other.page)).events.some((e) => e.kind === "jal" && e.from === a.you?.id),
+      { timeout: 60_000 },
+    )
+    .toBe(true);
+  await expect
+    .poll(
+      async () => (await net(page)).events.some((e) => e.kind === "flower" && e.from === b.you?.id),
+      { timeout: 60_000 },
+    )
+    .toBe(true);
+  // A receives charanamrit after the offering; B sees it.
+  const receive = page.getByRole("button", { name: "Receive charanamrit" });
+  await expect(receive).toBeVisible();
+  await receive.click();
+  await expect
+    .poll(
+      async () =>
+        (await net(other.page)).events.some(
+          (e) => e.kind === "charanamrit" && e.from === a.you?.id,
+        ),
+      { timeout: 30_000 },
+    )
+    .toBe(true);
   await other.context.close();
 });

@@ -56,6 +56,8 @@ The order of work. Each milestone has deliverables and exit criteria, and the ne
 - Today counters and the gate board.
 - Bots for every ritual behaviour.
 
+Built early, on the owner's decision (2026-11-23): the jal spot (water, bel patra and a flower, with its queue), charanamrit, and two Nandi rituals (whisper, shringa darshan); see spec 03. Bots for them are still to do.
+
 **Exit criteria**
 - Every acceptance line in spec 03 has a passing test.
 - Ritual flows get cultural sign-off (spec 08).

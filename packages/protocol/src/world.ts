@@ -111,15 +111,19 @@ export const GARBHAGRIHA = rect(-2.6, 2.6, -2.6, 2.6);
 /** The sanctum door, in the east wall (z = 2.6), centred on the axis. */
 export const SANCTUM_DOOR = { z: 2.6, halfWidth: 0.75 } as const;
 
-/** The short vestibule between the sanctum door and the mandapa. */
-export const ANTARALA = rect(-2.6, 2.6, 2.6, 5);
+/**
+ * The open pillared hall, on a raised plinth reached by steps on its east side. Its west end meets
+ * the sanctum's east wall, so the sanctum door opens straight into the hall (no antarala; owner,
+ * 2026-11-24).
+ */
+export const MANDAPA = rect(-7, 7, 2.6, 19);
 
-/** The open pillared hall, on a raised plinth reached by steps on its east side. */
-export const MANDAPA = rect(-7, 7, 5, 19);
-
-/** 12 pillars: four down each side, and two at each end framing the aisle. */
+/**
+ * 14 pillars: five down each side (the first at the west corners, by the sanctum wall), and two
+ * at each end of the aisle.
+ */
 export const MANDAPA_PILLARS: readonly Point[] = [
-  ...[5.6, 10, 14.4, 18.6].flatMap((z) => [
+  ...[3.2, 5.6, 10, 14.4, 18.6].flatMap((z) => [
     { x: 6.5, z },
     { x: -6.5, z },
   ]),
@@ -133,6 +137,22 @@ export const PILLAR_HALF_SIZE = 0.25;
 /** Nandi sits on a platform on the axis, facing the sanctum (−z). */
 export const NANDI: Spot = { x: 0, z: 22, yaw: Math.PI };
 export const NANDI_PLATFORM = rect(-1, 1, 21, 23);
+/** Nandi's head, at the sanctum end of his platform. */
+export const NANDI_HEAD: Point = { x: 0, z: 21.3 };
+/**
+ * Where a visitor stands to whisper to Nandi (spec 03 § Whisper to Nandi): beside his head, one
+ * each side of the platform, where the pradakshina carpet arms end, facing his head. Both ears
+ * are offered by default (check with advisor, spec 08).
+ */
+export const NANDI_EAR_SPOTS: readonly Spot[] = [1, -1].map((side) => {
+  const at = { x: side * 1.3, z: 21.5 };
+  return { ...at, yaw: yawTowards(at, NANDI_HEAD) };
+});
+/**
+ * Where a visitor stands for darshan between Nandi's horns (spec 03 § Shringa darshan): on the
+ * yard just behind his platform, off the Nandi axis, facing the sanctum.
+ */
+export const SHRINGA_SPOT: Spot = { x: 0, z: 23.6, yaw: Math.PI };
 
 /** The strip between Nandi and the sanctum. No standing, sitting or walking on it. */
 export const NANDI_AXIS = rect(-0.4, 0.4, 0, 22);
@@ -160,6 +180,45 @@ export const AARTI_PLATE: Point = { x: 2.2, z: 20.5 };
 export const KUND = rect(12, 20, 28, 36);
 /** The water and everything below the second step. */
 export const KUND_WATER = rect(13.2, 18.8, 29.2, 34.8);
+
+/**
+ * Plain backless stone benches on the lawn, all turned to face the temple (−z) so anyone resting
+ * on them looks towards the shikhara (owner, 2026-11-24): two each side of the gate path, then
+ * three on the strip of lawn north of the kund, between its rim and the compound wall, looking
+ * over the water. Visitors sit on them (spec 03 § Sit on a bench); only append, since the order
+ * numbers the seats.
+ */
+export const BENCHES: readonly Spot[] = [
+  { x: 5.5, z: 32, yaw: Math.PI },
+  { x: -5.5, z: 32, yaw: Math.PI },
+  { x: 8, z: 37.5, yaw: Math.PI },
+  { x: -8, z: 37.5, yaw: Math.PI },
+  { x: 13.5, z: 38.2, yaw: Math.PI },
+  { x: 16.5, z: 38.2, yaw: Math.PI },
+  { x: 19.5, z: 38.2, yaw: Math.PI },
+];
+/** Half a bench's length (along x) and depth (along z), seat slab included. */
+export const BENCH_HALF_LENGTH = 0.8;
+export const BENCH_HALF_DEPTH = 0.25;
+/**
+ * The seat slab's top. Low, to suit the devotee figures (about 1.16 m tall), so a seated
+ * figure's feet rest flat on the ground (spec 03 § Sit on a bench).
+ */
+export const BENCH_SEAT_TOP = 0.22;
+/** A bench seat's spot is this far in front of the bench's centre line (clear of the bench). */
+export const BENCH_SEAT_FRONT = 0.52;
+/**
+ * The seat spots: two per bench, 0.4 m either side of its centre (the −x one first), in front of
+ * it, facing the temple. Seat numbers MAT_COUNT … MAT_COUNT + 7 (spec 03 § Sit on a bench). A
+ * seated figure is drawn on the slab behind its spot.
+ */
+export const BENCH_SEATS: readonly Spot[] = BENCHES.flatMap((b) =>
+  [-0.4, 0.4].map((dx) => ({
+    x: b.x + dx,
+    z: b.z + Math.cos(b.yaw) * BENCH_SEAT_FRONT,
+    yaw: b.yaw,
+  })),
+);
 
 /** The small open-fronted Ganesha shrine just inside the gate; the murti faces +x. */
 export const GANESHA: Spot = { x: -5, z: 42.4, yaw: Math.PI / 2 };
@@ -303,8 +362,80 @@ export const DIYA_SPOT_POSITIONS: readonly Spot[] = [
   return { ...p, yaw: yawTowards(p, DEEPA_STAND) };
 });
 
-/** The single jal-offering spot at the threshold, beside the door and off the axis. */
-export const JAL_SPOT: Spot = { x: 1.9, z: 3.4, yaw: yawTowards({ x: 1.9, z: 3.4 }, LINGA) };
+/**
+ * The two jal-offering spots on the mandapa floor at the threshold, one each side of the door and
+ * off the axis (north first, then its mirror), in the order of JAL_SIDES. A visitor offers from
+ * the nearer one; each side has its own turn, so two may offer at once (spec 03 § Offer water,
+ * bel patra or a flower).
+ */
+export const JAL_SPOTS: readonly Spot[] = [1, -1].map((side) => {
+  const p = { x: side * 1.9, z: 3.4 };
+  return { ...p, yaw: yawTowards(p, LINGA) };
+});
+/** The north jal spot (the first of JAL_SPOTS). */
+export const JAL_SPOT: Spot = JAL_SPOTS[0] as Spot;
+/**
+ * The brass plates on the mandapa floor beside the door, one each side, off the Nandi axis,
+ * where bel patra and flowers are laid. Nobody steps on them.
+ */
+export const OFFERING_PLATES: readonly Point[] = [
+  { x: 1.6, z: 2.85 },
+  { x: -1.6, z: 2.85 },
+];
+export const OFFERING_PLATE: Point = OFFERING_PLATES[0] as Point;
+export const OFFERING_PLATE_RADIUS = 0.18;
+/**
+ * The small copper tirtha pot with its spoon, on a small stone stand beside the north jal spot,
+ * where charanamrit is received (spec 03 § Receive charanamrit).
+ */
+export const TIRTHA_POT: Point = { x: 2.75, z: 3.4 };
+/** The tirtha pot's stand, kept clear like the plate (the stand itself is 0.13 m in radius). */
+export const TIRTHA_STAND_RADIUS = 0.15;
+/**
+ * Where a visitor stands to lay a bel patra or a flower, one per side: close enough to that
+ * side's plate for the hands to reach it, and within reach of that side's jal spot (spec 03).
+ */
+export const LAY_SPOTS: readonly Point[] = [
+  { x: 1.82, z: 3.25 },
+  { x: -1.82, z: 3.25 },
+];
+export const LAY_SPOT: Point = LAY_SPOTS[0] as Point;
+/** Where a visitor stands to receive charanamrit, facing the tirtha pot. */
+export const CHARANAMRIT_SPOT: Spot = {
+  x: 2.3,
+  z: 3.75,
+  yaw: yawTowards({ x: 2.3, z: 3.75 }, TIRTHA_POT),
+};
+/**
+ * The two low stone offering benches against the sanctum's front wall, one each side of the door
+ * beyond the jal spots (owner, 2026-11-24). Each holds a basket of flowers, a basket of bel patra
+ * and a copper lota of water; a visitor takes from the bench on their side before offering.
+ */
+export const OFFERING_BENCHES: readonly Point[] = [
+  { x: 3.55, z: 2.86 },
+  { x: -3.55, z: 2.86 },
+];
+/** Half an offering bench's length (along x) and depth (along z). */
+export const OFFERING_BENCH_HALF_LENGTH = 0.45;
+export const OFFERING_BENCH_HALF_DEPTH = 0.2;
+/** The offering bench's top. */
+export const OFFERING_BENCH_TOP = 0.3;
+/** Where a visitor stands to take from each bench, facing it (−z). */
+export const PICK_SPOTS: readonly Spot[] = OFFERING_BENCHES.map((b) => ({
+  x: b.x,
+  z: b.z + OFFERING_BENCH_HALF_DEPTH + 0.4,
+  yaw: Math.PI,
+}));
+
+/** The index of the jal spot (0 north, 1 south) nearer to `p`. */
+export function nearestJalSide(p: Point): number {
+  const [n, s] = JAL_SPOTS as [Spot, Spot];
+  return distance(p, s) < distance(p, n) ? 1 : 0;
+}
+/** How far `p` is from the nearer jal spot, or from the given side's spot (0 north, 1 south). */
+export function jalDistance(p: Point, side: number = nearestJalSide(p)): number {
+  return distance(p, (JAL_SPOTS[side] ?? JAL_SPOTS[0]) as Spot);
+}
 
 // ---------------------------------------------------------------------------
 // Walkable area, obstacles and sacred zones (spec 02 § Sacred and blocked zones)
@@ -413,7 +544,11 @@ export type ObstacleId =
   | "today-board"
   | "gate"
   | "bell-post"
-  | "tree";
+  | "tree"
+  | "bench"
+  | "offering-plate"
+  | "offering-bench"
+  | "tirtha-stand";
 
 export interface Obstacle {
   readonly id: ObstacleId;
@@ -422,12 +557,10 @@ export interface Obstacle {
 
 /** Built things in the way. The plinth edge leaves the mandapa steps (east side) as the only way up. */
 export const OBSTACLES: readonly Obstacle[] = [
-  { id: "plinth-edge", shape: rect(7, 7.4, 4.6, 19) },
-  { id: "plinth-edge", shape: rect(-7.4, -7, 4.6, 19) },
-  { id: "plinth-edge", shape: rect(2.6, 7.4, 4.6, 5) },
-  { id: "plinth-edge", shape: rect(-7.4, -2.6, 4.6, 5) },
-  { id: "plinth-edge", shape: rect(2.6, 3, 2.6, 5) },
-  { id: "plinth-edge", shape: rect(-3, -2.6, 2.6, 5) },
+  { id: "plinth-edge", shape: rect(7, 7.4, 2.2, 19) },
+  { id: "plinth-edge", shape: rect(-7.4, -7, 2.2, 19) },
+  { id: "plinth-edge", shape: rect(2.6, 7.4, 2.2, 2.6) },
+  { id: "plinth-edge", shape: rect(-7.4, -2.6, 2.2, 2.6) },
   ...MANDAPA_PILLARS.map((p): Obstacle => ({
     id: "pillar",
     shape: rect(
@@ -465,6 +598,29 @@ export const OBSTACLES: readonly Obstacle[] = [
   })),
   // The trunks of the trees that stand on the lawn (the client grows the same trees).
   ...TREE_TRUNKS.map((t): Obstacle => ({ id: "tree", shape: circle(t.x, t.z, t.r) })),
+  ...OFFERING_PLATES.map((p): Obstacle => ({
+    id: "offering-plate",
+    shape: circle(p.x, p.z, OFFERING_PLATE_RADIUS),
+  })),
+  ...OFFERING_BENCHES.map((b): Obstacle => ({
+    id: "offering-bench",
+    shape: rect(
+      b.x - OFFERING_BENCH_HALF_LENGTH,
+      b.x + OFFERING_BENCH_HALF_LENGTH,
+      b.z - OFFERING_BENCH_HALF_DEPTH,
+      b.z + OFFERING_BENCH_HALF_DEPTH,
+    ),
+  })),
+  { id: "tirtha-stand", shape: circle(TIRTHA_POT.x, TIRTHA_POT.z, TIRTHA_STAND_RADIUS) },
+  ...BENCHES.map((b): Obstacle => ({
+    id: "bench",
+    shape: rect(
+      b.x - BENCH_HALF_LENGTH,
+      b.x + BENCH_HALF_LENGTH,
+      b.z - BENCH_HALF_DEPTH,
+      b.z + BENCH_HALF_DEPTH,
+    ),
+  })),
 ];
 
 export type ZoneId = "garbhagriha" | "nandi-axis" | "kund-water" | "somasutra";
@@ -660,15 +816,26 @@ export function segmentBlocked(
 }
 
 /**
- * Whether a visitor is seated: pose `sit`, or `japa` on a mat, exactly on the mat they hold.
- * Shared, so every client draws someone as seated only where the server would seat them.
+ * Whether a visitor is seated: pose `sit`, or `japa` while seated, exactly on the seat (mat or
+ * bench seat spot) they hold. Shared, so every client draws someone as seated only where the
+ * server would seat them.
  */
 export function isSeatedAt(poseIndex: number, mat: number, x: number, z: number): boolean {
-  const m = mat >= 0 ? MATS[mat] : undefined;
+  const m = mat >= 0 ? SEATS[mat] : undefined;
   if (!m || (poseIndex !== SIT_POSE && poseIndex !== JAPA_POSE)) return false;
   return Math.hypot(x - m.x, z - m.z) <= 0.01;
 }
 const SIT_POSE = POSES.indexOf("sit");
+
+/** Every seat by its number: the mats, then the bench seats (spec 03). */
+export const SEATS: readonly Spot[] = [...MATS, ...BENCH_SEATS];
+
+/** What kind of seat a seat number is, or null if it is none. */
+export function seatKind(seat: number): "mat" | "bench" | null {
+  if (!Number.isInteger(seat) || seat < 0) return null;
+  if (seat < MATS.length) return "mat";
+  return seat < SEATS.length ? "bench" : null;
+}
 const JAPA_POSE = POSES.indexOf("japa");
 
 /** Within this distance of the Ganesha murti, a bow faces it rather than the sanctum (spec 03). */

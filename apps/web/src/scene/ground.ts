@@ -3,7 +3,6 @@
  * the 3D boxes the camera may not pass through (spec 02 § Camera).
  */
 import {
-  ANTARALA,
   GANESHA_SHRINE,
   GARBHAGRIHA,
   GATE,
@@ -18,7 +17,7 @@ import {
   type Rect,
 } from "@sannidhi/protocol";
 
-/** Floor height of the mandapa, antarala and sanctum. */
+/** Floor height of the mandapa and sanctum. */
 export const PLINTH = 0.45;
 /** The mandapa steps run from the plinth edge (z 19) down to the courtyard (z 20). */
 export const STEPS = { z0: 19, z1: 20, halfWidth: 7 } as const;
@@ -36,7 +35,6 @@ export const HEIGHTS = {
   shikharaTop: 16.1,
   pillarTop: 4.2,
   roof: { y0: 4.2, y1: 5.9 },
-  antaralaRoof: { y0: 3.7, y1: 4.0 },
 } as const;
 
 const inRect = (r: Rect, x: number, z: number): boolean =>
@@ -44,7 +42,7 @@ const inRect = (r: Rect, x: number, z: number): boolean =>
 
 /** Height of the walking surface at (x, z). */
 export function groundY(x: number, z: number): number {
-  if (inRect(MANDAPA, x, z) || inRect(ANTARALA, x, z) || inRect(GARBHAGRIHA, x, z)) return PLINTH;
+  if (inRect(MANDAPA, x, z) || inRect(GARBHAGRIHA, x, z)) return PLINTH;
   if (z > STEPS.z0 && z < STEPS.z1 && Math.abs(x) <= STEPS.halfWidth) {
     return PLINTH * ((STEPS.z1 - z) / (STEPS.z1 - STEPS.z0));
   }
@@ -85,7 +83,6 @@ export const CAMERA_BLOCKERS: readonly Box[] = [
     GARBHAGRIHA.z0 - 0.3,
     GARBHAGRIHA.z1 + 0.3,
   ),
-  box(-2.9, 2.9, HEIGHTS.antaralaRoof.y0, HEIGHTS.antaralaRoof.y1, 2.6, 5.3),
   box(
     MANDAPA.x0 - 0.6,
     MANDAPA.x1 + 0.6,

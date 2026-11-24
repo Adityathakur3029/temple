@@ -139,7 +139,7 @@ export const SLOTS: Readonly<Record<SlotId, SlotSpec>> = {
   },
   shrine: {
     label:
-      "Garbhagriha, antarala and shikhara with amalaka and kalasha; hollow and empty sanctum (no linga, murti or Nandi inside, no carved deity figures), door to +z",
+      "Garbhagriha and shikhara with amalaka and kalasha; hollow and empty sanctum (no linga, murti or Nandi inside, no carved deity figures), door to +z",
     kind: "single",
     priority: "P1",
     sacred: false,
@@ -178,7 +178,7 @@ export const SLOTS: Readonly<Record<SlotId, SlotSpec>> = {
   },
   mandapa: {
     label:
-      "Open pillared hall: plinth, steps to +z, 12 pillars, beams and stepped roof; no carved deity figures, no sacred symbols on floors or steps",
+      "Open pillared hall: plinth, steps to +z, 14 pillars, beams and stepped roof; no carved deity figures, no sacred symbols on floors or steps",
     kind: "single",
     priority: "P1",
     sacred: false,

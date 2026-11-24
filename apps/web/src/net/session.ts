@@ -15,6 +15,11 @@ import {
   type EventMessage,
   type Gesture,
   type HallId,
+  type JalKind,
+  type JalSide,
+  type JalNoMessage,
+  type JalQueueMessage,
+  type JalTurnMessage,
   type Pose,
   type RoomsResponse,
   type ServerMessage,
@@ -44,6 +49,8 @@ export interface SessionHandlers {
   event(e: EventMessage): void;
   correct(x: number, z: number): void;
   counters(today: TodayCounters): void;
+  /** The jal spot's replies: a place in the queue, the turn, or a refusal (spec 03). */
+  jal?(m: JalQueueMessage | JalTurnMessage | JalNoMessage): void;
 }
 
 /** Sends this visitor's place only when it changes, at most POS_MAX_HZ (spec 04). */
@@ -107,6 +114,7 @@ export class Session {
   private lastMatAt = Number.NEGATIVE_INFINITY;
   private lastGestureAt = Number.NEGATIVE_INFINITY;
   private gestureTimer: number | null = null;
+  private readonly gestureQueue: Gesture[] = [];
   private matTimer: number | null = null;
   private readonly now: () => number;
   private readonly timers: Timers;
@@ -192,20 +200,31 @@ export class Session {
   /**
    * Gestures go at least GESTURE_COOLDOWN_MS (plus a margin) apart, whatever the UI did: a bow is
    * sent only after the avatar has turned, so it could follow a namaste too closely. A gesture
-   * that comes too soon waits for its turn; the server would drop it and add a strike.
+   * that comes too soon waits for its turn, in order behind any already waiting, so none that
+   * the visitor's avatar played is lost (a namaste never replaces a waiting whisper); the server
+   * would drop one sent early and add a strike. At most a few wait.
    */
   gesture(g: Gesture): void {
+    if (this.gestureQueue.length >= 3) return;
+    this.gestureQueue.push(g);
+    this.sendGestures();
+  }
+
+  private sendGestures(): void {
+    if (this.gestureTimer !== null) return;
+    const g = this.gestureQueue[0];
+    if (g === undefined) return;
     const wait = this.lastGestureAt + GESTURE_COOLDOWN_MS + 100 - this.now();
-    if (this.gestureTimer !== null) this.timers.clear(this.gestureTimer);
-    this.gestureTimer = null;
     if (wait > 0) {
       this.gestureTimer = this.timers.set(() => {
         this.gestureTimer = null;
-        this.gesture(g);
+        this.sendGestures();
       }, wait);
       return;
     }
+    this.gestureQueue.shift();
     if (this.conn.send({ t: "gesture", g })) this.lastGestureAt = this.now();
+    this.sendGestures();
   }
 
   bell(bell: BellId): void {
@@ -214,6 +233,20 @@ export class Session {
 
   wash(tap: TapId): void {
     this.conn.send({ t: "wash", tap });
+  }
+
+  /** Asks for the jal spot (spec 03). Returns the request number the replies carry, or null offline. */
+  jalRequest(kind: JalKind, side: JalSide): number | null {
+    const req = this.req++;
+    return this.conn.send({ t: "jal.request", req, kind, side }) ? req : null;
+  }
+
+  jalDone(req: number): void {
+    this.conn.send({ t: "jal.done", req });
+  }
+
+  jalCancel(): void {
+    this.conn.send({ t: "jal.cancel" });
   }
 
   /**
@@ -316,6 +349,11 @@ export class Session {
       case "counters":
         this.today = m.today;
         h.counters(m.today);
+        return;
+      case "jal.queue":
+      case "jal.turn":
+      case "jal.no":
+        h.jal?.(m);
         return;
       default:
         // Rituals of later milestones.

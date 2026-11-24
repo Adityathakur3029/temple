@@ -1,7 +1,8 @@
 /**
- * Cameras (spec 02 § Camera): a third-person orbit behind the visitor, and the darshan view that
- * frames the linga through the sanctum door from inside the mandapa. The camera pulls in front of
- * anything solid, and never enters the garbhagriha.
+ * Cameras (spec 02 § Camera): a third-person orbit behind the visitor, the darshan view that
+ * frames the linga through the sanctum door from inside the mandapa, and the shringa view from
+ * behind Nandi, between his horns. The camera pulls in front of anything solid, and never enters
+ * the garbhagriha.
  */
 import { LINGA, MANDAPA, SANCTUM_DOOR, type Point } from "@sannidhi/protocol";
 import type { CameraMode } from "../platform/view";
@@ -23,6 +24,9 @@ export const ORBIT_LIMITS = {
 } as const;
 
 export const ORBIT_DEFAULTS = { pitch: 12 * DEG, distance: 5.5 } as const;
+
+/** The camera's views. A checkpoint saves the shringa view as the orbit (it is only offered at its spot). */
+export type RigMode = CameraMode | "shringa";
 
 /** In the darshan view the visitor can look around this far (spec 02). */
 export const DARSHAN_LOOK = { yaw: 25 * DEG, pitch: 12 * DEG } as const;
@@ -160,7 +164,7 @@ export const LINGA_FOCUS: Vec3 = { x: LINGA.x, y: PLINTH + 0.65, z: LINGA.z };
 /** Widest angle off the axis from which the linga shows through the door (with a margin). */
 export const DARSHAN_MAX_ANGLE = Math.atan((SANCTUM_DOOR.halfWidth - 0.4) / SANCTUM_DOOR.z);
 /** The darshan camera stays inside the mandapa, clear of its end pillars. */
-export const DARSHAN_DISTANCE = { min: MANDAPA.z0 + 1.5, max: MANDAPA.z1 - 0.8 } as const;
+export const DARSHAN_DISTANCE = { min: SANCTUM_DOOR.z + 3.9, max: MANDAPA.z1 - 0.8 } as const;
 
 /**
  * The darshan camera for a visitor at `p`: on their side of the axis, at their distance from the
@@ -180,6 +184,19 @@ function darshanEyeInto(p: Point, seated: boolean, out: Vec3): Vec3 {
   out.z = Math.cos(a) * d;
   return out;
 }
+
+/**
+ * Darshan between Nandi's horns (spec 03 § Shringa darshan): the eye just behind his head, on the
+ * axis, low enough that the line to the linga passes between his horns, so they frame the sanctum
+ * door. Tuned to the Nandi model in use (the `nandi` slot: horn tips 1.8 m above the ground at
+ * z ≈ 21.3); the camera box round Nandi (ground.ts) ends at z 23, so the eye stays behind it.
+ */
+export const SHRINGA_VIEW: { readonly eye: Vec3; readonly fov: number } = {
+  eye: { x: 0, y: 1.86, z: 23.3 },
+  fov: 24,
+};
+/** In the shringa view the visitor can look around this far, either way. */
+export const SHRINGA_LOOK = 10 * DEG;
 
 /** Rotates the look direction from eye to `look` by yaw and pitch offsets, into `out`. */
 function offsetLook(eye: Vec3, look: Vec3, yaw: number, pitch: number, out: Vec3): Vec3 {
@@ -237,7 +254,7 @@ export interface CameraPose {
 }
 
 export class CameraRig {
-  mode: CameraMode = "orbit";
+  mode: RigMode = "orbit";
   orbit: Orbit;
   /** Darshan look-around offsets (seated only). */
   readonly darshanLook = { yaw: 0, pitch: 0 };
@@ -255,7 +272,7 @@ export class CameraRig {
   }
 
   /** Switch view. With `cut` (reduced motion) the camera jumps instead of flying. */
-  setMode(mode: CameraMode, cut: boolean): void {
+  setMode(mode: RigMode, cut: boolean): void {
     if (mode === this.mode) return;
     this.mode = mode;
     this.darshanLook.yaw = 0;
@@ -275,6 +292,18 @@ export class CameraRig {
    * looks around a little. Returns true if the view changed mode.
    */
   lookBy(dyaw: number, dpitch: number, seated: boolean, cut: boolean): boolean {
+    if (this.mode === "shringa") {
+      // Between the horns the visitor looks around a little, and stays in the view.
+      this.darshanLook.yaw = Math.max(
+        -SHRINGA_LOOK,
+        Math.min(SHRINGA_LOOK, this.darshanLook.yaw + dyaw),
+      );
+      this.darshanLook.pitch = Math.max(
+        -SHRINGA_LOOK,
+        Math.min(SHRINGA_LOOK, this.darshanLook.pitch + dpitch),
+      );
+      return false;
+    }
     if (this.mode === "darshan") {
       if (seated) {
         this.darshanLook.yaw = Math.max(
@@ -299,6 +328,7 @@ export class CameraRig {
   }
 
   zoomBy(factor: number, seated: boolean, cut: boolean): boolean {
+    if (this.mode === "shringa") return false;
     if (this.mode === "darshan") {
       if (seated) return false;
       this.setMode("orbit", cut);
@@ -330,7 +360,11 @@ export class CameraRig {
     this.hasTarget = true;
 
     const goal = this.goal;
-    if (this.mode === "darshan") {
+    if (this.mode === "shringa") {
+      copy3(SHRINGA_VIEW.eye, goal.eye);
+      offsetLook(goal.eye, LINGA_FOCUS, this.darshanLook.yaw, this.darshanLook.pitch, goal.look);
+      goal.fov = SHRINGA_VIEW.fov;
+    } else if (this.mode === "darshan") {
       darshanEyeInto(me, seated, goal.eye);
       offsetLook(goal.eye, LINGA_FOCUS, this.darshanLook.yaw, this.darshanLook.pitch, goal.look);
       goal.fov = darshanFov(goal.eye);

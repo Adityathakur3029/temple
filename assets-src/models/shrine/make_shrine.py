@@ -1,5 +1,5 @@
 """
-Sannidhi shrine, the `shrine` slot in spec 11: the garbhagriha, antarala and shikhara, with the
+Sannidhi shrine, the `shrine` slot in spec 11: the garbhagriha and shikhara, with the
 amalaka, kalasha and the somasutra spout. Made for Sannidhi by Claude (AI) in Blender 5.2 by this
 script, so the model is "ai": true and disclosed in the credits.
 
@@ -29,11 +29,9 @@ walking rules don't change with the model, so the model follows them):
   with seven storeys marked by ribbed corner stones (bhumi-amalakas) to its shoulder at 14.25 m;
   the neck, a ribbed amalaka, and a brass kalasha whose tip is at exactly 16.1 m
   (HEIGHTS.shikharaTop).
-- Antarala (ANTARALA, z 2.6 ... 5): floor at 0.45 m with the paler aisle stone on the Nandi axis,
-  moulded plinth sides inside the plinth-edge obstacles (x out to 2.92 m, the strip ends at 3 m),
-  low walls to 1.05 m between pilasters, beams, and a roof slab from 3.7 to 4.0 m
-  (HEIGHTS.antaralaRoof). Nothing below 3.7 m between x -2.6 and 2.6, so the darshan view stays
-  clear. Above the roof, a plain gabled front (sukanasa) with a blank horseshoe arch.
+- No antarala: the door opens straight onto the mandapa floor (owner, 2026-11-24), whose roof
+  meets the east wall under the cornice. Above the mandapa roof, a plain gabled front (sukanasa)
+  on the tower with a blank horseshoe arch; nothing of it comes below 4.5 m.
 - The somasutra spout on the north wall at z 0, a plain stone trough over the start of the
   channel, and a catch stone below it with the channel's profile up to x 3.45 m, where the
   channel in code begins.
@@ -447,55 +445,8 @@ ks = (TOP - yk) / 1.0
 brass = loft([circle_ring(0, 0, r * ks, yk + h * ks, 20) for r, h in KAL], "brass", jitter=0.0)
 NO_WEATHER.update(brass)
 
-# --- Antarala -------------------------------------------------------------------------------------
-AZ0, AZ1 = 2.6, 5.0
-# Plinth sides: the mandapa's moulding, within the plinth-edge strips (x 2.6 ... 3).
-PROFILE = [
-    (0.32, 0.0), (0.32, 0.07), (0.26, 0.10), (0.24, 0.13), (0.25, 0.17), (0.24, 0.21),
-    (0.19, 0.25), (0.11, 0.27), (0.07, 0.28), (0.07, 0.32), (0.17, 0.355), (0.19, 0.38),
-    (0.12, 0.395), (0.06, 0.40), (0.06, 0.43), (0.0, PLINTH),
-]
-for s in (1, -1):
-    pts = [(s * G, 0.0)] + [(s * (G + o), y) for o, y in PROFILE]
-    if s < 0:
-        pts = list(reversed(pts))
-    extrude_y(pts, OZ - AZ1, OZ - AZ0, "plinth", jitter=0.03)
-# Floor slabs, the aisle paler; the back strip runs under the sanctum wall's base.
-fx = [-G, -2.0, -1.2, -0.4, 0.4, 1.2, 2.0, G]
-fz = [2.36, AZ0, 3.4, 4.2, AZ1]
-for j in range(len(fz) - 1):
-    for i in range(len(fx) - 1):
-        cx = (fx[i] + fx[i + 1]) / 2
-        face([(fx[i], PLINTH, fz[j]), (fx[i + 1], PLINTH, fz[j]), (fx[i + 1], PLINTH, fz[j + 1]),
-              (fx[i], PLINTH, fz[j + 1])], (0, 1, 0), "aisle" if abs(cx) < 0.4 else "floor", 0.05,
-             weather=False)
-# Low walls between the pilasters (the mandapa's wall profile), inner face at x 2.6.
-WALL = [(0.0, PLINTH), (0.22, PLINTH), (0.22, 0.52), (0.18, 0.55), (0.18, 0.95), (0.24, 0.98),
-        (0.24, 1.05), (-0.02, 1.05), (-0.02, 0.98), (0.04, 0.95), (0.04, 0.55), (0.0, 0.52)]
-for s in (1, -1):
-    pts = [(s * (G + u), v) for u, v in WALL]
-    if s < 0:
-        pts = list(reversed(pts))
-    extrude_y(pts, OZ - 4.65, OZ - 2.95, "plinth", jitter=0.04)
-# Pilasters at both ends of each side, a beam on them, then the roof slab.
-PIL = [(0.02, PLINTH), (0.02, 0.58), (-0.01, 0.62), (-0.01, 3.15), (0.02, 3.20), (0.02, 3.27),
-       (0.04, 3.32), (0.04, 3.45)]
-for s in (1, -1):
-    x0, x1 = sorted((s * G, s * 2.92))
-    for z0, z1 in ((AZ0, 2.95), (4.65, AZ1)):
-        loft([rect_ring_w(x0 - o, x1 + o, z0 - o, z1 + o, y) for o, y in PIL],
-             ["stoneDark", "stoneDark", "stone", "stoneDark", "stoneDark", "stoneDark", "stoneDark"])
-    box_w(x0 - 0.02, x1 + 0.02, 3.45, 3.70, 2.45, AZ1 + 0.04, "stoneDark", jitter=0.02)
-RZ1 = 5.15
-loft([rect_ring_w(-2.96, 2.96, 2.45, RZ1, 3.70), rect_ring_w(-2.96, 2.96, 2.45, RZ1, 3.84),
-      rect_ring_w(-2.99, 2.99, 2.45, RZ1 + 0.03, 3.88), rect_ring_w(-2.99, 2.99, 2.45, RZ1 + 0.03, 3.94),
-      rect_ring_w(-2.93, 2.93, 2.45, RZ1 - 0.03, 4.0)],
-     ["stoneDark", "stoneDark", "stoneDark", "stone"], cap_top=True, jitter=0.02)
-face([(-2.96, 3.70, 2.45), (2.96, 3.70, 2.45), (2.96, 3.70, RZ1), (-2.96, 3.70, RZ1)], (0, -1, 0),
-     "ceiling", 0.02)
-
-# Sukanasa: a plain gabled front on the tower over the antarala, with a blank horseshoe arch.
-box_w(-1.45, 1.45, 4.0, 4.58, 2.5, 3.78, "stoneDark", cap_bottom=False, jitter=0.03)
+# Sukanasa: a plain gabled front on the tower, rising out of the mandapa roof, with a blank
+# horseshoe arch.
 box_w(-1.52, 1.52, 4.58, SH0, 2.5, 3.86, "stoneDark", cap_bottom=False, jitter=0.03)
 OUT = [(-1.3, SH0), (1.3, SH0), (1.3, 6.2), (1.15, 6.9), (0.85, 7.5), (0.45, 8.0), (0.0, 8.3),
        (-0.45, 8.0), (-0.85, 7.5), (-1.15, 6.9), (-1.3, 6.2)]
@@ -638,7 +589,7 @@ for x in (G_HOOKS[0], G_HOOKS[-1]):
 
 # Strands on the front wall, from under the band at 3.30 m: one in the middle of each recessed face
 # (wall at z 2.35) and one on each corner face (wall at z 2.48). They hang against the wall, behind
-# the door plane, so they never stand in the antarala or in anyone's way.
+# the door plane, so they never stand on the mandapa floor or in anyone's way.
 W_R, W_HOOK, W_END = 0.046, 3.26, 1.6
 for s in (1, -1):
     for x, wall in ((1.56, G - 0.13 + JW), (2.25, G + JW)):

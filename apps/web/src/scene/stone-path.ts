@@ -499,6 +499,125 @@ export function yardStoneTexture(size: number, rng: Rng): CanvasTexture | null {
   return texture;
 }
 
+/**
+ * The path paving drawn to match the yard (scene/yard-paving.ts): large rectangular slabs of the
+ * yard's grey-brown stone in staggered rows across the path, a shade lighter or darker each, with
+ * the yard's grain on top and narrow earth joints. One repeat is SLAB_TILE; `width` pixels across.
+ * Null where there is no canvas (tests).
+ */
+export function yardPathTexture(width: number, rng: Rng, base = "#8b8375", joint = "#6e5a40"): CanvasTexture | null {
+  if (typeof document === "undefined") return null;
+  const W = SLAB_TILE.across;
+  const L = SLAB_TILE.along;
+  const R = width / W;
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = Math.round(L * R);
+  const g = canvas.getContext("2d");
+  if (!g) return null;
+
+  // The same near-white grain as the yard's stone texture, laid over each slab's colour.
+  const grain = noiseCanvas(256, 4, 5, rng, (v, px, i) => {
+    const k = 205 + clamp01((v - 0.5) * 2.4 + 0.5) * 50;
+    setPixel(px, i, k, k, k - 2, 255);
+  });
+  const mottle = noiseCanvas(256, 6, 4, rng, (v, px, i) => {
+    const a = smooth(clamp01((v - 0.52) / 0.18)) * 70;
+    setPixel(px, i, 255, 255, 250, a);
+  });
+  const fine = noiseCanvas(256, 64, 2, rng, (v, px, i) => {
+    const k = clamp01((v - 0.5) * 3 + 0.5) * 255;
+    setPixel(px, i, k, k, k, 255);
+  });
+
+  g.fillStyle = joint;
+  g.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Rows along the path, 0.95 … 1.5 m deep, scaled to fill the tile exactly.
+  const depths: number[] = [];
+  let sum = 0;
+  while (sum < L - 0.6) {
+    const d = 0.95 + rng() * 0.55;
+    depths.push(d);
+    sum += d;
+  }
+  const hex = Number.parseInt(base.slice(1), 16);
+  const br = (hex >> 16) & 255;
+  const bg = (hex >> 8) & 255;
+  const bb = hex & 255;
+  const J = 0.035; // joint width in metres, as in the yard
+  let y = 0;
+  for (const d0 of depths) {
+    const d = (d0 * L) / sum;
+    // Slabs 1.2 … 2.2 m long across the path, scaled to fill the tile, from a random start.
+    const lengths: number[] = [];
+    let total = 0;
+    while (total < W - 0.8) {
+      const l = 1.2 + rng() * 1.0;
+      lengths.push(l);
+      total += l;
+    }
+    let x = rng() * W;
+    for (const l0 of lengths) {
+      const l = (l0 * W) / total;
+      const tone = 0.9 + rng() * 0.2;
+      const warm = (rng() - 0.5) * 0.04;
+      const fill = `rgb(${Math.min(255, br * (tone + warm))}, ${Math.min(255, bg * tone)}, ${Math.min(255, bb * (tone - warm))})`;
+      const rx = (x + J / 2) * R;
+      const ry = (y + J / 2) * R;
+      const rw = (l - J) * R;
+      const rh = (d - J) * R;
+      // Drawn again one tile across where it runs off the edge, so the tile meets itself.
+      for (const du of [0, -W * R]) {
+        if (rx + du > canvas.width) continue;
+        g.fillStyle = fill;
+        g.fillRect(rx + du, ry, rw, rh);
+        // A thin darker rim: the slab's side catching less light, as in the yard.
+        g.strokeStyle = "rgba(0,0,0,0.18)";
+        g.lineWidth = Math.max(1, 0.012 * R);
+        g.strokeRect(rx + du + g.lineWidth / 2, ry + g.lineWidth / 2, rw - g.lineWidth, rh - g.lineWidth);
+      }
+      x += l;
+    }
+    y += d;
+  }
+
+  // The grain multiplies every slab (the earth joints too, which barely changes them).
+  if (grain && mottle && fine) {
+    // One grain repeat is 3 m (close to the yard's 4 m) so it divides the tile with no seam.
+    const scale = (3 * R) / 256;
+    g.save();
+    g.scale(scale, scale);
+    const w = canvas.width / scale;
+    const h = canvas.height / scale;
+    const layer = document.createElement("canvas");
+    layer.width = 256;
+    layer.height = 256;
+    const lg = layer.getContext("2d");
+    if (lg) {
+      lg.fillStyle = lg.createPattern(grain, "repeat") ?? "#e6e6e4";
+      lg.fillRect(0, 0, 256, 256);
+      lg.fillStyle = lg.createPattern(mottle, "repeat") ?? "transparent";
+      lg.fillRect(0, 0, 256, 256);
+      lg.globalCompositeOperation = "overlay";
+      lg.globalAlpha = 0.22;
+      lg.fillStyle = lg.createPattern(fine, "repeat") ?? "transparent";
+      lg.fillRect(0, 0, 256, 256);
+      g.globalCompositeOperation = "multiply";
+      g.fillStyle = g.createPattern(layer, "repeat") ?? "transparent";
+      g.fillRect(0, 0, w, h);
+    }
+    g.restore();
+  }
+
+  const texture = new CanvasTexture(canvas);
+  texture.wrapS = RepeatWrapping;
+  texture.wrapT = RepeatWrapping;
+  texture.colorSpace = SRGBColorSpace;
+  texture.anisotropy = 8;
+  return texture;
+}
+
 /** One repeat of the grass pattern, in metres. */
 export const GRASS_TILE = 3;
 

@@ -3,7 +3,9 @@ import {
   BELL_MAX_PER_SEC,
   CHECKPOINTS,
   GESTURE_COOLDOWN_MS,
+  BENCH_SEATS,
   MATS,
+  MAT_COUNT,
   NAME_KEYS,
   POS_MAX_HZ,
   STRIKE_LIMIT,
@@ -15,7 +17,7 @@ import { BellWindows, inBellReach } from "../src/rules/bells";
 import { inTapReach } from "../src/rules/taps";
 import { newResumeToken, newVisitor, newVisitorId } from "../src/rules/identity";
 import { Buckets, STRIKE_WINDOW_MS, addStrike } from "../src/rules/limits";
-import { nearestFreeMat } from "../src/rules/mats";
+import { maySit, nearestFreeMat, nearestFreeSeat } from "../src/rules/mats";
 import { MOVE_SLACK_M, POSE, checkMove, isSeated, type Place } from "../src/rules/movement";
 
 const at = (x: number, z: number, extra: Partial<Place> = {}): Place => ({
@@ -216,5 +218,24 @@ describe("mats", () => {
     expect(nearestFreeMat(m5, new Set())).toBe(5);
     expect(nearestFreeMat(m5, new Set([5]))).not.toBe(5);
     expect(nearestFreeMat(m5, new Set(MATS.map((_, i) => i)))).toBe(-1);
+  });
+
+  it("gives a mat in the mandapa and a bench seat by a bench, never the other", () => {
+    const m5 = MATS[5];
+    const b0 = BENCH_SEATS[0];
+    if (!m5 || !b0) throw new Error("no seats");
+    expect(nearestFreeSeat(m5, new Set())).toBe(5);
+    expect(nearestFreeSeat(b0, new Set())).toBe(MAT_COUNT);
+    expect(nearestFreeSeat(b0, new Set([MAT_COUNT]))).toBe(MAT_COUNT + 1);
+    // Both seats on that bench held: the next bench is too far, and the mats are never given.
+    expect(nearestFreeSeat(b0, new Set([MAT_COUNT, MAT_COUNT + 1]))).toBe(-1);
+    // Far from every bench and outside the mandapa (the gate path): nothing.
+    expect(nearestFreeSeat({ x: 0, z: 44 }, new Set())).toBe(-1);
+
+    expect(maySit(m5, 5)).toBe(true);
+    expect(maySit(b0, 5)).toBe(false);
+    expect(maySit(b0, MAT_COUNT)).toBe(true);
+    expect(maySit(m5, MAT_COUNT)).toBe(false);
+    expect(maySit(b0, MAT_COUNT + BENCH_SEATS.length)).toBe(false);
   });
 });

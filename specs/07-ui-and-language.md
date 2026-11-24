@@ -134,18 +134,24 @@ The keys are the canonical names in the locale files. Hindi strings need native 
 | `action.diya` | Light a diya | दीया जलाएँ |
 | `action.jal` | Offer water | जल अर्पित करें |
 | `action.bilva` | Offer bel patra | बेलपत्र अर्पित करें |
+| `action.flower` | Offer a flower | पुष्प अर्पित करें |
+| `action.charanamrit` | Receive charanamrit | चरणामृत ग्रहण करें |
 | `action.sit` | Sit | बैठें |
 | `action.stand` | Stand up | उठें |
 | `action.take_aarti` | Take aarti | आरती लें |
 | `action.prasad` | Receive prasad | प्रसाद ग्रहण करें |
 | `action.wash` | Wash hands | हाथ धोएँ |
+| `action.shringa` | Darshan between Nandi's horns | नंदी के सींगों के बीच से दर्शन |
+| `action.shringa_back` | Back | वापस |
+| `action.whisper` | Whisper to Nandi | नंदी के कान में अपनी बात कहें |
 | `japa.count` | {bead} / 108 | {bead} / 108 |
 | `japa.malas_today` | Malas today: {n} | आज की मालाएँ: {n} |
 | `japa.turn` | Turn the mala here | यहाँ से माला पलटें |
 | `parikrama.done` | Parikrama {n} complete | परिक्रमा {n} पूर्ण |
-| `queue.ahead` | {n} ahead of you | आपसे पहले {n} लोग |
+| `queue.ahead` | {n} ahead of you | कतार में आपसे आगे: {n} |
 | `queue.turn` | Your turn | आपकी बारी |
 | `queue.leave` | Leave queue | कतार छोड़ें |
+| `jal.cooldown` | You can offer again in a few minutes. | कुछ मिनट बाद फिर से अर्पण किया जा सकता है। |
 | `diya.burning` | Your diya is burning | आपका दीया जल रहा है |
 | `diya.has_lamp` | Your diya is still burning | आपका दीया अभी जल रहा है |
 | `diya.stand_full` | All lamps are lit. A place frees in {min} min. | सभी दीये जल रहे हैं। {min} मिनट में जगह खाली होगी। |
@@ -200,6 +206,7 @@ The keys are the canonical names in the locale files. Hindi strings need native 
 | `lite.use` | Use Lite mode | लाइट मोड चालू करें |
 | `lite.dismiss` | Not now | अभी नहीं |
 | `a11y.seated` | You are on a mat, facing the sanctum. | आप आसन पर हैं, मुख गर्भगृह की ओर है। |
+| `a11y.seated.bench` | You are on a bench, facing the temple. | आप बेंच पर हैं, मुख मंदिर की ओर है। |
 | `a11y.stood` | You left the mat. | आपने आसन छोड़ दिया। |
 | `a11y.darshan` | Darshan view: the linga, through the sanctum door. | दर्शन दृश्य: गर्भगृह के द्वार से शिवलिंग। |
 | `action.namaste_label` | Namaste — greet everyone | नमस्ते — सबका अभिवादन करें |
@@ -214,6 +221,7 @@ The keys are the canonical names in the locale files. Hindi strings need native 
 | `who.alone` | No one else is here just now. | अभी यहाँ और कोई नहीं है। |
 | `today.visits` | {n} visits | {n} आगमन |
 | `mat.taken` | This mat is taken. Please choose another. | यह आसन किसी और के पास है। कृपया दूसरा चुनें। |
+| `bench.taken` | There is no room on this bench. Please choose another. | इस बेंच पर जगह नहीं है। कृपया दूसरी बेंच चुनें। |
 | `conn.offline` | Couldn't reach the other visitors. You can still walk in the temple. | अन्य दर्शनार्थियों से संपर्क नहीं हो पाया। फिर भी मंदिर में चलना-फिरना जारी रखें। |
 | `conn.waiting` | Reconnecting in a minute… | एक मिनट में फिर से जुड़ने की कोशिश होगी… |
 | `conn.refresh_now` | Refresh | रीफ़्रेश करें |
@@ -221,6 +229,12 @@ The keys are the canonical names in the locale files. Hindi strings need native 
 | `a11y.pranam` | You bowed. | आपने प्रणाम किया। |
 | `a11y.bell` | You rang the bell. | आपने घंटी बजाई। |
 | `a11y.wash` | You washed your hands. | आपने हाथ धो लिए। |
+| `a11y.shringa` | Darshan between Nandi's horns: the linga, through the sanctum door. | नंदी के सींगों के बीच से दर्शन: गर्भगृह के द्वार से शिवलिंग। |
+| `a11y.whisper` | You whispered your prayer to Nandi. | आपने नंदी के कान में अपनी प्रार्थना कही। |
+| `a11y.jal` | You offered water. | आपने जल अर्पित किया। |
+| `a11y.bilva` | You offered a bel patra. | आपने बेलपत्र अर्पित किया। |
+| `a11y.flower` | You offered a flower. | आपने पुष्प अर्पित किया। |
+| `a11y.charanamrit` | You received charanamrit. | आपने चरणामृत ग्रहण किया। |
 | `a11y.others_namaste_one` | Someone greeted everyone. | किसी ने सबका अभिवादन किया। |
 | `a11y.others_namaste` | {n} people greeted everyone. | {n} लोगों ने सबका अभिवादन किया। |
 | `a11y.others_pranam_one` | Someone bowed. | किसी ने प्रणाम किया। |

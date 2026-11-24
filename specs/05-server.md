@@ -32,11 +32,11 @@ Both Durable Object classes use the **SQLite storage backend** (`new_sqlite_clas
 
 | State | Where it lives | Survives hibernation? |
 |---|---|---|
-| Connected visitors (profile, last valid position, pose, mat, strikes, lite flag) | WebSocket attachment (`serializeAttachment`, ≤ 2 KB each) | Yes, rebuilt from `ctx.getWebSockets()` on wake |
+| Connected visitors (profile, last valid position, pose, mat, strikes, lite flag, last offering at the jal spot: when, and whether charanamrit was received) | WebSocket attachment (`serializeAttachment`, ≤ 2 KB each) | Yes, rebuilt from `ctx.getWebSockets()` on wake |
 | Mats taken | Derived from attachments + resume records | Yes |
 | Diya and jal queues, current turns | Storage key `queues` (small JSON, written on change) | Yes |
 | Lit lamps | Storage `lamp:<slot>` with `expiresAt` | Yes |
-| Resume records | Storage `resume:<token>` → `{visitor, place, until}`, written on disconnect. `place` is the position, facing, pose and mat. Queue places join it in M3 | Yes; also survives a DO restart |
+| Resume records | Storage `resume:<token>` → `{visitor, place, until, offer?}`, written on disconnect. `place` is the position, facing, pose and mat; `offer` is the last offering at the jal spot, so its cooldown and charanamrit survive a resume. Queue places live in `queues`, keyed by visitor id | Yes; also survives a DO restart |
 | Pradakshina checkpoint progress | Attachment | Yes |
 | Pending counter increments | Storage `pending-counters`, flushed to DirectoryDO | Yes |
 | Bell rate windows, broadcast timer, token buckets for rate limits, per-IP counts | Memory only | Not needed after wake (a bucket starts full again). From M3, the time of the last counted mala goes in the attachment, so hibernation can't reset `JAPA_MALA_MIN_MS` |
@@ -103,9 +103,9 @@ These follow the rules in [03 Rituals](03-rituals.md), with constants from [04](
 
 - `welcome.resume` is `<hall>.<instance>.<128-bit random, base64url>`.
 - The record `resume:<token>` is written at join with `until: null`, and again when the visitor's mat changes. So a place outlives a reset that drops sockets without a close event (a deploy): on start-up, a record whose socket is gone gets `until = now + RESUME_WINDOW_MS`.
-- On disconnect (not `leave`) the RoomDO sets `until = now + RESUME_WINDOW_MS`. The visitor's mat and queue places are held until then. After a `leave` or a strike close the record is deleted.
+- On disconnect (not `leave`) the RoomDO sets `until = now + RESUME_WINDOW_MS`. The visitor's mat and queue places are held until then. When the record expires, its place at the jal spot is freed. After a `leave` or a strike close the record is deleted and the place at the jal spot freed at once. A new visitor never gets an id still listed at the jal spot.
 - On reconnect with a token, the record is read and deleted, and the visitor gets the same id and name.
-- A token whose socket is still open here (the visitor moved from Wi-Fi to mobile data before this object saw the old socket close) takes that socket over: the old one closes with 1000 and the new one keeps the visitor, place, mat and strikes. A takeover is never refused for the per-IP cap, because it adds no socket.
+- A token whose socket is still open here (the visitor moved from Wi-Fi to mobile data before this object saw the old socket close) takes that socket over: the old one closes with 1000 and the new one keeps the visitor, place, mat, strikes and last offering. A takeover is never refused for the per-IP cap, because it adds no socket.
 - An unknown or expired token gets `4010`.
 
 ## DirectoryDO

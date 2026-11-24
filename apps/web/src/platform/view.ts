@@ -6,7 +6,7 @@
 import {
   HALL_IDS,
   INSTANCES_PER_HALL,
-  MATS,
+  SEATS,
   VIEW_CHECKPOINT_MS,
   type HallId,
   isWalkable,
@@ -49,7 +49,7 @@ export function loadView(store: KeyValueStore, now: number): ViewCheckpoint | nu
   if (![cam.yaw, cam.pitch, cam.distance, me.x, me.z, me.yaw, me.mat].every(finite)) return null;
 
   const mat = me.mat as number;
-  const seated = Number.isInteger(mat) && mat >= 0 && mat < MATS.length;
+  const seated = Number.isInteger(mat) && mat >= 0 && mat < SEATS.length;
   if (!seated && mat !== -1) return null;
   if (!isWalkable(me.x as number, me.z as number)) return null;
 

@@ -389,3 +389,13 @@ body:not([data-screen="temple"]) .rest {
   white-space: pre;
   pointer-events: none;
 }
+/* The three offerings at the jal spot (spec 03), in place of the context button. */
+.hud-offers {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.hud-offers[hidden] {
+  display: none;
+}

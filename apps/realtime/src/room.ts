@@ -12,7 +12,6 @@ import {
   SPAWN,
   TICK_HZ,
   decodeClientMessage,
-  inMandapa,
   isHallId,
   istDate,
   roundYaw,
@@ -22,6 +21,7 @@ import {
   type ServerMessage,
   type StateTuple,
   type TodayCounters,
+  JAL_SIDES,
   type Visitor,
   type VisitorId,
   type WelcomeMessage,
@@ -30,8 +30,22 @@ import type { CounterBatch, CounterName, DirectoryDO } from "./directory";
 import { BellWindows, inBellReach } from "./rules/bells";
 import { newResumeToken, newVisitor, newVisitorId } from "./rules/identity";
 import { Buckets, RATE_ERROR_EVERY_MS, addStrike } from "./rules/limits";
-import { nearestFreeMat } from "./rules/mats";
+import { maySit, nearestFreeSeat } from "./rules/mats";
 import { POSE, checkMove, isSeated, type Place } from "./rules/movement";
+import {
+  advance,
+  canFinish,
+  emptyJalSides,
+  loadJalSides,
+  mayReceiveCharanamrit,
+  offeringEvent,
+  removeVisitor,
+  requestJal,
+  sideOf,
+  type JalSides,
+  type OfferMemory,
+} from "./rules/jal";
+import { inNandiEarReach } from "./rules/nandi";
 import { inTapReach } from "./rules/taps";
 
 /** The Worker names the instance in this header when it forwards an upgrade. */
@@ -56,6 +70,8 @@ export interface Attachment {
   strikes: number[];
   /** Set when the server is closing this socket, so a rebuild skips it. */
   closing?: true;
+  /** The visitor's last offering at the jal spot: the cooldown and charanamrit (spec 03). */
+  offer?: OfferMemory;
 }
 
 /**
@@ -67,6 +83,8 @@ export interface StoredRecord {
   visitor: Visitor;
   place: Place;
   until: number | null;
+  /** The last offering at the jal spot, so the cooldown and charanamrit survive a resume. */
+  offer?: OfferMemory;
 }
 
 /** A place held for a visitor who may resume. */
@@ -120,7 +138,7 @@ export function parseRoomName(name: string | null): { hall: HallId; instance: nu
 /**
  * One hall instance, named "hall-03#2" (spec 05 § RoomDO): presence, the movement rule,
  * gestures, bells and mats, deltas, resume, heartbeat, idle sweep, strikes and rate limits.
- * Diya, jal, japa and pradakshina arrive with M3, aarti with M4.
+ * The jal spots' queues, one each side of the door (spec 03). Diya, japa and pradakshina arrive with M3, aarti with M4.
  */
 export class RoomDO extends DurableObject<Env> {
   private room: { hall: HallId; instance: number } | null = null;
@@ -129,6 +147,8 @@ export class RoomDO extends DurableObject<Env> {
   private readonly resumes = new Map<string, ResumeRecord>();
   private readonly buckets = new Map<VisitorId, Buckets>();
   private readonly bells = new BellWindows();
+  /** Each jal spot's turn and queue (north, south), stored as `queues` on every change (spec 05 § State). */
+  private jal: JalSides = emptyJalSides();
   private readonly acc: Record<FlushKind, Pending> = { full: pending(), lite: pending() };
   private readonly flushTimers: Record<FlushKind, ReturnType<typeof setTimeout> | null> = {
     full: null,
@@ -185,6 +205,13 @@ export class RoomDO extends DurableObject<Env> {
       if (this.resumes.size > 0) await this.ensureAlarm();
       this.counters =
         (await ctx.storage.get<{ batch: CounterBatch; since: number }>("pending-counters")) ?? null;
+      this.jal = loadJalSides((await ctx.storage.get<{ jal: unknown }>("queues"))?.jal);
+      // Drop anyone who is neither here nor holding a resume place.
+      for (const side of this.jal) {
+        if (side.turn && !this.present(side.turn.id)) side.turn = null;
+        side.queue = side.queue.filter((q) => this.present(q.id));
+      }
+      if (this.jal.some((side) => side.turn)) await this.ensureAlarm();
     });
   }
 
@@ -227,7 +254,12 @@ export class RoomDO extends DurableObject<Env> {
       if (open) {
         // The old socket is still open here, though the visitor has moved on (Wi-Fi to mobile
         // data, say): the new socket takes over the same visitor, name, place and mat.
-        resumed = { visitor: open.a.visitor, place: open.a.place, until: now };
+        resumed = {
+          visitor: open.a.visitor,
+          place: open.a.place,
+          until: now,
+          ...(open.a.offer ? { offer: open.a.offer } : {}),
+        };
         strikes = open.a.strikes;
         this.closeConn(open, CLOSE_CODES.NORMAL, "replaced", "replaced");
       } else {
@@ -263,6 +295,7 @@ export class RoomDO extends DurableObject<Env> {
       token: newResumeToken(hall, instance),
       lastAt: now,
       strikes,
+      ...(resumed?.offer ? { offer: resumed.offer } : {}),
     };
 
     const { 0: client, 1: server } = new WebSocketPair();
@@ -291,13 +324,15 @@ export class RoomDO extends DurableObject<Env> {
         visitors: [...this.conns.values()].map((c) => c.a.visitor),
         states: [...this.conns.values()].map(tuple),
         lamps: [],
-        queues: { diya: 0, jal: 0 },
+        queues: { diya: 0, jal: this.jal[0].queue.length + this.jal[1].queue.length },
         today: this.today ?? { date: istDate(now), diyas: 0, malas: 0, parikramas: 0, visits: 0 },
       },
     };
     server.send(JSON.stringify(welcome));
 
     this.markJoin(visitor, resumed !== null);
+    // A resumed visitor keeps their place at the jal spot: tell them where they stand.
+    if (resumed) this.tellJal(conn);
     // Distinct visits: welcomes that didn't resume (spec 05 § DirectoryDO). No identifier is kept.
     if (!resumed) this.count("visits", now);
     this.scheduleReport();
@@ -321,7 +356,12 @@ export class RoomDO extends DurableObject<Env> {
 
   /** The open connection's record, so its place outlives a reset (see StoredRecord). */
   private saveRecord(conn: Conn): void {
-    const rec: StoredRecord = { visitor: conn.a.visitor, place: conn.a.place, until: null };
+    const rec: StoredRecord = {
+      visitor: conn.a.visitor,
+      place: conn.a.place,
+      until: null,
+      ...(conn.a.offer ? { offer: conn.a.offer } : {}),
+    };
     void this.ctx.storage.put(`resume:${conn.a.token}`, rec);
   }
 
@@ -334,6 +374,10 @@ export class RoomDO extends DurableObject<Env> {
 
   private makeVisitor(now: number): Visitor {
     const ids = new Set<VisitorId>(this.conns.keys());
+    for (const side of this.jal) {
+      if (side.turn) ids.add(side.turn.id);
+      for (const q of side.queue) ids.add(q.id);
+    }
     const numbers = new Set<number>();
     for (const c of this.conns.values()) numbers.add(c.a.visitor.name.n);
     for (const r of this.resumes.values()) {
@@ -394,7 +438,12 @@ export class RoomDO extends DurableObject<Env> {
     const id = a.visitor.id;
     switch (msg.t) {
       case "pos": {
-        const verdict = checkMove(a.place, msg, now);
+        const verdict = checkMove(
+          a.place,
+          msg,
+          now,
+          this.jal.some((side) => side.turn?.id === id),
+        );
         if (!verdict.ok) {
           this.send(conn, { t: "correct", x: a.place.x, z: a.place.z });
           return;
@@ -417,6 +466,12 @@ export class RoomDO extends DurableObject<Env> {
         // Take aarti and prasad are only accepted in the window after aarti, which arrives in M4.
         if (msg.g === "namaste" || msg.g === "pranam") {
           this.broadcast({ t: "event", from: id, kind: msg.g }, conn);
+        } else if (msg.g === "whisper" && inNandiEarReach(a.place)) {
+          this.broadcast({ t: "event", from: id, kind: "whisper" }, conn);
+        } else if (msg.g === "charanamrit" && mayReceiveCharanamrit(a.offer ?? {}, a.place, now)) {
+          a.offer = { ...a.offer, charanamrit: true };
+          this.saveRecord(conn);
+          this.broadcast({ t: "event", from: id, kind: "charanamrit" }, conn);
         }
         return;
       case "bell":
@@ -432,8 +487,9 @@ export class RoomDO extends DurableObject<Env> {
         return;
       case "sit": {
         const held = this.heldMats(id);
-        const mat = msg.mat ?? nearestFreeMat(a.place, held);
-        if (!inMandapa(a.place.x, a.place.z) || mat < 0 || held.has(mat)) {
+        // A mat needs the visitor in the mandapa, a bench seat near its spot (spec 03).
+        const mat = msg.mat ?? nearestFreeSeat(a.place, held);
+        if (mat < 0 || held.has(mat) || !maySit(a.place, mat)) {
           this.send(conn, { t: "sit.no", req: msg.req });
           return;
         }
@@ -456,8 +512,35 @@ export class RoomDO extends DurableObject<Env> {
       case "leave":
         this.closeConn(conn, CLOSE_CODES.NORMAL, "leave", "free");
         return;
+      case "jal.request": {
+        const entry = { id, req: msg.req, kind: msg.kind };
+        const side = JAL_SIDES.indexOf(msg.side);
+        const r = requestJal(this.jal, side, entry, a.place, a.offer ?? {}, now);
+        if (!r.ok) {
+          this.send(conn, { t: "jal.no", req: msg.req, why: r.why });
+          return;
+        }
+        if ("turn" in r) this.send(conn, { t: "jal.turn", req: r.turn.req, until: r.turn.until });
+        else this.send(conn, { t: "jal.queue", pos: r.queued });
+        this.saveJal();
+        return;
+      }
+      case "jal.done": {
+        const side = this.jal.findIndex((s) => s.turn?.id === id);
+        const state = this.jal[side];
+        const turn = state?.turn;
+        if (!state || !turn || !canFinish(state, side, id, msg.req, a.place, now)) return;
+        a.offer = { offeredAt: now };
+        this.saveRecord(conn);
+        this.broadcast({ t: "event", from: id, kind: offeringEvent(turn.kind) }, conn);
+        this.nextJalTurn(side, now);
+        return;
+      }
+      case "jal.cancel":
+        this.leaveJal(id, now);
+        return;
       default:
-        // Diya, jal and japa arrive with M3. Valid messages, so no strike.
+        // Diya and japa arrive with M3. Valid messages, so no strike.
         return;
     }
   }
@@ -527,11 +610,15 @@ export class RoomDO extends DurableObject<Env> {
     }
     this.buckets.delete(id);
     this.forgetIp(id);
+    // Leaving on purpose (or strikes) gives up a place at the jal spot; a dropped network keeps
+    // it for the resume window (spec 05 § Resume).
+    if (outcome === "free") this.leaveJal(id, Date.now());
     if (outcome === "hold") {
       const rec: ResumeRecord = {
         visitor: conn.a.visitor,
         place: conn.a.place,
         until: Date.now() + RESUME_WINDOW_MS,
+        ...(conn.a.offer ? { offer: conn.a.offer } : {}),
       };
       this.resumes.set(conn.a.token, rec);
       void this.ctx.storage.put(`resume:${conn.a.token}`, rec);
@@ -574,6 +661,64 @@ export class RoomDO extends DurableObject<Env> {
     } catch {
       // Already closed.
     }
+  }
+
+  // -------------------------------------------------------------------------------------------
+  // The jal spot (spec 03 § Offer water, bel patra or a flower)
+  // -------------------------------------------------------------------------------------------
+
+  /** Connected, or holding a resume place, so they may still come for their turn. */
+  private present(id: VisitorId): boolean {
+    if (this.conns.has(id)) return true;
+    const now = Date.now();
+    for (const r of this.resumes.values()) if (r.visitor.id === id && r.until > now) return true;
+    return false;
+  }
+
+  /** The turn passes on; the new holder hears so, and everyone waiting hears their place. */
+  private nextJalTurn(side: number, now: number): void {
+    const state = this.jal[side];
+    if (!state) return;
+    const turn = advance(state, (id) => this.present(id), now);
+    const holder = turn ? this.conns.get(turn.id) : undefined;
+    if (turn && holder) this.send(holder, { t: "jal.turn", req: turn.req, until: turn.until });
+    this.tellQueue(side);
+    this.saveJal();
+  }
+
+  private leaveJal(id: VisitorId, now: number): void {
+    const side = sideOf(this.jal, id);
+    const state = this.jal[side];
+    if (!state) return;
+    if (removeVisitor(state, id)) {
+      this.nextJalTurn(side, now);
+    } else {
+      this.tellQueue(side);
+      this.saveJal();
+    }
+  }
+
+  private tellQueue(side: number): void {
+    this.jal[side]?.queue.forEach((q, pos) => {
+      const c = this.conns.get(q.id);
+      if (c) this.send(c, { t: "jal.queue", pos });
+    });
+  }
+
+  /** After a resume: the visitor's turn or place in a queue, if they have one. */
+  private tellJal(conn: Conn): void {
+    const id = conn.a.visitor.id;
+    for (const state of this.jal) {
+      const t = state.turn;
+      if (t?.id === id) this.send(conn, { t: "jal.turn", req: t.req, until: t.until });
+      const pos = state.queue.findIndex((q) => q.id === id);
+      if (pos >= 0) this.send(conn, { t: "jal.queue", pos });
+    }
+  }
+
+  private saveJal(): void {
+    void this.ctx.storage.put("queues", { jal: this.jal });
+    void this.ensureAlarm();
   }
 
   // -------------------------------------------------------------------------------------------
@@ -752,6 +897,7 @@ export class RoomDO extends DurableObject<Env> {
   private nextAlarm(now: number): number | null {
     let next = Number.POSITIVE_INFINITY;
     for (const r of this.resumes.values()) next = Math.min(next, r.until);
+    for (const side of this.jal) if (side.turn) next = Math.min(next, side.turn.until);
     if (this.conns.size > 0) next = Math.min(next, now + ROOM_TICK_MS);
     if (this.counters) next = Math.min(next, this.counters.since + COUNTER_FLUSH_MS);
     // An instance that emptied still owes the directory its zero count.
@@ -775,8 +921,14 @@ export class RoomDO extends DurableObject<Env> {
       if (rec.until <= now) {
         this.resumes.delete(token);
         await this.ctx.storage.delete(`resume:${token}`);
+        // Their place at the jal spot goes with them (spec 05 § Abuse protection).
+        this.leaveJal(rec.visitor.id, now);
       }
     }
+    // A jal turn not finished in time passes to the next visitor on that side (spec 03).
+    this.jal.forEach((side, i) => {
+      if (side.turn && side.turn.until <= now) this.nextJalTurn(i, now);
+    });
     // Idle sweep: no message and no heartbeat for SERVER_IDLE_TIMEOUT_MS (spec 05 § Timers).
     for (const conn of [...this.conns.values()]) {
       const ping = this.ctx.getWebSocketAutoResponseTimestamp(conn.ws)?.getTime() ?? 0;

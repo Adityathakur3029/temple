@@ -8,8 +8,10 @@
 import "./hud.css";
 import {
   GESTURE_COOLDOWN_MS,
+  JAL_KINDS,
   nameLabel,
   type HallId,
+  type JalKind,
   type RoomsResponse,
   type TodayCounters,
   type Visitor,
@@ -20,12 +22,27 @@ import type { NetStatus } from "../net/connection";
 import type { SettingsStore } from "../platform/settings";
 import { TIERS } from "../platform/tier";
 
-export type ContextAction = "sit" | "stand" | "bell" | "wash";
+export type ContextAction =
+  | "sit"
+  | "stand"
+  | "bell"
+  | "wash"
+  | "whisper"
+  | "shringa"
+  | "shringa-back"
+  | "offer"
+  | "charanamrit";
+/** The jal spot's notice (spec 03): places ahead, the turn, or the cooldown refusal. */
+export type QueueNotice = { kind: "ahead"; n: number } | { kind: "turn" } | { kind: "cooldown" };
 export type RestKind = "other-tab" | "idle";
 export type Gesture = "namaste" | "pranam";
 
 export interface HudCallbacks {
   context(): void;
+  /** One of the three offerings at the jal spot (spec 03). */
+  offer(kind: JalKind): void;
+  /** "Leave queue" in the jal notice. */
+  leaveQueue(): void;
   darshan(): void;
   gesture(g: Gesture): void;
   /** A sheet opened or closed (input pauses while one is open). */
@@ -109,6 +126,9 @@ function iconButton(icon: string, label: StringKey, cls = "hud-btn"): HTMLButton
 export class Hud {
   private readonly root: HTMLElement;
   private readonly contextBtn: HTMLButtonElement;
+  /** Water, bel patra and a flower, shown instead of the context button near the jal spot. */
+  private readonly offers: HTMLElement;
+  private queue: QueueNotice | null = null;
   private readonly darshanBtn: HTMLButtonElement;
   private readonly gestureBtns: Record<Gesture, HTMLButtonElement>;
   private readonly hallChip: HTMLElement;
@@ -181,6 +201,21 @@ export class Hud {
     const bottom = el("div", { class: "hud-bottom" });
     this.contextBtn = el("button", { type: "button", class: "hud-btn hud-context", hidden: "" });
     this.contextBtn.addEventListener("click", () => cb.context());
+    this.offers = el("div", { class: "hud-offers", hidden: "" });
+    const offerLabels: Record<JalKind, StringKey> = {
+      water: "action.jal",
+      bilva: "action.bilva",
+      flower: "action.flower",
+    };
+    for (const kind of JAL_KINDS) {
+      const b = el("button", {
+        type: "button",
+        class: "hud-btn hud-context",
+        "data-t": offerLabels[kind],
+      });
+      b.addEventListener("click", () => cb.offer(kind));
+      this.offers.append(b);
+    }
     const dock = el("div", { class: "hud-dock", role: "toolbar", "data-t-label": "hud.dock" });
     const namaste = iconButton(PALMS, "action.namaste", "hud-btn hud-gesture");
     namaste.dataset.tLabel = "action.namaste_label";
@@ -197,7 +232,7 @@ export class Hud {
     this.meditateBtn.hidden = true;
     this.meditateBtn.addEventListener("click", () => cb.meditate());
     dock.append(namaste, pranam, this.darshanBtn, this.meditateBtn);
-    bottom.append(this.contextBtn, dock);
+    bottom.append(this.contextBtn, this.offers, dock);
 
     this.live = el("div", { class: "sr-only", "aria-live": "polite" });
     this.nameTag = el("div", { class: "name-tag", hidden: "", "aria-hidden": "true" });
@@ -223,7 +258,8 @@ export class Hud {
   setContext(action: ContextAction | null): void {
     if (action === this.context) return;
     this.context = action;
-    this.contextBtn.hidden = action === null;
+    this.contextBtn.hidden = action === null || action === "offer";
+    this.offers.hidden = action !== "offer";
     this.refreshContext();
   }
 
@@ -318,6 +354,19 @@ export class Hud {
     this.renderNotice();
   }
 
+  /** The jal spot's notice, after connection problems and before everything else (spec 07). */
+  setQueue(q: QueueNotice | null): void {
+    const same =
+      q === this.queue ||
+      (q !== null &&
+        this.queue !== null &&
+        q.kind === this.queue.kind &&
+        (q.kind !== "ahead" || (this.queue.kind === "ahead" && q.n === this.queue.n)));
+    if (same) return;
+    this.queue = q;
+    this.renderNotice();
+  }
+
   showLiteSuggestion(show: boolean): void {
     this.liteShown = show;
     this.renderNotice();
@@ -335,6 +384,21 @@ export class Hud {
           else this.openHalls();
         });
         this.notice.append(b);
+      }
+      this.notice.setAttribute("role", "status");
+    } else if (this.queue) {
+      const q = this.queue;
+      const text =
+        q.kind === "ahead"
+          ? t("queue.ahead", { n: q.n })
+          : t(q.kind === "turn" ? "queue.turn" : "jal.cooldown");
+      const line = el("p");
+      line.textContent = text;
+      this.notice.append(line);
+      if (q.kind === "ahead") {
+        const leave = el("button", { type: "button", "data-t": "queue.leave" });
+        leave.addEventListener("click", () => this.cb.leaveQueue());
+        this.notice.append(leave);
       }
       this.notice.setAttribute("role", "status");
     } else if (this.liteShown) {
@@ -438,6 +502,8 @@ export class Hud {
   }
 
   private refresh(): void {
+    // The queue notice is written with its number, so it is rebuilt in the new language.
+    if (this.queue) this.renderNotice();
     applyStrings(this.root);
     applyStrings(this.sheetEl);
     applyStrings(this.notice);
@@ -459,6 +525,11 @@ export class Hud {
       stand: "action.stand",
       bell: "action.bell",
       wash: "action.wash",
+      whisper: "action.whisper",
+      shringa: "action.shringa",
+      "shringa-back": "action.shringa_back",
+      offer: "action.jal",
+      charanamrit: "action.charanamrit",
     };
     this.contextBtn.textContent = t(key[this.context]);
   }

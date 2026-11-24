@@ -65,7 +65,7 @@ type VisitorId = string;                     // short, per instance, e.g. "k3"
 type Pose = "stand" | "walk" | "sit" | "pranam" | "japa" | "offer";
 const POSES: Pose[] = ["stand", "walk", "sit", "pranam", "japa", "offer"]; // index used in deltas
 type BellId = "gate" | `path-${1|2|3|4|5|6|7|8}` | "mandapa-n" | "mandapa-s";
-type Gesture = "namaste" | "pranam" | "aarti" | "prasad";
+type Gesture = "namaste" | "pranam" | "aarti" | "prasad" | "whisper" | "charanamrit";
 type TapId = `tap-${1|2|3|4|5}`;            // the washing trough's taps, nearest the gate first
 
 interface Visitor {                          // profile, sent once on join
@@ -89,22 +89,22 @@ Positions are rounded to 0.01 m and yaw to 0.01 rad by the sender. Coordinates a
 
 The order of `POSES` is part of the wire format, because `poseIndex` in `StateTuple` indexes it. Only append to it. Reordering or removing a pose is a breaking change.
 
-The same holds for two lists in `world.ts`: `mat` (in `StateTuple`, `sit` and `sit.ok`) indexes `MATS`, and `spot` (in `diya.turn`) indexes `DIYA_SPOT_POSITIONS`. Their order is fixed in [spec 02 § Greybox details](02-temple-world.md#greybox-details); changing it is a breaking change.
+The same holds for two lists in `world.ts`: `mat` (in `StateTuple`, `sit` and `sit.ok`) indexes `SEATS` (the 40 `MATS`, then the 14 `BENCH_SEATS`, 0 … `SEAT_COUNT` − 1; version 2), and `spot` (in `diya.turn`) indexes `DIYA_SPOT_POSITIONS`. Their order is fixed in [spec 02 § Greybox details](02-temple-world.md#greybox-details); changing it is a breaking change.
 
 ## Client → server messages
 
 | `t` | Fields | Purpose | Rate limit |
 |---|---|---|---|
 | `pos` | `x, z, yaw, pose: Pose` | Own position and pose; sent only when changed | `POS_MAX_HZ` (bucket burst 20) |
-| `gesture` | `g: Gesture` | Namaste, pranam, take aarti, prasad | 1 per `GESTURE_COOLDOWN_MS` |
+| `gesture` | `g: Gesture` | Namaste, pranam, take aarti, prasad, whisper to Nandi, charanamrit | 1 per `GESTURE_COOLDOWN_MS` |
 | `bell` | `bell: BellId` | Ring a bell in reach | 1 per `BELL_COOLDOWN_MS` |
 | `wash` | `tap: TapId` | Wash hands at a tap in reach | 1 per `WASH_COOLDOWN_MS` |
-| `sit` | `req, mat?` | Request a mat (nearest if omitted) | 1 per 1 s |
-| `stand` | — | Leave the mat | 1 per 1 s |
+| `sit` | `req, mat?` | Request a seat: a mat or a bench seat (the nearest free one if omitted: a mat in the mandapa, else a bench seat within `BENCH_SIT_NEAR_M`) | 1 per 1 s |
+| `stand` | — | Leave the seat | 1 per 1 s |
 | `diya.request` | `req` | Ask for a spot at the deepa stand | 1 per 1 s |
 | `diya.light` | `req` | Light the diya after arriving at the spot | 1 per 1 s |
 | `diya.cancel` | — | Leave the diya queue or spot | 1 per 1 s |
-| `jal.request` | `req, kind: "water" \| "bilva"` | Ask for the threshold spot | 1 per 1 s |
+| `jal.request` | `req, kind: "water" \| "bilva" \| "flower", side: "n" \| "s"` | Ask for one of the two threshold spots: north (`JAL_SPOTS[0]`) or south. Each side has its own turn and queue; a visitor waits or offers at one side at a time | 1 per 1 s |
 | `jal.done` | `req` | Finished pouring/offering | 1 per 1 s |
 | `jal.cancel` | — | Leave the jal queue or spot | 1 per 1 s |
 | `japa.mala` | — | Completed one mala of 108 | 1 per `JAPA_MALA_MIN_MS` |
@@ -121,7 +121,7 @@ Rate limits are token buckets per visitor and message type (`RATE_LIMITS` in `pa
 |---|---|---|
 | `welcome` | `v, you: Visitor, hall, instance, resume, serverTime, snapshot` | After the socket is accepted |
 | `delta` | `rev, at, join?: Visitor[], up?: StateTuple[], gone?: VisitorId[]` | At most `TICK_HZ` (or `LITE_TICK_HZ`), only when something changed |
-| `event` | `from, kind: "namaste"\|"pranam"\|"bell"\|"jal"\|"bilva"\|"aarti"\|"prasad"\|"wash", bell?, tap?` | Someone did a visible action (`bell` with kind `bell`, `tap` with kind `wash`) |
+| `event` | `from, kind: "namaste"\|"pranam"\|"bell"\|"jal"\|"bilva"\|"aarti"\|"prasad"\|"wash"\|"whisper"\|"flower"\|"charanamrit", bell?, tap?` | Someone did a visible action (`bell` with kind `bell`, `tap` with kind `wash`) |
 | `correct` | `x, z` | Your last position was not allowed. Snap or ease there |
 | `sit.ok` / `sit.no` | `req, mat` / `req` | Mat answer |
 | `diya.queue` | `pos` | Your place in the diya queue (0 = next) |
@@ -198,7 +198,7 @@ Any other code (1001, 1006 …) means: reconnect with the resume token, with bac
 ## Versioning
 
 - `PROTOCOL_VERSION` is an integer.
-- **Additive** changes (a new optional field, a new message the old client can ignore) don't bump it.
+- **Additive** changes (a new optional field, a new message the old client can ignore) don't bump it Appending a value to an enumeration (for example `GESTURES` or `EVENT_KINDS`) is additive: old clients ignore an event kind they don't know. An old server counts an unknown value from a client as a strike, so the Worker always deploys before the client.
 - **Breaking** changes (removed or renamed field, changed meaning or units, new required message) bump it.
 - When deploying a bump, the Worker deploys first. Old clients get `4002` and are asked to refresh (see the `release` skill).
 
@@ -214,7 +214,7 @@ Design and document it here before implementing. Don't base it on any other prod
 
 | Name | Value | Notes |
 |---|---|---|
-| `PROTOCOL_VERSION` | 1 | |
+| `PROTOCOL_VERSION` | 2 | 2: `mat` also numbers the bench seats (40 … 53) |
 | `HALL_COUNT` | 20 | `HALL_IDS` = `hall-01` … `hall-20` |
 | `INSTANCES_PER_HALL` | 8 | |
 | `INSTANCE_CAPACITY` | 50 | Set for low-end phones; see spec 10 |
@@ -227,7 +227,7 @@ Design and document it here before implementing. Don't base it on any other prod
 | `WALK_SPEED_MPS` | 1.3 | Client walking speed |
 | `SPEED_LIMIT_MPS` | 2.2 | Server tolerance before `correct` |
 | `MOVE_MAX_DT_MS` | 2000 | The longest gap the speed check allows for, so standing still never earns a long jump |
-| `SEAT_REACH_M` | 0.3 | `sit` pose only this close to the held mat |
+| `SEAT_REACH_M` | 0.3 | `sit` pose only this close to the held seat (a mat or a bench seat's spot) |
 | `SHAWL_COUNT` | 8 | `Visitor.shawl` is 0 … 7 |
 | `GESTURE_COOLDOWN_MS` | 1500 | |
 | `BELL_REACH_M` | 2.0 | Client shows the button inside this distance; the server allows +1 m |
@@ -235,6 +235,8 @@ Design and document it here before implementing. Don't base it on any other prod
 | `BELL_MAX_PER_SEC` | 2 | Per bell, across all visitors |
 | `TAP_REACH_M` | 1.2 | A visitor washes within this distance of a tap's spout (the client offers "Wash hands" from further out and walks there first, spec 03); the server allows +1 m |
 | `WASH_COOLDOWN_MS` | 6000 | Per visitor; the washing animation lasts 4 s |
+| `NANDI_EAR_REACH_M` | 1.0 | A visitor whispers to Nandi within this distance of an ear spot (spec 03); the server allows +1 m |
+| `SHRINGA_REACH_M` | 1.2 | The client offers darshan between Nandi's horns within this distance of the shringa spot (spec 03); local only, the server doesn't check it |
 | `JAPA_MALA_MIN_MS` | 60000 | Minimum time between counted malas |
 | `PRADAKSHINA_MAX_MS` | 600000 | A round must finish within 10 min |
 | `PRADAKSHINA_MODE` | `"half-somasutra"` | or `"full"`; see spec 02 |
@@ -244,7 +246,13 @@ Design and document it here before implementing. Don't base it on any other prod
 | `DIYA_TURN_TIMEOUT_MS` | 30000 | Time to reach the spot and light |
 | `JAL_COOLDOWN_MS` | 120000 | Per visitor |
 | `JAL_TURN_TIMEOUT_MS` | 30000 | |
+| `JAL_NEAR_M` | 3 | The client offers water, bel patra and a flower within this distance of the jal spot (spec 03); the server allows +1 m for `jal.request` and charanamrit |
+| `JAL_SPOT_REACH_M` | 1 | `jal.done` is accepted only this close to the jal spot of the side whose turn it is |
+| `CHARANAMRIT_WINDOW_MS` | 120000 | Charanamrit may be received this long after the visitor's own offering, once per offering |
 | `MAT_COUNT` | 40 | Two blocks of 20 |
+| `BENCH_SEAT_COUNT` | 14 | Two on each of the seven lawn benches |
+| `SEAT_COUNT` | 54 | Mats, then bench seats: the range of `mat` |
+| `BENCH_SIT_NEAR_M` | 4 | A bench seat is given only this close to its seat spot |
 | `AARTI_TIMES_IST` | `["06:00", "19:00"]` | |
 | `AARTI_BANNER_LEAD_MS` | 900000 | Banner 15 min before |
 | `AARTI_BELLS_LEAD_MS` | 120000 | Bells and "Go to the mandapa" 2 min before |

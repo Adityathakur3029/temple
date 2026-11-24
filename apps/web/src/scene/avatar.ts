@@ -15,12 +15,24 @@
  * and three devotional gestures: namaste (palms joined at the chest with a slight nod, 1.2 s),
  * pranam (a standing bow with joined palms raised to the forehead, 2.5 s) and ringing a bell
  * (reach up and strike, 0.8 s), and washing the hands at a tap (lean a little, cup the hands under
- * the spout and rub them, then shake the water off gently, 4 s). The rig has no running, jumping, dancing or emote motion at all.
+ * the spout and rub them, then shake the water off gently, 4 s), and whispering to Nandi (lean a
+ * little towards his ear with a hand cupped by the mouth, then join the palms and nod, 4 s), and
+ * at the jal spot (spec 03): pouring water from a small copper lota (8 s), laying a bel patra or
+ * a flower on the offering plate with a slight bow (4 s), and receiving charanamrit in cupped
+ * hands, raising them to the lips and passing the right hand over the head (3.5 s). The lota,
+ * leaf and flower are small props held between the hands. The rig has no running, jumping,
+ * dancing or emote motion at all.
  * M5 replaces this with the skinned asset and vertex animation textures (spec 11).
  */
 import {
   Bone,
   BufferAttribute,
+  CircleGeometry,
+  DoubleSide,
+  LatheGeometry,
+  Mesh,
+  MeshBasicMaterial,
+  Vector2,
   Color,
   CylinderGeometry,
   BufferGeometry,
@@ -62,10 +74,23 @@ const SWING = 0.5;
 const SIT_S = 0.9;
 
 export type Detail = "high" | "low";
-export type GestureAnim = "namaste" | "pranam" | "bell" | "wash";
+export type GestureAnim =
+  "namaste" | "pranam" | "bell" | "wash" | "whisper" | "pour" | "bilva" | "flower" | "charanamrit";
 
 /** Washing the hands at a tap (spec 03 § Wash hands). */
 export const WASH_S = 4;
+/** Whispering to Nandi (spec 03 § Whisper to Nandi): the lean, then joined palms and a nod. */
+export const WHISPER_S = 4;
+/** The lean lasts this long; the joined palms and the nod take the rest. */
+const WHISPER_LEAN_S = 3.1;
+/** Pouring water from the lota at the jal spot (spec 03). */
+export const POUR_S = 8;
+/** Laying a bel patra or a flower on the offering plate (spec 03). */
+export const LAY_S = 4;
+/** The leaf or flower leaves the hands this far into the gesture, onto the plate. */
+export const LAY_RELEASE_S = 2.3;
+/** Receiving charanamrit (spec 03). */
+export const CHARANAMRIT_S = 3.5;
 
 /** Gesture lengths in seconds (spec 03). */
 export const GESTURE_S: Readonly<Record<GestureAnim, number>> = {
@@ -73,7 +98,117 @@ export const GESTURE_S: Readonly<Record<GestureAnim, number>> = {
   pranam: 2.5,
   bell: 0.8,
   wash: WASH_S,
+  whisper: WHISPER_S,
+  pour: POUR_S,
+  bilva: LAY_S,
+  flower: LAY_S,
+  charanamrit: CHARANAMRIT_S,
 };
+
+/** `envelope` over the window [a, b] of the gesture's time. */
+function windowed(t: number, a: number, b: number, fade: number): number {
+  return envelope(t - a, b - a, fade, fade);
+}
+
+/**
+ * The small props held between the hands at the jal spot: a copper lota (with its stream while
+ * pouring), a trifoliate bel patra and a small white flower. Shared by every avatar; each avatar
+ * makes its own meshes only when it first needs them.
+ */
+let propParts: {
+  lota: LatheGeometry;
+  copper: MeshLambertMaterial;
+  stream: CylinderGeometry;
+  water: MeshBasicMaterial;
+  leaflet: CircleGeometry;
+  leaf: MeshLambertMaterial;
+  petal: CircleGeometry;
+  white: MeshLambertMaterial;
+  centre: CircleGeometry;
+  yellow: MeshLambertMaterial;
+} | null = null;
+
+function parts(): NonNullable<typeof propParts> {
+  propParts ??= {
+    // A round-bellied lota with a narrow neck and a lip, about 11 cm tall.
+    lota: new LatheGeometry(
+      [
+        [0, 0],
+        [0.035, 0.002],
+        [0.055, 0.03],
+        [0.058, 0.055],
+        [0.045, 0.08],
+        [0.028, 0.095],
+        [0.03, 0.105],
+        [0.036, 0.11],
+      ].map(([x, y]) => new Vector2(x, y)),
+      12,
+    ),
+    copper: new MeshLambertMaterial({ color: "#b4643c" }),
+    stream: new CylinderGeometry(0.006, 0.01, 1, 6, 1, true),
+    water: new MeshBasicMaterial({ color: "#cfe3ee", transparent: true, opacity: 0.55 }),
+    leaflet: new CircleGeometry(0.045, 8),
+    leaf: new MeshLambertMaterial({ color: "#4f7a32", side: DoubleSide }),
+    petal: new CircleGeometry(0.022, 6),
+    white: new MeshLambertMaterial({ color: "#f4f1e6", side: DoubleSide }),
+    centre: new CircleGeometry(0.012, 6),
+    yellow: new MeshLambertMaterial({ color: "#d9a520", side: DoubleSide }),
+  };
+  return propParts;
+}
+
+/** Shared prop geometry and materials, freed with the avatar cache. */
+function disposePropParts(): void {
+  if (!propParts) return;
+  for (const v of Object.values(propParts)) v.dispose();
+  propParts = null;
+}
+
+interface Props {
+  group: Group;
+  lota: Mesh;
+  stream: Mesh;
+  leaf: Group;
+  flower: Group;
+}
+
+function makeProps(): Props {
+  const P = parts();
+  const group = new Group();
+  const lota = new Mesh(P.lota, P.copper);
+  const stream = new Mesh(P.stream, P.water);
+  const leaf = new Group();
+  // A bel patra: three leaflets from one point, the middle one longest.
+  for (const [angle, len] of [
+    [0, 1.25],
+    [1.0, 1],
+    [-1.0, 1],
+  ] as const) {
+    const m = new Mesh(P.leaflet, P.leaf);
+    m.scale.set(0.55, len, 1);
+    m.rotation.set(-Math.PI / 2, 0, angle);
+    m.position.set(-Math.sin(angle) * 0.03 * len, 0, Math.cos(angle) * 0.03 * len);
+    leaf.add(m);
+  }
+  const flower = new Group();
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2;
+    const m = new Mesh(P.petal, P.white);
+    m.rotation.x = -Math.PI / 2;
+    m.position.set(Math.cos(a) * 0.022, 0, Math.sin(a) * 0.022);
+    flower.add(m);
+  }
+  const centre = new Mesh(P.centre, P.yellow);
+  centre.rotation.x = -Math.PI / 2;
+  centre.position.y = 0.002;
+  flower.add(centre);
+  group.add(lota, stream, leaf, flower);
+  group.visible = false;
+  return { group, lota, stream, leaf, flower };
+}
+
+const handL = new Vector3();
+const handR = new Vector3();
 
 interface Body {
   scale: number;
@@ -125,6 +260,13 @@ const SKIRT = -0.07;
 const FOOT_Z = 0.04;
 /** Hips above the mat when seated. */
 const SEATED_HIP = 0.12;
+/**
+ * On a bench (spec 03 § Sit on a bench): hips this high, so the thighs lie along the seat
+ * (BENCH_SEAT_TOP, 0.22 m) and the feet rest flat on the ground; and this far back from the
+ * visitor's seat spot, which is in front of the bench, so the figure sits on the slab.
+ */
+const BENCH_HIP = 0.27;
+const BENCH_BACK = 0.42;
 
 /**
  * Heights above the floor: the point the camera follows (a little below the middle of the head),
@@ -470,6 +612,7 @@ export function disposeAvatarCache(): void {
   geometryCache.clear();
   sharedMaterial?.dispose();
   sharedMaterial = null;
+  disposePropParts();
 }
 
 /** 0 → 1 → 0 over a gesture: eased in, held, eased out. */
@@ -512,9 +655,13 @@ export class Avatar {
   /** 0 standing … 1 seated. */
   sitBlend = 0;
   private sitTarget = 0;
+  /** Seated (or sitting down, or standing up) on a bench rather than a mat. */
+  private onBench = false;
   private walkAmount = 0;
   private time = 0;
   private gesture: { kind: GestureAnim; t: number } | null = null;
+  /** Lota, leaf and flower, made the first time this avatar offers at the jal spot. */
+  private props: Props | null = null;
 
   constructor(opts: { shawl: number; body: 0 | 1; detail?: Detail }) {
     this.bodyIndex = opts.body === 1 ? 1 : 0;
@@ -587,9 +734,13 @@ export class Avatar {
     this.mesh.geometry = avatarGeometry(this.bodyIndex, this.shawl, detail);
   }
 
-  /** Begin sitting down (true) or standing up (false). */
-  setSeated(seated: boolean): void {
+  /**
+   * Begin sitting down (true, or "bench" for a bench seat) or standing up (false). The kind of
+   * seat is kept while standing up, so the figure rises from where it sat.
+   */
+  setSeated(seated: boolean | "bench"): void {
     this.sitTarget = seated ? 1 : 0;
+    if (seated) this.onBench = seated === "bench";
   }
 
   /** True once the avatar has fully stood up (walking may start). */
@@ -628,6 +779,14 @@ export class Avatar {
     let pranam = 0;
     let bell = 0;
     let wash = 0;
+    let whisper = 0;
+    let pour = 0;
+    let tilt = 0;
+    let hold = 0;
+    let reach = 0;
+    let cup = 0;
+    let sip = 0;
+    let overHead = 0;
     let gt = 0;
     if (g) {
       g.t += dt;
@@ -637,7 +796,28 @@ export class Avatar {
       else if (g.kind === "namaste") namaste = envelope(g.t, length);
       else if (g.kind === "pranam") pranam = envelope(g.t, length, 0.5, 0.6);
       else if (g.kind === "wash") wash = envelope(g.t, length, 0.5, 0.5);
-      else bell = envelope(g.t, length, 0.2, 0.25);
+      else if (g.kind === "whisper") {
+        whisper = envelope(g.t, WHISPER_LEAN_S, 0.6, 0.5);
+        // The palms join as the hand leaves the mouth, and stay joined for the nod.
+        namaste =
+          g.t > WHISPER_LEAN_S - 0.5
+            ? envelope(g.t - (WHISPER_LEAN_S - 0.5), length - (WHISPER_LEAN_S - 0.5), 0.5, 0.3)
+            : 0;
+      } else if (g.kind === "pour") {
+        // Lota held in both hands, tipped towards the linga, then lowered; palms join at the end.
+        pour = envelope(g.t, length - 0.9, 0.8, 0.6);
+        tilt = windowed(g.t, 1.3, length - 1.8, 0.9);
+        namaste = windowed(g.t, length - 1.3, length, 0.35);
+      } else if (g.kind === "bilva" || g.kind === "flower") {
+        // Held at the chest, laid on the plate with a slight bow, then palms joined.
+        hold = envelope(g.t, LAY_RELEASE_S + 0.4, 0.4, 0.4);
+        reach = windowed(g.t, 1.0, LAY_RELEASE_S + 0.5, 0.6);
+        namaste = windowed(g.t, LAY_RELEASE_S + 0.4, length, 0.4);
+      } else if (g.kind === "charanamrit") {
+        cup = windowed(g.t, 0, 1.6, 0.4);
+        sip = windowed(g.t, 1.3, 2.3, 0.3);
+        overHead = windowed(g.t, 2.1, length, 0.4);
+      } else bell = envelope(g.t, length, 0.2, 0.25);
     }
     const palms = Math.max(namaste, pranam);
 
@@ -649,30 +829,59 @@ export class Avatar {
     const breath = Math.sin(this.time * 1.3) * 0.012;
     const { hips, spine, head, ul, fl, ur, fr, tl, sl, tr, sr } = this;
 
-    // Hips drop onto the mat when seated; a small bob while walking.
-    hips.position.y = lerp(HIP_HEIGHT - Math.abs(Math.cos(phase)) * 0.012 * w, SEATED_HIP, s);
+    // Hips drop onto the mat (or the bench) when seated; a small bob while walking.
+    const bench = this.onBench;
+    hips.position.y = lerp(
+      HIP_HEIGHT - Math.abs(Math.cos(phase)) * 0.012 * w,
+      bench ? BENCH_HIP : SEATED_HIP,
+      s,
+    );
+    hips.position.z = bench ? -BENCH_BACK * s : 0;
     // A standing bow leans forward from the hips; seated, only the head bows.
     const bow = pranam * (1 - s);
     spine.rotation.set(
-      breath + 0.42 * bow + 0.12 * pranam * s + 0.22 * wash,
+      breath +
+        0.42 * bow +
+        0.12 * pranam * s +
+        0.22 * wash +
+        0.16 * whisper +
+        0.1 * pour +
+        0.4 * reach +
+        0.12 * cup +
+        0.08 * overHead,
       Math.sin(phase) * 0.06 * w,
       0,
     );
     // Namaste: a slight nod in the middle of the gesture.
-    const nod = namaste * Math.sin(Math.min(1, gt / GESTURE_S.namaste) * Math.PI);
-    head.rotation.x = lerp(0.02, 0.08, s) + 0.2 * nod + 0.2 * pranam + 0.15 * wash;
-    this.skirt.scale.y = lerp(1, 0.35, s);
+    const nodT =
+      g?.kind === "whisper"
+        ? Math.max(0, gt - WHISPER_LEAN_S) / (WHISPER_S - WHISPER_LEAN_S)
+        : gt / GESTURE_S.namaste;
+    const nod = namaste * Math.sin(Math.min(1, nodT) * Math.PI);
+    // Whispering: the head lifts a little towards Nandi's ear and tilts to the cupped hand.
+    head.rotation.x = lerp(0.02, 0.08, s) + 0.2 * nod + 0.2 * pranam + 0.15 * wash - 0.12 * whisper;
+    head.rotation.z = -0.1 * whisper;
+    this.skirt.scale.y = lerp(1, bench ? 0.6 : 0.35, s);
 
     // Legs. Standing: swing with the stride. Seated: thighs forward and out, shins crossed (left
     // over right), feet lying along the shins with the soles down, never towards the sanctum.
     const swing = Math.sin(phase) * SWING * w;
     const kneeL = Math.max(0, Math.cos(phase)) * 0.75 * w;
     const kneeR = Math.max(0, -Math.cos(phase)) * 0.75 * w;
-    tl.rotation.set(lerp(-swing, -1.36, s), lerp(0, 0.95, s), 0);
-    tr.rotation.set(lerp(swing, -1.36, s), lerp(0, -0.95, s), 0);
-    sl.rotation.set(lerp(kneeL, -0.15, s), 0, lerp(0, -2.3, s));
-    sr.rotation.set(lerp(kneeR, 0.12, s), 0, lerp(0, 2.3, s));
-    this.footL.rotation.x = lerp(0, 1.4, s);
+    // On a bench: thighs along the seat, a little apart, shins straight down, feet flat on the
+    // ground with the soles down (spec 03 § Sit on a bench).
+    if (bench) {
+      tl.rotation.set(lerp(-swing, -1.45, s), lerp(0, 0.12, s), 0);
+      tr.rotation.set(lerp(swing, -1.45, s), lerp(0, -0.12, s), 0);
+      sl.rotation.set(lerp(kneeL, 1.45, s), 0, 0);
+      sr.rotation.set(lerp(kneeR, 1.45, s), 0, 0);
+    } else {
+      tl.rotation.set(lerp(-swing, -1.36, s), lerp(0, 0.95, s), 0);
+      tr.rotation.set(lerp(swing, -1.36, s), lerp(0, -0.95, s), 0);
+      sl.rotation.set(lerp(kneeL, -0.15, s), 0, lerp(0, -2.3, s));
+      sr.rotation.set(lerp(kneeR, 0.12, s), 0, lerp(0, 2.3, s));
+    }
+    this.footL.rotation.x = bench ? 0 : lerp(0, 1.4, s);
     this.footR.rotation.x = this.footL.rotation.x;
 
     // Arms. Standing: hang and swing opposite the legs. Seated: hands rest in the lap.
@@ -733,6 +942,66 @@ export class Avatar {
       flz = lerp(flz, -0.35 + rub, wash);
       frz = lerp(frz, 0.35 + rub, wash);
     }
+    // Whispering: the right hand cupped beside the mouth, the left resting at the chest. Still and
+    // quiet; the hand never reaches out to touch Nandi.
+    if (whisper > 0) {
+      const N = NAMASTE_POSE;
+      urx = lerp(urx, -1.15, whisper);
+      urz = lerp(urz, 0.02, whisper);
+      frx = lerp(frx, -1.55, whisper);
+      frz = lerp(frz, 0.75, whisper);
+      ulx = lerp(ulx, N.upper[0], whisper);
+      ulz = lerp(ulz, N.upper[1], whisper);
+      flx = lerp(flx, N.fore[0], whisper);
+      flz = lerp(flz, N.fore[1] + this.body.palmsOut, whisper);
+    }
+    // Pouring: both hands round the lota in front of the chest, raised a little as it tips.
+    if (pour > 0) {
+      const up = 0.15 * tilt;
+      ulx = lerp(ulx, -1.0 - up, pour);
+      urx = lerp(urx, -1.0 - up, pour);
+      ulz = lerp(ulz, -0.3, pour);
+      urz = lerp(urz, 0.3, pour);
+      flx = lerp(flx, -0.75, pour);
+      frx = lerp(frx, -0.75, pour);
+      flz = lerp(flz, -0.45, pour);
+      frz = lerp(frz, 0.45, pour);
+    }
+    // Laying a leaf or flower: held together at the chest, then lowered forward onto the plate.
+    if (hold > 0) {
+      const ux = lerp(-0.8, -0.55, reach);
+      const fx = lerp(-1.0, -0.25, reach);
+      ulx = lerp(ulx, ux, hold);
+      urx = lerp(urx, ux, hold);
+      ulz = lerp(ulz, -0.3, hold);
+      urz = lerp(urz, 0.3, hold);
+      flx = lerp(flx, fx, hold);
+      frx = lerp(frx, fx, hold);
+      flz = lerp(flz, -0.5, hold);
+      frz = lerp(frz, 0.5, hold);
+    }
+    // Charanamrit: cupped hands receive the drops, are raised to the lips, then the right hand
+    // passes lightly over the head while the left lowers.
+    if (cup > 0 || sip > 0) {
+      const w = Math.max(cup, sip);
+      const ux = lerp(-0.95, -1.2, sip);
+      const fx = lerp(-0.5, -1.5, sip);
+      const fz = lerp(0.35, 0.6, sip);
+      ulx = lerp(ulx, ux, w);
+      urx = lerp(urx, ux, w);
+      ulz = lerp(ulz, -0.28, w);
+      urz = lerp(urz, 0.28, w);
+      flx = lerp(flx, fx, w);
+      frx = lerp(frx, fx, w);
+      flz = lerp(flz, -fz, w);
+      frz = lerp(frz, fz, w);
+    }
+    if (overHead > 0) {
+      urx = lerp(urx, -2.55, overHead);
+      urz = lerp(urz, 0.25, overHead);
+      frx = lerp(frx, -1.25, overHead);
+      frz = lerp(frz, 0.7, overHead);
+    }
     ul.rotation.set(ulx, 0, ulz);
     ur.rotation.set(urx, 0, urz);
     fl.rotation.set(flx, 0, flz);
@@ -741,6 +1010,51 @@ export class Avatar {
     this.hr.rotation.set(wx, -wy, -wz);
     this.rootBone.updateMatrixWorld(true);
     this.poseDirty = true;
+    this.updateProps(g?.kind ?? null, gt, tilt);
+  }
+
+  /** The lota, leaf or flower between the hands, while one is in use. */
+  private updateProps(kind: GestureAnim | null, t: number, tilt: number): void {
+    const showLota = kind === "pour";
+    const showItem = (kind === "bilva" || kind === "flower") && t < LAY_RELEASE_S;
+    if (!showLota && !showItem) {
+      if (this.props) this.props.group.visible = false;
+      return;
+    }
+    if (!this.props) {
+      this.props = makeProps();
+      this.root.add(this.props.group);
+    }
+    const pr = this.props;
+    // Midway between the hands, in the avatar's own space (it faces +z).
+    // The bones were just updated under the root; only the root's own matrix may be stale.
+    this.root.updateWorldMatrix(true, false);
+    this.rootBone.updateMatrixWorld(true);
+    handL.setFromMatrixPosition(this.hl.matrixWorld);
+    handR.setFromMatrixPosition(this.hr.matrixWorld);
+    this.root.worldToLocal(handL);
+    this.root.worldToLocal(handR);
+    handL.add(handR).multiplyScalar(0.5);
+    pr.group.visible = true;
+    pr.group.position.copy(handL);
+    pr.group.scale.setScalar(1 / this.root.scale.x);
+    pr.lota.visible = showLota;
+    pr.stream.visible = showLota && tilt > 0.6;
+    pr.leaf.visible = showItem && kind === "bilva";
+    pr.flower.visible = showItem && kind === "flower";
+    if (showLota) {
+      // Held by its belly, tipped forward (towards +z) as the water pours.
+      pr.lota.position.set(0, -0.05, 0.05);
+      pr.lota.rotation.set(1.25 * tilt, 0, 0);
+      // A thin stream from the lip down towards the floor in front.
+      const len = 0.55;
+      pr.stream.scale.set(1, len, 1);
+      pr.stream.position.set(0, -0.02 - len / 2, 0.17);
+    }
+    if (showItem) {
+      pr.leaf.position.set(0, 0.01, 0.04);
+      pr.flower.position.set(0, 0.01, 0.04);
+    }
   }
 
   dispose(): void {

@@ -3,6 +3,7 @@ import {
   CLIENT_MESSAGE_TYPES,
   MAT_COUNT,
   MAX_CLIENT_MESSAGE_BYTES,
+  SEAT_COUNT,
   decodeClientMessage,
   isClientMessage,
   isHallId,
@@ -16,6 +17,9 @@ const VALID: ClientMessage[] = [
   { t: "pos", x: 0, z: 58, yaw: -1.57, pose: "sit" },
   { t: "gesture", g: "namaste" },
   { t: "gesture", g: "prasad" },
+  { t: "gesture", g: "whisper" },
+  { t: "gesture", g: "charanamrit" },
+  { t: "jal.request", req: 3, kind: "flower", side: "n" },
   { t: "bell", bell: "gate" },
   { t: "bell", bell: "path-8" },
   { t: "bell", bell: "mandapa-s" },
@@ -24,12 +28,13 @@ const VALID: ClientMessage[] = [
   { t: "sit", req: 1 },
   { t: "sit", req: 2, mat: 0 },
   { t: "sit", req: 3, mat: MAT_COUNT - 1 },
+  { t: "sit", req: 4, mat: SEAT_COUNT - 1 }, // the last bench seat
   { t: "stand" },
   { t: "diya.request", req: 0 },
   { t: "diya.light", req: 7 },
   { t: "diya.cancel" },
-  { t: "jal.request", req: 4, kind: "water" },
-  { t: "jal.request", req: 5, kind: "bilva" },
+  { t: "jal.request", req: 4, kind: "water", side: "n" },
+  { t: "jal.request", req: 5, kind: "bilva", side: "n" },
   { t: "jal.done", req: 5 },
   { t: "jal.cancel" },
   { t: "japa.mala" },
@@ -64,13 +69,13 @@ const INVALID: [string, unknown][] = [
   ["sit no req", { t: "sit" }],
   ["sit negative req", { t: "sit", req: -1 }],
   ["sit fractional req", { t: "sit", req: 1.5 }],
-  ["sit mat too high", { t: "sit", req: 1, mat: MAT_COUNT }],
+  ["sit mat too high", { t: "sit", req: 1, mat: SEAT_COUNT }],
   ["sit mat negative", { t: "sit", req: 1, mat: -1 }],
   ["sit mat null", { t: "sit", req: 1, mat: null }],
   ["sit fractional mat", { t: "sit", req: 1, mat: 1.5 }],
   ["diya.request unsafe req", { t: "diya.request", req: 2 ** 53 }],
   ["jal.request no kind", { t: "jal.request", req: 1 }],
-  ["jal.request bad kind", { t: "jal.request", req: 1, kind: "milk" }],
+  ["jal.request bad kind", { t: "jal.request", req: 1, kind: "milk", side: "n" }],
   ["time negative", { t: "time", c: -5 }],
   ["time string", { t: "time", c: "now" }],
 ];
@@ -123,7 +128,21 @@ function rng(seed: number): () => number {
 
 function randomJson(r: () => number, depth = 0): unknown {
   const pick = Math.floor(r() * (depth > 2 ? 5 : 7));
-  const keys = ["t", "x", "z", "yaw", "pose", "req", "mat", "kind", "g", "bell", "tap", "c", "__proto__"];
+  const keys = [
+    "t",
+    "x",
+    "z",
+    "yaw",
+    "pose",
+    "req",
+    "mat",
+    "kind",
+    "g",
+    "bell",
+    "tap",
+    "c",
+    "__proto__",
+  ];
   const strings = [...CLIENT_MESSAGE_TYPES, "walk", "gate", "water", "namaste", "", "ॐ"];
   switch (pick) {
     case 0:

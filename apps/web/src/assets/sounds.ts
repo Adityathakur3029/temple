@@ -8,7 +8,13 @@
  *   and meditation): the day and night background, and the visitor's own meditation.
  */
 
-export const SOUND_IDS = ["bell", "background-day", "background-night", "meditation"] as const;
+export const SOUND_IDS = [
+  "bell",
+  "pour",
+  "background-day",
+  "background-night",
+  "meditation",
+] as const;
 export type SoundId = (typeof SOUND_IDS)[number];
 
 export type SoundChannel = "ambience" | "effects" | "chant";
@@ -87,6 +93,17 @@ export const SOUNDS: Readonly<Record<SoundId, SoundSpec>> = {
     format: EFFECT_FORMAT,
     maxVoices: 4,
     maxVariants: 3,
+    maxSeconds: 8,
+    pitchJitter: 0.03,
+    onDemand: false,
+  },
+  pour: {
+    label: "Water poured softly from a small copper lota",
+    kind: "effect",
+    channel: "effects",
+    format: EFFECT_FORMAT,
+    maxVoices: 2,
+    maxVariants: 2,
     maxSeconds: 8,
     pitchJitter: 0.03,
     onDemand: false,

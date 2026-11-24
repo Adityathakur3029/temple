@@ -7,6 +7,7 @@ import {
   RECONNECT_JITTER_MS,
   RECONNECT_MAX_MS,
   RESUME_WINDOW_MS,
+  PROTOCOL_VERSION,
   SPAWN,
   type RoomsResponse,
   type ServerMessage,
@@ -83,7 +84,7 @@ class FakeSocket implements SocketLike {
 function welcome(over: Partial<WelcomeMessage> = {}): WelcomeMessage {
   return {
     t: "welcome",
-    v: 1,
+    v: PROTOCOL_VERSION,
     you: { id: "k3", name: { key: "deodar", n: 214 }, shawl: 2, body: 1, joinedAt: 1 },
     hall: "hall-03",
     instance: 1,
@@ -185,7 +186,7 @@ describe("Connection", () => {
   it("connects, keeps the resume token, samples the clock and sends heartbeats", () => {
     const { time, store, conn, last, statuses, welcomes } = setup();
     conn.start("hall-03");
-    expect(last().url).toBe("ws://rt.test/ws?hall=hall-03&v=1");
+    expect(last().url).toBe(`ws://rt.test/ws?hall=hall-03&v=${PROTOCOL_VERSION}`);
     last().receive(welcome());
     expect(statuses).toContain("online");
     expect(welcomes).toHaveLength(1);
@@ -311,7 +312,7 @@ describe("Connection", () => {
     conn.switchHall("hall-07");
     expect(ws.sent).toContain('{"t":"leave"}');
     expect(ws.closedWith).toBe(1000);
-    expect(last().url).toBe("ws://rt.test/ws?hall=hall-07&v=1");
+    expect(last().url).toBe(`ws://rt.test/ws?hall=hall-07&v=${PROTOCOL_VERSION}`);
     expect(store.getItem(RESUME_KEY)).toBe("");
   });
 
@@ -440,7 +441,7 @@ describe("PosSender", () => {
 
 describe("hall choice (spec 04 § Room list)", () => {
   const rooms = (counts: number[]): RoomsResponse => ({
-    v: 1,
+    v: PROTOCOL_VERSION,
     serverTime: 0,
     today: { date: "2026-11-04", diyas: 0, malas: 0, parikramas: 0, visits: 0 },
     halls: counts.map((count, i) => ({

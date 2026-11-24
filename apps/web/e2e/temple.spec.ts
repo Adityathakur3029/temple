@@ -16,7 +16,7 @@ interface State {
   walking: boolean;
   blocked: string | null;
   inMandapa: boolean;
-  camera: { mode: "orbit" | "darshan"; x: number; y: number; z: number };
+  camera: { mode: "orbit" | "darshan" | "shringa"; x: number; y: number; z: number };
   activity: string;
   owner: boolean;
   looping: boolean;
@@ -185,6 +185,30 @@ test("the darshan view looks from the mandapa, and a drag returns to the orbit c
   await page.mouse.move(cx + 80, cy, { steps: 5 });
   await page.mouse.up();
   await expect.poll(async () => (await state(page)).camera.mode).toBe("orbit");
+});
+
+test("darshan between Nandi's horns: from behind Nandi, closed by a move (spec 03)", async ({
+  page,
+}) => {
+  await open(page);
+  await walkTo(page, 0.6, 24.4);
+  const button = page.getByRole("button", { name: "Darshan between Nandi's horns" });
+  await expect(button).toBeVisible();
+  await button.click();
+  await expect.poll(async () => (await state(page)).camera.mode).toBe("shringa");
+  // The visitor stands on the spot behind Nandi; the camera lands behind his head, on the axis.
+  await expect
+    .poll(async () => Math.abs((await state(page)).camera.z - 23.3), { timeout: 20_000 })
+    .toBeLessThan(0.05);
+  const s = await state(page);
+  expect(Math.hypot(s.x, s.z - 23.6)).toBeLessThan(0.35);
+  expect(s.blocked).toBeNull();
+  expect(Math.abs(s.camera.x)).toBeLessThan(0.05);
+  await expect(page.getByRole("button", { name: "Back" })).toBeVisible();
+  // A move returns to the orbit camera.
+  await page.keyboard.down("KeyS");
+  await expect.poll(async () => (await state(page)).camera.mode).toBe("orbit");
+  await page.keyboard.up("KeyS");
 });
 
 test.describe("Hindi", () => {

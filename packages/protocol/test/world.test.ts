@@ -74,6 +74,16 @@ import {
   type Point,
   type Rect,
   type Shape,
+  type Spot,
+  JAL_SIDES,
+  JAL_SPOTS,
+  LAY_SPOTS,
+  OFFERING_PLATES,
+  OFFERING_BENCHES,
+  PICK_SPOTS,
+  TIRTHA_POTS,
+  CHARANAMRIT_SPOTS,
+  nearestJalSide,
 } from "../src/index";
 import { readSpec, section, tableRows } from "./spec";
 
@@ -456,6 +466,60 @@ describe("ritual spots", () => {
     expect(clearFor(CHARANAMRIT_SPOT)).toBe(true);
     expect(distance(CHARANAMRIT_SPOT, JAL_SPOT)).toBeLessThan(JAL_NEAR_M);
     expect(CHARANAMRIT_SPOT.yaw).toBeCloseTo(yawTowards(CHARANAMRIT_SPOT, TIRTHA_POT));
+  });
+
+  it("keeps every per-side list in JAL_SIDES order, north (x > 0) first, and mirrored", () => {
+    const lists = {
+      JAL_SPOTS,
+      LAY_SPOTS,
+      OFFERING_PLATES,
+      OFFERING_BENCHES,
+      PICK_SPOTS,
+      TIRTHA_POTS,
+      CHARANAMRIT_SPOTS,
+    };
+    for (const [name, list] of Object.entries(lists)) {
+      expect(list, name).toHaveLength(JAL_SIDES.length);
+      const [n, s] = list as [Point, Point];
+      expect(n.x, name).toBeGreaterThan(0);
+      expect(s.x, name).toBeCloseTo(-n.x);
+      expect(s.z, name).toBeCloseTo(n.z);
+    }
+  });
+
+  it("gives each side its own clear spots, in the mandapa and off the axis", () => {
+    for (let i = 0; i < JAL_SIDES.length; i++) {
+      const jal = JAL_SPOTS[i] as Spot;
+      for (const p of [
+        jal,
+        LAY_SPOTS[i] as Point,
+        PICK_SPOTS[i] as Point,
+        CHARANAMRIT_SPOTS[i] as Point,
+      ]) {
+        expect(clearFor(p), JSON.stringify(p)).toBe(true);
+        expect(inShape(MANDAPA, p.x, p.z)).toBe(true);
+        expect(Math.abs(p.x)).toBeGreaterThan(NANDI_AXIS.x1 + 0.25);
+      }
+      expect(distance(LAY_SPOTS[i] as Point, jal)).toBeLessThan(JAL_SPOT_REACH_M);
+      expect(distance(CHARANAMRIT_SPOTS[i] as Point, jal)).toBeLessThan(JAL_NEAR_M);
+      expect(isWalkable((TIRTHA_POTS[i] as Point).x, (TIRTHA_POTS[i] as Point).z)).toBe(false);
+      expect(nearestJalSide(jal)).toBe(i);
+    }
+  });
+
+  it("lets a visitor walk pick spot → lay spot → jal spot on each side, without the stand in the way", () => {
+    for (let i = 0; i < JAL_SIDES.length; i++) {
+      const pick = PICK_SPOTS[i] as Point;
+      const lay = LAY_SPOTS[i] as Point;
+      const jal = JAL_SPOTS[i] as Point;
+      const charanamrit = CHARANAMRIT_SPOTS[i] as Point;
+      // The client walks round obstacles; what matters is that a route exists via a waypoint.
+      const via = { x: (pick.x + jal.x) / 2, z: pick.z + 0.3 };
+      expect(segmentBlocked(pick, via), `side ${i} pick → via`).toBeNull();
+      expect(segmentBlocked(via, jal), `side ${i} via → jal`).toBeNull();
+      expect(segmentBlocked(jal, lay), `side ${i} jal → lay`).toBeNull();
+      expect(segmentBlocked(jal, charanamrit), `side ${i} jal → charanamrit`).toBeNull();
+    }
   });
 
   it("puts an ear spot beside Nandi's head on each side, off the axis, facing his head", () => {

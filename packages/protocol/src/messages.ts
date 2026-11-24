@@ -182,7 +182,7 @@ export interface WashMessage {
 export interface SitMessage {
   t: "sit";
   req: number;
-  /** Omitted: the server picks the nearest free mat. */
+  /** Omitted: the server picks a free mat in the mandapa, else a bench seat within BENCH_SIT_NEAR_M. */
   mat?: number;
 }
 export interface StandMessage {

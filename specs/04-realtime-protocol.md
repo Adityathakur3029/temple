@@ -89,7 +89,7 @@ Positions are rounded to 0.01 m and yaw to 0.01 rad by the sender. Coordinates a
 
 The order of `POSES` is part of the wire format, because `poseIndex` in `StateTuple` indexes it. Only append to it. Reordering or removing a pose is a breaking change.
 
-The same holds for two lists in `world.ts`: `mat` (in `StateTuple`, `sit` and `sit.ok`) indexes `SEATS` (the 40 `MATS`, then the 14 `BENCH_SEATS`, 0 … `SEAT_COUNT` − 1; version 2), and `spot` (in `diya.turn`) indexes `DIYA_SPOT_POSITIONS`. Their order is fixed in [spec 02 § Greybox details](02-temple-world.md#greybox-details); changing it is a breaking change.
+The same holds for two lists in `world.ts`: `mat` (in `StateTuple`, `sit` and `sit.ok`) indexes `SEATS` (the 40 `MATS`, then the 14 `BENCH_SEATS`, 0 … `SEAT_COUNT` − 1; version 2), and `spot` (in `diya.turn`) indexes `DIYA_SPOT_POSITIONS`. `JAL_SIDES` (`"n"`, `"s"`) is in the same order as `JAL_SPOTS`, `LAY_SPOTS`, `OFFERING_PLATES`, `TIRTHA_POTS` and `CHARANAMRIT_SPOTS` (north, x > 0, first), and the server stores the jal queues in that order. Their order is fixed in [spec 02 § Greybox details](02-temple-world.md#greybox-details); changing it is a breaking change.
 
 ## Client → server messages
 
@@ -143,7 +143,7 @@ interface Snapshot {
   visitors: Visitor[];
   states: StateTuple[];
   lamps: Lamp[];
-  queues: { diya: number; jal: number };      // lengths only
+  queues: { diya: number; jal: number };      // lengths only; jal is the total waiting across both jal sides (turns not counted)
   today: TodayCounters;
 }
 ```
@@ -214,7 +214,7 @@ Design and document it here before implementing. Don't base it on any other prod
 
 | Name | Value | Notes |
 |---|---|---|
-| `PROTOCOL_VERSION` | 2 | 2: `mat` also numbers the bench seats (40 … 53) |
+| `PROTOCOL_VERSION` | 2 | 2: `mat` also numbers the bench seats (40 … 53), and `jal.request` requires `side` (`"n"` or `"s"`). Not released to production; staging clients from before `side` must reload |
 | `HALL_COUNT` | 20 | `HALL_IDS` = `hall-01` … `hall-20` |
 | `INSTANCES_PER_HALL` | 8 | |
 | `INSTANCE_CAPACITY` | 50 | Set for low-end phones; see spec 10 |

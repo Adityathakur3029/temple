@@ -65,7 +65,9 @@ The temple is interactive after P0. Later priorities load in the background and 
 
 **Models in asset slots** (spec 11 § Slots), summed over every copy, stay within 100k triangles and 60 MB of GPU textures with Lite models, and 220k triangles and 100 MB with Full models. The rest of each budget is for avatars, the greybox, the sky and shadows. `npm run check` adds them up from the asset manifest; GPU memory is estimated at 8 bits per pixel with mipmaps.
 
-**The lighter scene:** Lite mode and Low phones get Lite models and 90 trees: the 12 nearest the paths (the `near-tree` slot) and the 78 others nearest the temple. Texture decoding uses 1 worker on Low and 2 elsewhere, and the decoders are freed once every model has loaded.
+**Textures drawn in code** (canvas, uncompressed RGBA, so 4 bytes per pixel plus mipmaps) count towards the GPU texture memory above. Full / Lite sizes: the gate path slabs and the pradakshina slate 1024 × 2048 / 512 × 1024 each, the yard stone 512² / 256², the grass 512² / 256², the sanctum paintings 1024² / 512² and the wall friezes 2048 × 512 / 1024 × 256. On Lite these use plain filtering (no anisotropy), and the painting canvases are released once uploaded.
+
+**The lighter scene:** Lite mode and Low phones get Lite models and 90 trees: the 12 nearest the paths (the `near-tree` slot) and the 78 others nearest the temple. The kund water keeps its slow waves but drops the drop rings. Texture decoding uses 1 worker on Low and 2 elsewhere, and the decoders are freed once every model has loaded.
 
 ### Techniques the budgets assume
 

@@ -7,6 +7,7 @@ import {
   GESTURE_COOLDOWN_MS,
   POS_MAX_HZ,
   POSES,
+  RATE_LIMITS,
   roundCm,
   roundYaw,
   type BellId,
@@ -37,8 +38,12 @@ import { chooseHall, fetchRooms } from "./rooms";
 export const POS_GAP_MS = 1000 / POS_MAX_HZ + 5;
 /** Lite sends its place at most about 7 times a second, so upstream stays under 0.5 KB/s (spec 10). */
 export const LITE_POS_GAP_MS = 1000 / 7 + 5;
+/** A margin over the server's rate limits, so timer jitter never trips its bucket. */
+const LIMIT_MARGIN_MS = 100;
 /** `sit` and `stand` go at least this far apart: the server allows one of each per second. */
-export const MAT_MSG_GAP_MS = 1100;
+export const MAT_MSG_GAP_MS = Math.max(RATE_LIMITS.sit.everyMs, RATE_LIMITS.stand.everyMs) + LIMIT_MARGIN_MS;
+
+type JalMessage = Extract<ClientMessage, { t: "jal.request" | "jal.done" | "jal.cancel" }>;
 /** A mat request with no answer by then counts as refused. */
 export const SIT_TIMEOUT_MS = 4000;
 
@@ -116,6 +121,10 @@ export class Session {
   private gestureTimer: number | null = null;
   private readonly gestureQueue: Gesture[] = [];
   private matTimer: number | null = null;
+  /** `jal.*` waiting for their turn, each type spaced by its own rate limit. */
+  private readonly jalQueue: JalMessage[] = [];
+  private readonly lastJalAt = new Map<JalMessage["t"], number>();
+  private jalTimer: number | null = null;
   private readonly now: () => number;
   private readonly timers: Timers;
 
@@ -237,16 +246,44 @@ export class Session {
 
   /** Asks for the jal spot (spec 03). Returns the request number the replies carry, or null offline. */
   jalRequest(kind: JalKind, side: JalSide): number | null {
+    if (!this.online) return null;
     const req = this.req++;
-    return this.conn.send({ t: "jal.request", req, kind, side }) ? req : null;
+    this.queueJal({ t: "jal.request", req, kind, side });
+    return req;
   }
 
   jalDone(req: number): void {
-    this.conn.send({ t: "jal.done", req });
+    if (this.online) this.queueJal({ t: "jal.done", req });
   }
 
   jalCancel(): void {
-    this.conn.send({ t: "jal.cancel" });
+    // Walking away and pressing Esc both cancel: one is enough.
+    if (!this.online || this.jalQueue.some((m) => m.t === "jal.cancel")) return;
+    this.queueJal({ t: "jal.cancel" });
+  }
+
+  /** Spaces each `jal.*` type out by its rate limit, so quick changes never earn a strike. */
+  private queueJal(msg: JalMessage): void {
+    this.jalQueue.push(msg);
+    this.drainJal();
+  }
+
+  private drainJal(): void {
+    if (this.jalTimer !== null) return;
+    const msg = this.jalQueue[0];
+    if (!msg) return;
+    const last = this.lastJalAt.get(msg.t) ?? Number.NEGATIVE_INFINITY;
+    const wait = last + RATE_LIMITS[msg.t].everyMs + LIMIT_MARGIN_MS - this.now();
+    if (wait > 0) {
+      this.jalTimer = this.timers.set(() => {
+        this.jalTimer = null;
+        this.drainJal();
+      }, wait);
+      return;
+    }
+    this.jalQueue.shift();
+    if (this.conn.send(msg)) this.lastJalAt.set(msg.t, this.now());
+    this.drainJal();
   }
 
   /**
@@ -361,13 +398,22 @@ export class Session {
     }
   }
 
-  /** Requests in flight when the socket goes away are answered as refused; queued ones are dropped. */
+  /**
+   * Requests in flight when the socket goes away are answered as refused; queued ones are dropped
+   * (a waiting gesture or jal message would mean nothing on the next socket, or after dispose).
+   */
   private failPending(): void {
     const pending = [...this.pendingSit.values()];
     this.pendingSit.clear();
     this.matQueue.length = 0;
     if (this.matTimer !== null) this.timers.clear(this.matTimer);
     this.matTimer = null;
+    this.gestureQueue.length = 0;
+    if (this.gestureTimer !== null) this.timers.clear(this.gestureTimer);
+    this.gestureTimer = null;
+    this.jalQueue.length = 0;
+    if (this.jalTimer !== null) this.timers.clear(this.jalTimer);
+    this.jalTimer = null;
     for (const done of pending) done(null);
   }
 }

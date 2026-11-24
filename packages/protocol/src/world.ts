@@ -209,7 +209,7 @@ export const BENCH_SEAT_TOP = 0.22;
 export const BENCH_SEAT_FRONT = 0.52;
 /**
  * The seat spots: two per bench, 0.4 m either side of its centre (the −x one first), in front of
- * it, facing the temple. Seat numbers MAT_COUNT … MAT_COUNT + 7 (spec 03 § Sit on a bench). A
+ * it, facing the temple. Seat numbers MAT_COUNT … MAT_COUNT + 13 (spec 03 § Sit on a bench). A
  * seated figure is drawn on the slab behind its spot.
  */
 export const BENCH_SEATS: readonly Spot[] = BENCHES.flatMap((b) =>
@@ -385,10 +385,16 @@ export const OFFERING_PLATES: readonly Point[] = [
 export const OFFERING_PLATE: Point = OFFERING_PLATES[0] as Point;
 export const OFFERING_PLATE_RADIUS = 0.18;
 /**
- * The small copper tirtha pot with its spoon, on a small stone stand beside the north jal spot,
- * where charanamrit is received (spec 03 § Receive charanamrit).
+ * The two small copper tirtha pots with their spoons, each on a small stone stand beside its jal
+ * spot (north first, then its mirror), where charanamrit is received (spec 03 § Receive
+ * charanamrit). One each side, so nobody crosses the Nandi axis for it (owner, 2026-11-24).
  */
-export const TIRTHA_POT: Point = { x: 2.75, z: 3.4 };
+export const TIRTHA_POTS: readonly Point[] = [
+  { x: 2.75, z: 3.4 },
+  { x: -2.75, z: 3.4 },
+];
+/** The north tirtha pot (the first of TIRTHA_POTS). */
+export const TIRTHA_POT: Point = TIRTHA_POTS[0] as Point;
 /** The tirtha pot's stand, kept clear like the plate (the stand itself is 0.13 m in radius). */
 export const TIRTHA_STAND_RADIUS = 0.15;
 /**
@@ -400,12 +406,13 @@ export const LAY_SPOTS: readonly Point[] = [
   { x: -1.82, z: 3.25 },
 ];
 export const LAY_SPOT: Point = LAY_SPOTS[0] as Point;
-/** Where a visitor stands to receive charanamrit, facing the tirtha pot. */
-export const CHARANAMRIT_SPOT: Spot = {
-  x: 2.3,
-  z: 3.75,
-  yaw: yawTowards({ x: 2.3, z: 3.75 }, TIRTHA_POT),
-};
+/** Where a visitor stands to receive charanamrit, one per side, each facing its tirtha pot. */
+export const CHARANAMRIT_SPOTS: readonly Spot[] = [1, -1].map((side, i) => {
+  const p = { x: side * 2.3, z: 3.75 };
+  return { ...p, yaw: yawTowards(p, TIRTHA_POTS[i] as Point) };
+});
+/** The north charanamrit spot (the first of CHARANAMRIT_SPOTS). */
+export const CHARANAMRIT_SPOT: Spot = CHARANAMRIT_SPOTS[0] as Spot;
 /**
  * The two low stone offering benches against the sanctum's front wall, one each side of the door
  * beyond the jal spots (owner, 2026-11-24). Each holds a basket of flowers, a basket of bel patra
@@ -611,7 +618,10 @@ export const OBSTACLES: readonly Obstacle[] = [
       b.z + OFFERING_BENCH_HALF_DEPTH,
     ),
   })),
-  { id: "tirtha-stand", shape: circle(TIRTHA_POT.x, TIRTHA_POT.z, TIRTHA_STAND_RADIUS) },
+  ...TIRTHA_POTS.map((t): Obstacle => ({
+    id: "tirtha-stand",
+    shape: circle(t.x, t.z, TIRTHA_STAND_RADIUS),
+  })),
   ...BENCHES.map((b): Obstacle => ({
     id: "bench",
     shape: rect(

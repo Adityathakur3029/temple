@@ -68,6 +68,7 @@ import {
   MATS,
   DARSHAN_CARPET,
   NANDI_AXIS,
+  GARBHAGRIHA,
   NANDI_PLATFORM,
   PRADAKSHINA,
   rect,
@@ -92,7 +93,13 @@ import type { AssetTier } from "../assets/manifest";
 import { SLOTS, type SlotId } from "../assets/slots";
 import { MeshBuilder, placed, withoutSection } from "./builder";
 import { HEIGHTS, KUND_FLOOR_Y, KUND_STEP, KUND_WATER_Y, PAVING, PLINTH, STEPS } from "./ground";
-import { SlabBuilder, grassTexture, slabTexture, yardPathTexture, yardStoneTexture } from "./stone-path";
+import {
+  SlabBuilder,
+  grassTexture,
+  slabTexture,
+  yardPathTexture,
+  yardStoneTexture,
+} from "./stone-path";
 import { YardSlabBuilder } from "./yard-paving";
 import { Dhvaja } from "./dhvaja";
 import { buildWallPaintings, type FriezeSpot } from "./wall-paintings";
@@ -351,6 +358,8 @@ export interface Greybox {
   glowMaterial: PointsMaterial;
   /** Every mesh that should cast and receive the High-tier shadow. */
   shadowCasters: (Mesh | InstancedMesh)[];
+  /** Meshes that only receive the High-tier sun shadow. */
+  shadowReceivers: Mesh[];
   /** Slots whose greybox shapes are still drawn in the merged mesh. */
   readonly sections: ReadonlySet<SlotId>;
   /** Removes a slot's greybox shapes once its model is in place. */
@@ -469,9 +478,35 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   b.box(COMPOUND.x0, COMPOUND.x1, 0, 0.004, COMPOUND.z0, KUND.z0, C.joint);
   b.box(COMPOUND.x0, KUND.x0, 0, 0.004, KUND.z0, COMPOUND.z1, C.joint);
   const yardTop = PAVING - 0.004;
+  // The Nandi axis between the mandapa steps and Nandi's platform is plain pale stone, not slabs
+  // (spec 08 § Sacred space).
+  const axisYard = { x0: NANDI_AXIS.x0, x1: NANDI_AXIS.x1, z0: MANDAPA.z1, z1: NANDI_PLATFORM.z0 };
+  // No slabs where they would be hidden: under the shrine and under the pradakshina stones.
+  const P0 = PRADAKSHINA;
+  const hidden = [
+    GARBHAGRIHA,
+    {
+      x0: P0.x - P0.halfWidth,
+      x1: P0.x + P0.halfWidth,
+      z0: P0.zWest - P0.halfWidth,
+      z1: COURTYARD.z0,
+    },
+    {
+      x0: -P0.x - P0.halfWidth,
+      x1: -P0.x + P0.halfWidth,
+      z0: P0.zWest - P0.halfWidth,
+      z1: COURTYARD.z0,
+    },
+    {
+      x0: -P0.x - P0.halfWidth,
+      x1: P0.x + P0.halfWidth,
+      z0: P0.zWest - P0.halfWidth,
+      z1: P0.zWest + P0.halfWidth,
+    },
+  ];
   const yard = new YardSlabBuilder()
-    .pave(COMPOUND, C.paving, yardTop, mulberry32(52), [COURTYARD, kundCorner, MANDAPA])
-    .pave(COURTYARD, C.court, yardTop, mulberry32(53), [kundCorner, MANDAPA]);
+    .pave(COMPOUND, C.paving, yardTop, mulberry32(52), [COURTYARD, kundCorner, MANDAPA, ...hidden])
+    .pave(COURTYARD, C.court, yardTop, mulberry32(53), [kundCorner, MANDAPA, axisYard]);
   const slabs = new SlabBuilder();
   // The pradakshina path keeps its dark slate stones; the other paths wear the yard's slabs.
   const loop = new SlabBuilder();
@@ -705,6 +740,18 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   b.box(NANDI_AXIS.x0, NANDI_AXIS.x1, PLINTH, PLINTH + 0.008, MANDAPA.z0, MANDAPA.z1, C.aisle);
   b.box(MANDAPA.x0, MANDAPA.x1, 0, 0.3, MANDAPA.z1, MANDAPA.z1 + 0.34, C.plinth);
   b.box(MANDAPA.x0, MANDAPA.x1, 0, 0.15, MANDAPA.z1 + 0.34, MANDAPA.z1 + 0.67, C.plinth);
+  // The same pale stone runs on down the steps and across the courtyard to Nandi's platform.
+  b.box(NANDI_AXIS.x0, NANDI_AXIS.x1, 0.3, 0.308, MANDAPA.z1, MANDAPA.z1 + 0.34, C.aisle);
+  b.box(NANDI_AXIS.x0, NANDI_AXIS.x1, 0.15, 0.158, MANDAPA.z1 + 0.34, MANDAPA.z1 + 0.67, C.aisle);
+  b.box(
+    NANDI_AXIS.x0,
+    NANDI_AXIS.x1,
+    0,
+    PAVING - 0.002,
+    MANDAPA.z1 + 0.67,
+    NANDI_PLATFORM.z0,
+    C.aisle,
+  );
   for (const p of MANDAPA_PILLARS) {
     b.box(p.x - 0.29, p.x + 0.29, PLINTH, PLINTH + 0.18, p.z - 0.29, p.z + 0.29, C.stoneDark);
     b.add(
@@ -914,7 +961,13 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
         wallBox(alongX, line, t0 + 0.35, t1 - 0.35, 0.2, 0.5, 1.02, aged(C.plinth));
         // Every other bay's panel is painted (scene/wall-paintings.ts) instead of carved.
         if (bayCount++ % 2 === 1) {
-          friezes.push({ alongX, line, u0: t0 + 0.35, u1: t1 - 0.35, variant: friezes.length % 2 ? 1 : 0 });
+          friezes.push({
+            alongX,
+            line,
+            u0: t0 + 0.35,
+            u1: t1 - 0.35,
+            variant: friezes.length % 2 ? 1 : 0,
+          });
           if (k > 0) pillar(alongX ? t0 : line, alongX ? line : t0, 1);
           continue;
         }
@@ -965,7 +1018,15 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
     const t = WASH_TROUGH;
     const wallX0 = t.x0 - 0.2;
     b.box(wallX0, t.x0, 0, TROUGH.wallTop, t.z0 - 0.15, t.z1 + 0.15, C.stoneDark);
-    b.box(wallX0 - 0.04, t.x0 + 0.04, TROUGH.wallTop, TROUGH.wallTop + 0.08, t.z0 - 0.2, t.z1 + 0.2, C.stone);
+    b.box(
+      wallX0 - 0.04,
+      t.x0 + 0.04,
+      TROUGH.wallTop,
+      TROUGH.wallTop + 0.08,
+      t.z0 - 0.2,
+      t.z1 + 0.2,
+      C.stone,
+    );
     b.box(t.x0, t.x1, 0, TROUGH.floor, t.z0, t.z1, C.stone); // the trough's floor
     b.box(t.x1 - 0.1, t.x1, 0, TROUGH.lip, t.z0, t.z1, C.stone); // front lip
     b.box(t.x0, t.x1 - 0.1, 0, TROUGH.lip, t.z0, t.z0 + 0.1, C.stone); // ends
@@ -974,9 +1035,25 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
     for (const id of TAP_IDS) {
       const z = TAPS[id].z;
       // A short brass pipe out of the wall, a valve knob, and the spout turned down.
-      b.box(t.x0, TROUGH.spoutX + 0.03, TROUGH.spoutY + 0.06, TROUGH.spoutY + 0.11, z - 0.025, z + 0.025, C.brass);
-      b.add(new CylinderGeometry(0.035, 0.035, 0.04, 8), placed(t.x0 + 0.12, TROUGH.spoutY + 0.15, z), C.brass);
-      b.add(new CylinderGeometry(0.022, 0.026, 0.1, 8), placed(TROUGH.spoutX, TROUGH.spoutY + 0.05, z), C.brass);
+      b.box(
+        t.x0,
+        TROUGH.spoutX + 0.03,
+        TROUGH.spoutY + 0.06,
+        TROUGH.spoutY + 0.11,
+        z - 0.025,
+        z + 0.025,
+        C.brass,
+      );
+      b.add(
+        new CylinderGeometry(0.035, 0.035, 0.04, 8),
+        placed(t.x0 + 0.12, TROUGH.spoutY + 0.15, z),
+        C.brass,
+      );
+      b.add(
+        new CylinderGeometry(0.022, 0.026, 0.1, 8),
+        placed(TROUGH.spoutX, TROUGH.spoutY + 0.05, z),
+        C.brass,
+      );
     }
   }
 
@@ -1060,7 +1137,12 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   group.add(ground);
 
   // The paths wear the same grey-brown slabs as the yard.
-  const slabMap = yardPathTexture(opts.textureTier === "lite" ? 512 : 1024, mulberry32(46), C.paving, C.joint);
+  const slabMap = yardPathTexture(
+    opts.textureTier === "lite" ? 512 : 1024,
+    mulberry32(46),
+    C.paving,
+    C.joint,
+  );
   const stonePath = new Mesh(slabs.build(), new MeshLambertMaterial({ map: slabMap }));
   stonePath.name = "stone-path";
   group.add(stonePath);
@@ -1073,7 +1155,9 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   const yardMap = yardStoneTexture(opts.textureTier === "lite" ? 256 : 512, mulberry32(48));
   const yardMesh = new Mesh(
     yard.build(),
-    new MeshLambertMaterial(yardMap ? { map: yardMap, vertexColors: true } : { vertexColors: true }),
+    new MeshLambertMaterial(
+      yardMap ? { map: yardMap, vertexColors: true } : { vertexColors: true },
+    ),
   );
   yardMesh.name = "yard-paving";
   group.add(yardMesh);
@@ -1086,6 +1170,9 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   );
   lawn.name = "lawn";
   group.add(lawn);
+  // Sharp at a low angle on Full; plain filtering on Lite and Low phones saves texture bandwidth.
+  for (const t of [slabMap, loopMap, yardMap, grassMap])
+    if (t) t.anisotropy = opts.textureTier === "lite" ? 1 : 8;
 
   const lampMaterial = new MeshBasicMaterial({ vertexColors: true });
   const lampMesh = new Mesh(lamps.build(), lampMaterial);
@@ -1108,10 +1195,11 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   const dhvaja = new Dhvaja();
   group.add(dhvaja.group);
   // Painted folk patterns on the sanctum's outer walls and on every other compound wall bay.
-  const paintings = buildWallPaintings(friezes);
+  const paintings = buildWallPaintings(friezes, opts.textureTier === "lite");
   for (const m of paintings) group.add(m);
 
-  const kundWater = new KundWater(C.water, 0.86);
+  // Drop rings only on Full: Lite and Low phones keep the slow waves (spec 10).
+  const kundWater = new KundWater(C.water, 0.86, opts.textureTier !== "lite");
   const water = new Mesh(
     new PlaneGeometry(KUND_WATER.x1 - KUND_WATER.x0, KUND_WATER.z1 - KUND_WATER.z0),
     kundWater.material,
@@ -1160,10 +1248,17 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   group.add(tapWater);
   // An invisible box over the trough, so a tap on it can be picked (it is never drawn).
   const troughPick = new Mesh(
-    new BoxGeometry(WASH_TROUGH.x1 - WASH_TROUGH.x0 + 0.2, TROUGH.wallTop, WASH_TROUGH.z1 - WASH_TROUGH.z0)
-      .translate(0, TROUGH.wallTop / 2, 0),
+    new BoxGeometry(
+      WASH_TROUGH.x1 - WASH_TROUGH.x0 + 0.2,
+      TROUGH.wallTop,
+      WASH_TROUGH.z1 - WASH_TROUGH.z0,
+    ).translate(0, TROUGH.wallTop / 2, 0),
   );
-  troughPick.position.set((WASH_TROUGH.x0 + WASH_TROUGH.x1) / 2 - 0.1, 0, (WASH_TROUGH.z0 + WASH_TROUGH.z1) / 2);
+  troughPick.position.set(
+    (WASH_TROUGH.x0 + WASH_TROUGH.x1) / 2 - 0.1,
+    0,
+    (WASH_TROUGH.z0 + WASH_TROUGH.z1) / 2,
+  );
   troughPick.updateMatrixWorld(true);
 
   // Each lamp faces the path (a model's front is +z).
@@ -1221,7 +1316,9 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
     setTrees,
     lampMaterial,
     glowMaterial,
-    shadowCasters: [ground, lawn, stonePath, trees, nearTrees, oaks, bells, postLamps, ...paintings],
+    shadowCasters: [ground, lawn, stonePath, trees, nearTrees, oaks, bells, postLamps],
+    // Flat on the ground or just proud of a wall: they take the sun's shadow but cast none.
+    shadowReceivers: [yardMesh, loopPath, ...paintings],
     sections,
     hide(slot) {
       if (!sections.delete(slot)) return;

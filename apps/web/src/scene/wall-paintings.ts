@@ -87,11 +87,13 @@ const FRIEZE_CELLS: readonly [number, number, number, number][] = [
  * The sanctum's panels and the compound wall's friezes: two meshes, one draw each (spec 10).
  * Empty without a DOM (the unit tests).
  */
-export function buildWallPaintings(friezes: readonly FriezeSpot[]): Mesh[] {
+export function buildWallPaintings(friezes: readonly FriezeSpot[], lite = false): Mesh[] {
   if (typeof document === "undefined") return [];
   const meshes: Mesh[] = [];
+  // Lite mode and Low phones paint at half size (a quarter of the memory), spec 10.
+  const k = lite ? 0.5 : 1;
 
-  const atlas = canvasOf(1024, 1024, paintAtlas);
+  const atlas = canvasOf(1024, 1024, paintAtlas, k);
   if (atlas) {
     const q = new Quads();
     // Outward normals of the north (+x), west (−z, the back) and south (−x) walls.
@@ -103,15 +105,18 @@ export function buildWallPaintings(friezes: readonly FriezeSpot[]): Mesh[] {
     for (const { n, big, small } of sides) {
       const right = rightOf(n);
       const at = (face: number, along: number): Vector3 =>
-        n.clone().multiplyScalar(face + STAND_OFF).addScaledVector(right, along);
+        n
+          .clone()
+          .multiplyScalar(face + STAND_OFF)
+          .addScaledVector(right, along);
       q.add(at(BHADRA_FACE, 0), n, BIG.w, BIG.y0, BIG.y0 + BIG.h, CELL[big]);
       q.add(at(RECESS_FACE, -RECESS_U), n, SMALL.w, SMALL.y0, SMALL.y0 + SMALL.h, CELL[small[0]]);
       q.add(at(RECESS_FACE, RECESS_U), n, SMALL.w, SMALL.y0, SMALL.y0 + SMALL.h, CELL[small[1]]);
     }
-    meshes.push(q.mesh(atlas, "sanctum-paintings"));
+    meshes.push(q.mesh(atlas, "sanctum-paintings", lite));
   }
 
-  const frieze = friezes.length > 0 ? canvasOf(2048, 512, paintFriezes) : null;
+  const frieze = friezes.length > 0 ? canvasOf(2048, 512, paintFriezes, k) : null;
   if (frieze) {
     const q = new Quads();
     for (const f of friezes) {
@@ -126,14 +131,17 @@ export function buildWallPaintings(friezes: readonly FriezeSpot[]): Mesh[] {
         q.add(c, n, w, PANEL_Y0, PANEL_Y1, FRIEZE_CELLS[f.variant] ?? [0, 0, 1, 1]);
       }
     }
-    meshes.push(q.mesh(frieze, "wall-friezes"));
+    meshes.push(q.mesh(frieze, "wall-friezes", lite));
   }
   return meshes;
 }
 
 /** A visitor facing a wall with outward normal n looks along −n; their right is (−n) × up. */
 function rightOf(n: Vector3): Vector3 {
-  return n.clone().negate().cross(new Vector3(0, 1, 0));
+  return n
+    .clone()
+    .negate()
+    .cross(new Vector3(0, 1, 0));
 }
 
 /** Upright painted quads, gathered into one mesh. */
@@ -152,14 +160,27 @@ class Quads {
       this.uv.push(s < 0 ? u0 : u1, top ? v1 : v0);
       this.nor.push(n.x, n.y, n.z);
     };
-    corner(-1, false); corner(1, false); corner(1, true);
-    corner(-1, false); corner(1, true); corner(-1, true);
+    corner(-1, false);
+    corner(1, false);
+    corner(1, true);
+    corner(-1, false);
+    corner(1, true);
+    corner(-1, true);
   }
 
-  mesh(canvas: HTMLCanvasElement, name: string): Mesh {
+  mesh(canvas: HTMLCanvasElement, name: string, lite: boolean): Mesh {
     const map = new CanvasTexture(canvas);
     map.colorSpace = SRGBColorSpace;
-    map.anisotropy = 4;
+    map.anisotropy = lite ? 1 : 4;
+    // On Lite, free the canvas's own memory once the GPU has its copy (phones back 2D canvases on
+    // the GPU too). If the GL context is ever lost and restored, the panels then show plain.
+    if (lite) {
+      map.onUpdate = () => {
+        canvas.width = 1;
+        canvas.height = 1;
+        map.onUpdate = null;
+      };
+    }
     const geo = new BufferGeometry();
     geo.setAttribute("position", new Float32BufferAttribute(this.pos, 3));
     geo.setAttribute("normal", new Float32BufferAttribute(this.nor, 3));
@@ -170,12 +191,19 @@ class Quads {
   }
 }
 
-function canvasOf(w: number, h: number, paint: (ctx: Ctx) => void): HTMLCanvasElement | null {
+/** A w × h design painted at `k` times its size (the painters always draw at full size). */
+function canvasOf(
+  w: number,
+  h: number,
+  paint: (ctx: Ctx) => void,
+  k = 1,
+): HTMLCanvasElement | null {
   const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
+  canvas.width = Math.round(w * k);
+  canvas.height = Math.round(h * k);
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
+  ctx.scale(k, k);
   paint(ctx);
   return canvas;
 }
@@ -242,7 +270,7 @@ function friezeVine(ctx: Ctx, W: number, H: number): void {
     if (Math.abs(x - W / 2) < W * 0.09) continue;
     const off = k % 2 ? 1 : -1;
     if (k % 3 === 0) flower(ctx, x, y(x) + off * H * 0.17, H * 0.06);
-    else leaf(ctx, x, y(x), H * 0.16, H * 0.06, off * Math.PI / 2 + 0.5, PAINT.leaf);
+    else leaf(ctx, x, y(x), H * 0.16, H * 0.06, (off * Math.PI) / 2 + 0.5, PAINT.leaf);
   }
   for (let i = -1; i <= 1; i++) miniDiya(ctx, W / 2 + i * H * 0.5, cy + H * 0.08, H * 0.3);
 }
@@ -253,7 +281,8 @@ function miniKalash(ctx: Ctx, x: number, y: number, r: number): void {
   ctx.ellipse(x, y, r, r * 0.9, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillRect(x - r * 0.4, y - r * 1.3, r * 0.8, r * 0.5);
-  for (let i = -2; i <= 2; i++) leaf(ctx, x + i * r * 0.2, y - r * 1.3, r * 0.6, r * 0.18, -Math.PI / 2 + i * 0.45, PAINT.leaf);
+  for (let i = -2; i <= 2; i++)
+    leaf(ctx, x + i * r * 0.2, y - r * 1.3, r * 0.6, r * 0.18, -Math.PI / 2 + i * 0.45, PAINT.leaf);
   ctx.fillStyle = "#8a5a2b";
   ctx.beginPath();
   ctx.ellipse(x, y - r * 1.5, r * 0.3, r * 0.36, 0, 0, Math.PI * 2);
@@ -359,7 +388,15 @@ function lotusPanel(ctx: Ctx, w: number, h: number): void {
   ctx.stroke();
   for (let i = 0; i < 24; i++) {
     const a = (i / 24) * Math.PI * 2;
-    leaf(ctx, cx + Math.cos(a) * w * 0.36, cy + Math.sin(a) * w * 0.36, 26, 11, a + (i % 2 ? 0.6 : -0.6) + Math.PI / 2, PAINT.leaf);
+    leaf(
+      ctx,
+      cx + Math.cos(a) * w * 0.36,
+      cy + Math.sin(a) * w * 0.36,
+      26,
+      11,
+      a + (i % 2 ? 0.6 : -0.6) + Math.PI / 2,
+      PAINT.leaf,
+    );
   }
   petals(ctx, cx, cy, 16, w * 0.29, w * 0.07, PAINT.pink, PAINT.geruDark, Math.PI / 16);
   petals(ctx, cx, cy, 8, w * 0.25, w * 0.1, PAINT.geru, PAINT.white, 0);
@@ -374,7 +411,12 @@ function lotusPanel(ctx: Ctx, w: number, h: number): void {
     dot(ctx, cx + Math.cos(a) * w * 0.042, cy + Math.sin(a) * w * 0.042, 3.5);
   }
   // Corner flowers.
-  for (const [fx, fy] of [[0.2, 0.2], [0.8, 0.2], [0.2, 0.8], [0.8, 0.8]] as const) {
+  for (const [fx, fy] of [
+    [0.2, 0.2],
+    [0.8, 0.2],
+    [0.2, 0.8],
+    [0.8, 0.8],
+  ] as const) {
     petals(ctx, fx * w, fy * h, 4, w * 0.045, w * 0.022, PAINT.indigo, PAINT.white, Math.PI / 4);
     ctx.fillStyle = PAINT.turmeric;
     dot(ctx, fx * w, fy * h, w * 0.012);
@@ -419,7 +461,15 @@ function kalashPanel(ctx: Ctx, w: number, h: number): void {
   // Mango leaves and the coconut.
   const mouth = potY - r * 1.3;
   for (let i = -2; i <= 2; i++) {
-    leaf(ctx, cx + i * r * 0.22, mouth - r * 0.15, r * 0.55, r * 0.17, -Math.PI / 2 + i * 0.45, PAINT.leaf);
+    leaf(
+      ctx,
+      cx + i * r * 0.22,
+      mouth - r * 0.15,
+      r * 0.55,
+      r * 0.17,
+      -Math.PI / 2 + i * 0.45,
+      PAINT.leaf,
+    );
   }
   ctx.fillStyle = "#8a5a2b";
   ctx.beginPath();
@@ -464,7 +514,18 @@ function diyaPanel(ctx: Ctx, w: number, h: number): void {
   for (let k = 0; k < 3; k++) {
     const y = h * (0.28 + k * 0.24);
     // Stand.
-    petals(ctx, cx, y + w * 0.13, 6, w * 0.13, w * 0.05, PAINT.pink, PAINT.geruDark, -Math.PI / 2, Math.PI);
+    petals(
+      ctx,
+      cx,
+      y + w * 0.13,
+      6,
+      w * 0.13,
+      w * 0.05,
+      PAINT.pink,
+      PAINT.geruDark,
+      -Math.PI / 2,
+      Math.PI,
+    );
     // Lamp bowl.
     ctx.fillStyle = PAINT.geru;
     ctx.beginPath();
@@ -516,8 +577,16 @@ function petalShape(ctx: Ctx, len: number, wid: number): void {
 }
 
 function petals(
-  ctx: Ctx, cx: number, cy: number, n: number, len: number, wid: number,
-  fill: string, line: string, turn: number, spread = Math.PI * 2,
+  ctx: Ctx,
+  cx: number,
+  cy: number,
+  n: number,
+  len: number,
+  wid: number,
+  fill: string,
+  line: string,
+  turn: number,
+  spread = Math.PI * 2,
 ): void {
   for (let i = 0; i < n; i++) {
     ctx.save();
@@ -533,7 +602,15 @@ function petals(
   }
 }
 
-function leaf(ctx: Ctx, x: number, y: number, len: number, wid: number, angle: number, fill: string): void {
+function leaf(
+  ctx: Ctx,
+  x: number,
+  y: number,
+  len: number,
+  wid: number,
+  angle: number,
+  fill: string,
+): void {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(angle + Math.PI / 2);

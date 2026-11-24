@@ -424,6 +424,120 @@ describe("jal spot: timeouts and resume", () => {
   }, 20000);
 });
 
+describe("jal spot: places kept and freed", () => {
+  const SOUTH = { x: -JAL_SPOT.x, z: JAL_SPOT.z };
+  const SOUTH_NEAR = { x: -1.9, z: 5.6 };
+
+  it("keeps a place in the south queue across a resume, then gives the turn", async () => {
+    const { c: a } = await TestClient.join({ hall: "hall-01" });
+    const { c: b, welcome: wb } = await TestClient.join({ hall: "hall-01" });
+    a.send({ t: "pos", ...SOUTH, yaw: 0, pose: "stand" });
+    b.send({ t: "pos", ...SOUTH_NEAR, yaw: 0, pose: "stand" });
+    await wait(150);
+    a.send({ t: "jal.request", req: 1, kind: "water", side: "s" });
+    await a.next("jal.turn");
+    b.send({ t: "jal.request", req: 2, kind: "flower", side: "s" });
+    expect(await b.next("jal.queue")).toEqual({ t: "jal.queue", pos: 0 });
+    b.ws.close(4999, "network gone");
+    await b.closed;
+    await wait(100);
+    const { c: back } = await TestClient.join({ hall: "hall-01", resume: wb.resume });
+    expect(await back.next("jal.queue")).toEqual({ t: "jal.queue", pos: 0 });
+    a.send({ t: "jal.cancel" });
+    expect((await back.next("jal.turn")).req).toBe(2);
+    await Promise.all([a.close(), back.close()]);
+  }, 20000);
+
+  it("rebuilds both sides from storage after a restart, and resets an old single-spot value", async () => {
+    const { c: a, welcome: wa } = await TestClient.join({ hall: "hall-10" });
+    a.send({ t: "pos", ...SOUTH, yaw: 0, pose: "stand" });
+    await wait(150);
+    a.send({ t: "jal.request", req: 3, kind: "bilva", side: "s" });
+    await a.next("jal.turn");
+    const stub = roomStub("hall-10");
+    await evictDurableObject(stub); // drops memory; the socket hibernates
+    const sides = await runInDurableObject(stub, (room: RoomDO) => {
+      return (room as unknown as { jal: { turn: { id: string } | null }[] }).jal.map(
+        (s) => s.turn?.id ?? null,
+      );
+    });
+    expect(sides).toEqual([null, wa.you.id]);
+    await a.close();
+
+    // An older stored shape (one spot) starts empty, and is written back cleaned.
+    await runInDurableObject(stub, async (_room: RoomDO, state) => {
+      await state.storage.put("queues", { jal: { turn: null, queue: [] } });
+    });
+    await evictDurableObject(stub);
+    const { c: fresh } = await TestClient.join({ hall: "hall-10" });
+    const stored = await runInDurableObject(stub, (_room: RoomDO, state) =>
+      state.storage.get<{ jal: unknown }>("queues"),
+    );
+    expect(stored?.jal).toEqual([
+      { turn: null, queue: [] },
+      { turn: null, queue: [] },
+    ]);
+    await fresh.close();
+  }, 20000);
+
+  it("frees a south place when the resume window runs out", async () => {
+    const { c: a } = await TestClient.join({ hall: "hall-08" });
+    const { c: b, welcome: wb } = await TestClient.join({ hall: "hall-08" });
+    const { c: c3 } = await TestClient.join({ hall: "hall-08" });
+    a.send({ t: "pos", ...SOUTH, yaw: 0, pose: "stand" });
+    b.send({ t: "pos", ...SOUTH_NEAR, yaw: 0, pose: "stand" });
+    c3.send({ t: "pos", x: -2.4, z: 5.6, yaw: 0, pose: "stand" });
+    await wait(150);
+    a.send({ t: "jal.request", req: 1, kind: "water", side: "s" });
+    await a.next("jal.turn");
+    b.send({ t: "jal.request", req: 1, kind: "water", side: "s" });
+    await b.next("jal.queue");
+    c3.send({ t: "jal.request", req: 1, kind: "water", side: "s" });
+    expect(await c3.next("jal.queue")).toEqual({ t: "jal.queue", pos: 1 });
+    b.ws.close(4999, "network gone");
+    await b.closed;
+    await wait(100);
+    const stub = roomStub("hall-08");
+    await runInDurableObject(stub, async (room: RoomDO, state) => {
+      const resumes = (room as unknown as { resumes: Map<string, { until: number }> }).resumes;
+      for (const [token, rec] of resumes) {
+        if (!token) continue;
+        rec.until = Date.now() - 1;
+        await state.storage.put(`resume:${token}`, rec);
+      }
+    });
+    await runDurableObjectAlarm(stub);
+    // B's place is gone: C moves up to the front of the south queue.
+    expect(await c3.next("jal.queue")).toEqual({ t: "jal.queue", pos: 0 });
+    const late = await TestClient.open({ hall: "hall-08", resume: wb.resume });
+    expect((await late.closed).code).toBe(CLOSE_CODES.RESUME_INVALID);
+    await Promise.all([a.close(), c3.close()]);
+  }, 20000);
+
+  it("passes a held turn on at once after a leave or a strike close", async () => {
+    const { c: a } = await TestClient.join({ hall: "hall-14" });
+    const { c: b } = await TestClient.join({ hall: "hall-14" });
+    const { c: c3 } = await TestClient.join({ hall: "hall-14" });
+    a.send({ t: "pos", ...SOUTH, yaw: 0, pose: "stand" });
+    b.send({ t: "pos", ...SOUTH_NEAR, yaw: 0, pose: "stand" });
+    c3.send({ t: "pos", x: -2.4, z: 5.6, yaw: 0, pose: "stand" });
+    await wait(150);
+    a.send({ t: "jal.request", req: 1, kind: "water", side: "s" });
+    await a.next("jal.turn");
+    b.send({ t: "jal.request", req: 2, kind: "water", side: "s" });
+    await b.next("jal.queue");
+    c3.send({ t: "jal.request", req: 3, kind: "water", side: "s" });
+    await c3.next("jal.queue");
+    a.send({ t: "leave" });
+    await a.closed;
+    expect((await b.next("jal.turn")).req).toBe(2);
+    for (let i = 0; i <= STRIKE_LIMIT; i++) b.send('{"t":"dance"}');
+    expect((await b.closed).code).toBe(CLOSE_CODES.TOO_MANY_STRIKES);
+    expect((await c3.next("jal.turn")).req).toBe(3);
+    await c3.close();
+  }, 20000);
+});
+
 describe("mats", () => {
   async function inMandapa(hall: HallId): Promise<{ c: TestClient; id: string }> {
     const { c, welcome } = await TestClient.join({ hall });

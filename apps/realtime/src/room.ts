@@ -205,11 +205,16 @@ export class RoomDO extends DurableObject<Env> {
       if (this.resumes.size > 0) await this.ensureAlarm();
       this.counters =
         (await ctx.storage.get<{ batch: CounterBatch; since: number }>("pending-counters")) ?? null;
-      this.jal = loadJalSides((await ctx.storage.get<{ jal: unknown }>("queues"))?.jal);
+      const storedJal = (await ctx.storage.get<{ jal: unknown }>("queues"))?.jal;
+      this.jal = loadJalSides(storedJal);
       // Drop anyone who is neither here nor holding a resume place.
       for (const side of this.jal) {
         if (side.turn && !this.present(side.turn.id)) side.turn = null;
         side.queue = side.queue.filter((q) => this.present(q.id));
+      }
+      // Write the cleaned sides back, so stale or old-shaped data doesn't linger.
+      if (storedJal !== undefined && JSON.stringify(storedJal) !== JSON.stringify(this.jal)) {
+        await ctx.storage.put("queues", { jal: this.jal });
       }
       if (this.jal.some((side) => side.turn)) await this.ensureAlarm();
     });

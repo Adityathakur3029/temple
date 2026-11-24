@@ -64,7 +64,7 @@ import {
   type TapId,
   type Visitor,
   type VisitorId,
-  CHARANAMRIT_SPOT,
+  CHARANAMRIT_SPOTS,
   CHARANAMRIT_WINDOW_MS,
   JAL_COOLDOWN_MS,
   JAL_NEAR_M,
@@ -75,7 +75,7 @@ import {
   PICK_SPOTS,
   jalDistance,
   nearestJalSide,
-  TIRTHA_POT,
+  TIRTHA_POTS,
   type JalKind,
   type JalNoMessage,
   type JalQueueMessage,
@@ -85,6 +85,7 @@ import {
   NANDI_HEAD,
   SHRINGA_REACH_M,
   SHRINGA_SPOT,
+  RATE_LIMITS,
 } from "@sannidhi/protocol";
 import { currentLang } from "../i18n/lang";
 import { realtimeBase, socketBase } from "../net/config";
@@ -130,7 +131,7 @@ export const LITE_TREES = 72;
 /** Radians of camera turn per CSS pixel dragged. */
 const LOOK_RAD_PER_PX = 0.005;
 /** `jal.request` at most this often (the server allows one a second). */
-const JAL_ASK_GAP_MS = 1100;
+const JAL_ASK_GAP_MS = RATE_LIMITS["jal.request"].everyMs + 100;
 /** A request with no reply by then is given up. */
 const JAL_ASK_TIMEOUT_MS = 4000;
 /** The pause at the offering bench while the lota, leaf or flower is taken up. */
@@ -957,12 +958,16 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
   }
 
   function goCharanamrit(): void {
+    // The pot on the visitor's own side, so nobody crosses the Nandi axis for it.
+    const i = walker.x >= 0 ? 0 : 1;
+    const pot = TIRTHA_POTS[i] ?? TIRTHA_POTS[0];
+    const spot = CHARANAMRIT_SPOTS[i] ?? CHARANAMRIT_SPOTS[0];
+    if (!pot || !spot) return;
     const start = (): void => {
       walker.stop();
-      walker.face(yawTowards(walker, TIRTHA_POT));
+      walker.face(yawTowards(walker, pot));
       charanamritAfterTurn = true;
     };
-    const spot = CHARANAMRIT_SPOT;
     // Received only at the pot: if there's no way there, nothing happens.
     if (distance(walker, spot) <= 0.3) start();
     else walkTo(spot.x, spot.z, start);
@@ -1244,6 +1249,7 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
         m.castShadow = shadows;
         m.receiveShadow = shadows;
       }
+      for (const m of greybox.shadowReceivers) m.receiveShadow = shadows;
       scene.traverse((o) => {
         const mats = (o as Mesh).material as Material | Material[] | undefined;
         for (const m of Array.isArray(mats) ? mats : mats ? [mats] : []) m.needsUpdate = true;

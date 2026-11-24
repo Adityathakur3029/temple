@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   CLOSE_CODES,
+  GESTURE_COOLDOWN_MS,
+  RATE_LIMITS,
   HEARTBEAT_MS,
   INTERP_DELAY_MS,
   RECONNECT_BASE_MS,
@@ -27,7 +29,7 @@ import {
 } from "../src/net/connection";
 import { Presence, type Pose } from "../src/net/presence";
 import { chooseHall } from "../src/net/rooms";
-import { POS_GAP_MS, PosSender } from "../src/net/session";
+import { POS_GAP_MS, PosSender, Session } from "../src/net/session";
 import { memoryStore } from "../src/platform/storage";
 
 // ---------------------------------------------------------------------------------------------
@@ -474,5 +476,67 @@ describe("config", () => {
     expect(realtimeBase("https://rt.example.dev/")).toBe("https://rt.example.dev");
     expect(socketBase("https://rt.example.dev")).toBe("wss://rt.example.dev");
     expect(socketBase("http://localhost:8787")).toBe("ws://localhost:8787");
+  });
+});
+
+describe("session: jal messages and gestures (spec 04 § Rate limits)", () => {
+  function session() {
+    const time = new FakeTime();
+    const sockets: FakeSocket[] = [];
+    const s = new Session({
+      base: "http://rt.test",
+      wsBase: "ws://rt.test",
+      store: memoryStore(),
+      lite: () => false,
+      handlers: {
+        welcome: () => undefined,
+        status: () => undefined,
+        event: () => undefined,
+        correct: () => undefined,
+        counters: () => undefined,
+      },
+      socket: (url) => {
+        const so = new FakeSocket(url);
+        sockets.push(so);
+        return so;
+      },
+      timers: time,
+      now: () => time.now,
+      fetchRooms: () => Promise.resolve(null),
+    });
+    const sent = (t: string): number =>
+      sockets.flatMap((so) => so.sent).filter((f) => f.startsWith(`{"t":"${t}"`)).length;
+    return { time, sockets, s, sent };
+  }
+
+  it("spaces each jal message type by its limit and sends one cancel for two", async () => {
+    const { time, sockets, s, sent } = session();
+    await s.start("hall-03");
+    sockets[sockets.length - 1]?.receive(welcome());
+    s.jalCancel();
+    s.jalCancel();
+    s.jalCancel();
+    expect(sent("jal.cancel")).toBe(1);
+    s.jalCancel();
+    expect(sent("jal.cancel")).toBe(1);
+    time.advance(RATE_LIMITS["jal.cancel"].everyMs + 150);
+    expect(sent("jal.cancel")).toBe(2);
+    expect(s.jalRequest("water", "s")).not.toBeNull();
+    expect(sent("jal.request")).toBe(1);
+    s.dispose();
+  });
+
+  it("drops waiting gestures when the socket goes away", async () => {
+    const { time, sockets, s, sent } = session();
+    await s.start("hall-03");
+    const so = sockets[sockets.length - 1];
+    so?.receive(welcome());
+    s.gesture("namaste");
+    s.gesture("whisper");
+    expect(sent("gesture")).toBe(1);
+    so?.drop(4999);
+    time.advance(GESTURE_COOLDOWN_MS + 500);
+    expect(sent("gesture")).toBe(1);
+    s.dispose();
   });
 });

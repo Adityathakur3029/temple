@@ -16,11 +16,13 @@ export class KundWater {
   readonly material: MeshLambertMaterial;
   private readonly time = { value: 0 };
 
-  constructor(color: ColorRepresentation, opacity: number) {
+  /** `rings` false (Lite mode and Low phones) keeps only the slow waves: far fewer maths per pixel. */
+  constructor(color: ColorRepresentation, opacity: number, rings = true) {
     this.material = new MeshLambertMaterial({ color, transparent: true, opacity });
     const time = this.time;
     this.material.onBeforeCompile = (shader) => {
       shader.uniforms.uTime = time;
+      if (rings) shader.defines = { ...shader.defines, KUND_RINGS: "" };
       shader.vertexShader = shader.vertexShader
         .replace("#include <common>", "#include <common>\nvarying vec2 vWater;")
         .replace("#include <begin_vertex>", "#include <begin_vertex>\nvWater = position.xy;");
@@ -32,7 +34,7 @@ export class KundWater {
         );
     };
     // One compiled program for every kund water, whatever the time.
-    this.material.customProgramCacheKey = () => "kund-water";
+    this.material.customProgramCacheKey = () => (rings ? "kund-water" : "kund-water-calm");
   }
 
   update(dt: number, reducedMotion: boolean): void {
@@ -53,6 +55,7 @@ float kundRipple(vec2 p, float t) {
           + 0.025 * sin(dot(p, vec2(-0.8, 2.1)) - t * 0.7)
           + 0.015 * sin(dot(p, vec2(3.1, -2.4)) + t * 1.3);
   // Drop rings: each one starts at a new spot every few seconds, spreads and fades.
+#ifdef KUND_RINGS
   for (int i = 0; i < ${RINGS}; i++) {
     float fi = float(i);
     float period = 5.0 + fi * 1.7;
@@ -63,10 +66,12 @@ float kundRipple(vec2 p, float t) {
     vec2 at = (vec2(kundHash(seed), kundHash(seed + 1.9)) - 0.5) * 4.4;
     float d = length(p - at);
     float front = age * 0.45;
-    float band = exp(-pow((d - front) * 3.2, 2.0));
+    float r = (d - front) * 3.2;
+    float band = exp(-r * r);
     float fade = (1.0 - age / period) * smoothstep(0.0, 0.3, age);
     s += 0.09 * band * fade * sin((d - front) * 18.0);
   }
+#endif
   return s;
 }
 `;

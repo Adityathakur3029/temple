@@ -8,7 +8,7 @@
  *
  * The flag ripples in a slow wind with a few lines of vertex shader: the pole edge stays still and
  * the wave grows towards the tips. With reduced motion it hangs still (spec 07 § Accessibility).
- * About 200 triangles in three draws (spec 10).
+ * About 200 triangles in two draws (spec 10).
  */
 import {
   BoxGeometry,

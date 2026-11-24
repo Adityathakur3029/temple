@@ -46,6 +46,8 @@ import {
   Sphere,
   SphereGeometry,
   Vector3,
+  Euler,
+  Quaternion,
   type Object3D,
 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
@@ -120,13 +122,67 @@ let propParts: {
   copper: MeshLambertMaterial;
   stream: CylinderGeometry;
   water: MeshBasicMaterial;
-  leaflet: CircleGeometry;
+  /** The bel patra's three leaflets, merged: one draw. */
+  belPatra: BufferGeometry;
   leaf: MeshLambertMaterial;
-  petal: CircleGeometry;
-  white: MeshLambertMaterial;
-  centre: CircleGeometry;
-  yellow: MeshLambertMaterial;
+  /** The white flower's petals and pale bud, merged with vertex colours: one draw. */
+  blossom: BufferGeometry;
+  blossomMat: MeshLambertMaterial;
 } | null = null;
+
+/** A bel patra: three leaflets from one point, the middle one longest. */
+function belPatraGeometry(): BufferGeometry {
+  const leaflet = new CircleGeometry(0.045, 8);
+  const m = new Matrix4();
+  const pieces = (
+    [
+      [0, 1.25],
+      [1.0, 1],
+      [-1.0, 1],
+    ] as const
+  ).map(([angle, len]) =>
+    leaflet
+      .clone()
+      .applyMatrix4(
+        m.compose(
+          new Vector3(-Math.sin(angle) * 0.03 * len, 0, Math.cos(angle) * 0.03 * len),
+          new Quaternion().setFromEuler(new Euler(-Math.PI / 2, 0, angle)),
+          new Vector3(0.55, len, 1),
+        ),
+      ),
+  );
+  leaflet.dispose();
+  const g = mergeGeometries(pieces, false);
+  for (const p of pieces) p.dispose();
+  if (!g) throw new Error("avatar: bel patra did not merge");
+  return g;
+}
+
+/** A small white jasmine-like flower: six round petals round a pale bud, no yellow (spec 08). */
+function blossomGeometry(): BufferGeometry {
+  const c = new Color();
+  const paint = (g: BufferGeometry, color: string): BufferGeometry => {
+    c.set(color);
+    const n = g.getAttribute("position").count;
+    const rgb = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) rgb.set([c.r, c.g, c.b], i * 3);
+    g.setAttribute("color", new BufferAttribute(rgb, 3));
+    return g;
+  };
+  const pieces: BufferGeometry[] = [];
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2;
+    const petal = new CircleGeometry(0.02, 8).rotateX(-Math.PI / 2);
+    pieces.push(paint(petal.translate(Math.cos(a) * 0.02, 0, Math.sin(a) * 0.02), "#f4f1e6"));
+  }
+  pieces.push(
+    paint(new CircleGeometry(0.013, 8).rotateX(-Math.PI / 2).translate(0, 0.002, 0), "#ece4cc"),
+  );
+  const g = mergeGeometries(pieces, false);
+  for (const p of pieces) p.dispose();
+  if (!g) throw new Error("avatar: flower did not merge");
+  return g;
+}
 
 function parts(): NonNullable<typeof propParts> {
   propParts ??= {
@@ -147,12 +203,10 @@ function parts(): NonNullable<typeof propParts> {
     copper: new MeshLambertMaterial({ color: "#b4643c" }),
     stream: new CylinderGeometry(0.006, 0.01, 1, 6, 1, true),
     water: new MeshBasicMaterial({ color: "#cfe3ee", transparent: true, opacity: 0.55 }),
-    leaflet: new CircleGeometry(0.045, 8),
+    belPatra: belPatraGeometry(),
     leaf: new MeshLambertMaterial({ color: "#4f7a32", side: DoubleSide }),
-    petal: new CircleGeometry(0.022, 6),
-    white: new MeshLambertMaterial({ color: "#f4f1e6", side: DoubleSide }),
-    centre: new CircleGeometry(0.012, 6),
-    yellow: new MeshLambertMaterial({ color: "#d9a520", side: DoubleSide }),
+    blossom: blossomGeometry(),
+    blossomMat: new MeshLambertMaterial({ vertexColors: true, side: DoubleSide }),
   };
   return propParts;
 }
@@ -168,8 +222,8 @@ interface Props {
   group: Group;
   lota: Mesh;
   stream: Mesh;
-  leaf: Group;
-  flower: Group;
+  leaf: Mesh;
+  flower: Mesh;
 }
 
 function makeProps(): Props {
@@ -177,31 +231,8 @@ function makeProps(): Props {
   const group = new Group();
   const lota = new Mesh(P.lota, P.copper);
   const stream = new Mesh(P.stream, P.water);
-  const leaf = new Group();
-  // A bel patra: three leaflets from one point, the middle one longest.
-  for (const [angle, len] of [
-    [0, 1.25],
-    [1.0, 1],
-    [-1.0, 1],
-  ] as const) {
-    const m = new Mesh(P.leaflet, P.leaf);
-    m.scale.set(0.55, len, 1);
-    m.rotation.set(-Math.PI / 2, 0, angle);
-    m.position.set(-Math.sin(angle) * 0.03 * len, 0, Math.cos(angle) * 0.03 * len);
-    leaf.add(m);
-  }
-  const flower = new Group();
-  for (let i = 0; i < 5; i++) {
-    const a = (i / 5) * Math.PI * 2;
-    const m = new Mesh(P.petal, P.white);
-    m.rotation.x = -Math.PI / 2;
-    m.position.set(Math.cos(a) * 0.022, 0, Math.sin(a) * 0.022);
-    flower.add(m);
-  }
-  const centre = new Mesh(P.centre, P.yellow);
-  centre.rotation.x = -Math.PI / 2;
-  centre.position.y = 0.002;
-  flower.add(centre);
+  const leaf = new Mesh(P.belPatra, P.leaf);
+  const flower = new Mesh(P.blossom, P.blossomMat);
   group.add(lota, stream, leaf, flower);
   group.visible = false;
   return { group, lota, stream, leaf, flower };

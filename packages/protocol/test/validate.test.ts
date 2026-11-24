@@ -35,6 +35,7 @@ const VALID: ClientMessage[] = [
   { t: "diya.cancel" },
   { t: "jal.request", req: 4, kind: "water", side: "n" },
   { t: "jal.request", req: 5, kind: "bilva", side: "n" },
+  { t: "jal.request", req: 6, kind: "water", side: "s" },
   { t: "jal.done", req: 5 },
   { t: "jal.cancel" },
   { t: "japa.mala" },
@@ -76,6 +77,10 @@ const INVALID: [string, unknown][] = [
   ["diya.request unsafe req", { t: "diya.request", req: 2 ** 53 }],
   ["jal.request no kind", { t: "jal.request", req: 1 }],
   ["jal.request bad kind", { t: "jal.request", req: 1, kind: "milk", side: "n" }],
+  ["jal.request no side", { t: "jal.request", req: 1, kind: "water" }],
+  ["jal.request bad side", { t: "jal.request", req: 1, kind: "water", side: "e" }],
+  ["jal.request numeric side", { t: "jal.request", req: 1, kind: "water", side: 1 }],
+  ["jal.request extra key", { t: "jal.request", req: 1, kind: "water", side: "n", spot: 0 }],
   ["time negative", { t: "time", c: -5 }],
   ["time string", { t: "time", c: "now" }],
 ];

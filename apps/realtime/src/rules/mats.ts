@@ -1,6 +1,6 @@
 /**
  * Seats (spec 03 § Sit on a mat, § Sit on a bench): one visitor per seat. Seat numbers are the
- * mats (0 … 39), then the bench seats (40 … 47).
+ * mats (0 … 39), then the bench seats (40 … 53).
  */
 import {
   BENCH_SEATS,

@@ -6,6 +6,7 @@
 import {
   CHARANAMRIT_WINDOW_MS,
   JAL_COOLDOWN_MS,
+  JAL_KINDS,
   JAL_NEAR_M,
   JAL_SPOT_REACH_M,
   JAL_TURN_TIMEOUT_MS,
@@ -43,13 +44,31 @@ export type JalSides = [JalState, JalState];
 
 export const emptyJalSides = (): JalSides => [emptyJal(), emptyJal()];
 
-/** Reads stored sides back; anything else (an older single spot) starts empty. */
+const isRecord = (x: unknown): x is Record<string, unknown> => typeof x === "object" && x !== null;
+
+const isEntry = (x: unknown): x is JalEntry =>
+  isRecord(x) &&
+  typeof x.id === "string" &&
+  Number.isInteger(x.req) &&
+  (JAL_KINDS as readonly unknown[]).includes(x.kind);
+
+const isTurn = (x: unknown): x is JalTurn =>
+  isEntry(x) && Number.isFinite((x as unknown as Record<string, unknown>).until);
+
+const isState = (x: unknown): x is JalState =>
+  isRecord(x) &&
+  (x.turn === null || isTurn(x.turn)) &&
+  Array.isArray(x.queue) &&
+  x.queue.every(isEntry);
+
+/**
+ * Reads stored sides back. Anything else (an older single spot, or a damaged value) starts empty:
+ * nothing read from storage is trusted without checking its shape.
+ */
 export function loadJalSides(stored: unknown): JalSides {
   if (!Array.isArray(stored) || stored.length !== 2) return emptyJalSides();
-  const ok = (x: unknown): x is JalState =>
-    typeof x === "object" && x !== null && "queue" in x && Array.isArray(x.queue);
   const [n, so] = stored as unknown[];
-  return ok(n) && ok(so) ? [n, so] : emptyJalSides();
+  return isState(n) && isState(so) ? [n, so] : emptyJalSides();
 }
 
 /** The side (0 north, 1 south) where a visitor holds the turn or waits, or -1. */

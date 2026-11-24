@@ -2,7 +2,7 @@
  * The jal spots' things (spec 03 § Offer water, bel patra or a flower, § Receive charanamrit):
  * the brass offering plates each side of the door with the leaves and flowers laid on them, the
  * two offering benches with their baskets of flowers and bel patra and a lota of water, the small
- * copper tirtha pot with its spoon on its stone stand, and the water seen running out along the
+ * copper tirtha pots with their spoons on their stone stands (one each side), and the water seen running out along the
  * somasutra channel after someone pours.
  *
  * Each client draws the plate from the events it receives, so a newcomer sees it empty. At most
@@ -12,6 +12,7 @@
 import {
   BoxGeometry,
   CircleGeometry,
+  Color,
   CylinderGeometry,
   DoubleSide,
   Group,
@@ -28,6 +29,7 @@ import {
   Vector2,
   Vector3,
   Euler,
+  Float32BufferAttribute,
   type BufferGeometry,
   type Material,
 } from "three";
@@ -40,7 +42,7 @@ import {
   OFFERING_PLATES,
   OFFERING_PLATE_RADIUS,
   SOMASUTRA,
-  TIRTHA_POT,
+  TIRTHA_POTS,
 } from "@sannidhi/protocol";
 import { PLINTH } from "./ground";
 
@@ -94,9 +96,24 @@ export class Offerings {
   private readonly owned: (BufferGeometry | Material)[] = [];
 
   constructor() {
-    const brass = this.own(new MeshLambertMaterial({ color: "#b08a3a" }));
-    const copper = this.own(new MeshLambertMaterial({ color: "#b4643c" }));
-    const stone = this.own(new MeshLambertMaterial({ color: "#6f685c" }));
+    // Everything that never moves (plates, benches with their baskets and lotas, the tirtha pots
+    // on their stands) is merged into one mesh with vertex colours: one draw call (spec 10).
+    const still: [Mesh, string][] = [];
+    const put = (geo: BufferGeometry, color: string, x: number, y: number, z: number): Mesh => {
+      const m = new Mesh(geo);
+      m.position.set(x, y, z);
+      still.push([m, color]);
+      return m;
+    };
+    const BRASS = "#b08a3a";
+    const COPPER = "#b4643c";
+    const STONE = "#6f685c";
+    const BENCH_STONE = "#8a8174";
+    const CANE = "#a27a45";
+    const MARIGOLD = "#e89a1c";
+    // White flowers (jasmine-like), never champa (spec 08, check with advisor).
+    const WHITE = "#f4f1e6";
+    const BEL = "#4f7a32";
 
     // The plates: a shallow brass dish on the mandapa floor each side of the door.
     const plateGeo = this.own(
@@ -105,22 +122,13 @@ export class Offerings {
     const rimGeo = this.own(
       new CylinderGeometry(OFFERING_PLATE_RADIUS, OFFERING_PLATE_RADIUS, 0.012, 20, 1, true),
     );
-    const plates: Mesh[] = [];
     for (const p of OFFERING_PLATES) {
-      const plate = new Mesh(plateGeo, brass);
-      plate.position.set(p.x, PLINTH + 0.01, p.z);
-      const rim = new Mesh(rimGeo, brass);
-      rim.position.set(p.x, PLINTH + 0.026, p.z);
-      plates.push(plate, rim);
+      put(plateGeo, BRASS, p.x, PLINTH + 0.01, p.z);
+      put(rimGeo, BRASS, p.x, PLINTH + 0.026, p.z);
     }
 
     // The offering benches: a low stone bench each side, with a basket of flowers, a basket of
     // bel patra and a copper lota of water on it.
-    const benchStone = this.own(new MeshLambertMaterial({ color: "#8a8174" }));
-    const cane = this.own(new MeshLambertMaterial({ color: "#a27a45" }));
-    const marigold = this.own(new MeshLambertMaterial({ color: "#e89a1c" }));
-    const champa = this.own(new MeshLambertMaterial({ color: "#f3ecd6" }));
-    const bel = this.own(new MeshLambertMaterial({ color: "#4f7a32" }));
     const topGeo = this.own(
       new BoxGeometry(OFFERING_BENCH_HALF_LENGTH * 2, 0.06, OFFERING_BENCH_HALF_DEPTH * 2),
     );
@@ -145,56 +153,42 @@ export class Offerings {
         16,
       ),
     );
-    const benches: Mesh[] = [];
     const top = PLINTH + OFFERING_BENCH_TOP;
     for (const b of OFFERING_BENCHES) {
       // The inner end (nearer the door) holds the lota, so it is the first thing reached.
       const inward = b.x > 0 ? -1 : 1;
-      const slab = new Mesh(topGeo, benchStone);
-      slab.position.set(b.x, top - 0.03, b.z);
-      benches.push(slab);
+      put(topGeo, BENCH_STONE, b.x, top - 0.03, b.z);
       for (const dx of [-1, 1]) {
-        const leg = new Mesh(legGeo, benchStone);
-        leg.position.set(
+        put(
+          legGeo,
+          BENCH_STONE,
           b.x + dx * (OFFERING_BENCH_HALF_LENGTH - 0.1),
           PLINTH + (OFFERING_BENCH_TOP - 0.06) / 2,
           b.z,
         );
-        benches.push(leg);
       }
-      const lota = new Mesh(lotaGeo, copper);
-      lota.position.set(b.x + inward * 0.3, top, b.z);
-      benches.push(lota);
-      // Bel patra in the middle basket, flowers (marigold and champa) in the outer one.
+      put(lotaGeo, COPPER, b.x + inward * 0.3, top, b.z);
+      // Bel patra in the middle basket, white flowers with a few marigolds in the outer one.
       for (const [dx, fill] of [
-        [0, bel],
-        [-inward * 0.28, marigold],
+        [0, BEL],
+        [-inward * 0.28, WHITE],
       ] as const) {
         const x = b.x + dx;
-        const basket = new Mesh(basketGeo, cane);
-        basket.position.set(x, top + 0.035, b.z);
-        const base = new Mesh(basketBaseGeo, cane);
-        base.rotation.x = -Math.PI / 2;
-        base.position.set(x, top + 0.002, b.z);
-        const heap = new Mesh(heapGeo, fill);
-        heap.scale.set(0.95, 0.45, 0.95);
-        heap.position.set(x, top + 0.05, b.z);
-        benches.push(basket, base, heap);
-        if (fill === marigold) {
+        put(basketGeo, CANE, x, top + 0.035, b.z);
+        put(basketBaseGeo, CANE, x, top + 0.002, b.z).rotation.x = -Math.PI / 2;
+        put(heapGeo, fill, x, top + 0.05, b.z).scale.set(0.95, 0.45, 0.95);
+        if (fill === WHITE) {
           for (let k = 0; k < 5; k++) {
             const a = k * 1.3;
-            const blossom = new Mesh(blossomGeo, k % 2 === 0 ? champa : marigold);
-            blossom.position.set(x + Math.cos(a) * 0.05, top + 0.085, b.z + Math.sin(a) * 0.05);
-            benches.push(blossom);
+            const c = k % 2 === 0 ? WHITE : MARIGOLD;
+            put(blossomGeo, c, x + Math.cos(a) * 0.05, top + 0.085, b.z + Math.sin(a) * 0.05);
           }
         }
       }
     }
 
-    // The tirtha pot with its spoon, on a small stone stand.
+    // A tirtha pot with its spoon on a small stone stand, one each side.
     const standGeo = this.own(new CylinderGeometry(0.11, 0.13, STAND_TOP - PLINTH, 10));
-    const stand = new Mesh(standGeo, stone);
-    stand.position.set(TIRTHA_POT.x, (PLINTH + STAND_TOP) / 2, TIRTHA_POT.z);
     const potGeo = this.own(
       new LatheGeometry(
         [
@@ -208,22 +202,24 @@ export class Offerings {
         14,
       ),
     );
-    const pot = new Mesh(potGeo, copper);
-    pot.position.set(TIRTHA_POT.x, STAND_TOP, TIRTHA_POT.z);
-    const spoon = new Mesh(this.own(new CylinderGeometry(0.004, 0.004, 0.16, 5)), copper);
-    spoon.position.set(TIRTHA_POT.x, STAND_TOP + 0.12, TIRTHA_POT.z + 0.02);
-    spoon.rotation.x = 0.35;
+    const spoonGeo = this.own(new CylinderGeometry(0.004, 0.004, 0.16, 5));
+    for (const t of TIRTHA_POTS) {
+      put(standGeo, STONE, t.x, (PLINTH + STAND_TOP) / 2, t.z);
+      put(potGeo, COPPER, t.x, STAND_TOP, t.z);
+      put(spoonGeo, COPPER, t.x, STAND_TOP + 0.12, t.z + 0.02).rotation.x = 0.35;
+    }
 
     // Leaves and flowers on the plate, instanced.
     const leaflet = this.own(new CircleGeometry(0.045, 8));
-    const petal = this.own(new CircleGeometry(0.022, 6));
-    const centre = this.own(new CircleGeometry(0.012, 6));
+    const petal = this.own(new CircleGeometry(0.02, 8));
+    const centre = this.own(new CircleGeometry(0.013, 8));
     const leafMat = this.own(new MeshLambertMaterial({ color: "#4f7a32", side: DoubleSide }));
     const whiteMat = this.own(new MeshLambertMaterial({ color: "#f4f1e6", side: DoubleSide }));
-    const yellowMat = this.own(new MeshLambertMaterial({ color: "#d9a520", side: DoubleSide }));
+    // A pale bud at the centre, no yellow, so it reads as a jasmine-like white flower, not champa.
+    const budMat = this.own(new MeshLambertMaterial({ color: "#ece4cc", side: DoubleSide }));
     this.leaflets = new InstancedMesh(leaflet, leafMat, OFFERING_PLATE_MAX * 6);
     this.petals = new InstancedMesh(petal, whiteMat, OFFERING_PLATE_MAX * 10);
-    this.centres = new InstancedMesh(centre, yellowMat, OFFERING_PLATE_MAX * 2);
+    this.centres = new InstancedMesh(centre, budMat, OFFERING_PLATE_MAX * 2);
     for (const im of [this.leaflets, this.petals, this.centres]) {
       im.count = 0;
       // Everything on them lies on the plates: cull with a sphere round both.
@@ -243,17 +239,7 @@ export class Offerings {
     this.flow.position.set(GROOVE.x0, GROOVE.y, SOMASUTRA.z);
     this.flow.visible = false;
 
-    this.group.add(
-      ...plates,
-      ...this.mergeByMaterial(benches),
-      stand,
-      pot,
-      spoon,
-      this.leaflets,
-      this.petals,
-      this.centres,
-      this.flow,
-    );
+    this.group.add(this.mergeColoured(still), this.leaflets, this.petals, this.centres, this.flow);
   }
 
   /** A leaf or flower laid on a plate (0 north, 1 south) `delayS` from now (when the hands reach it). */
@@ -321,22 +307,23 @@ export class Offerings {
     else this.pending.push({ at: this.time + delayS, run });
   }
 
-  /** One mesh per material for the benches and what lies on them: a few draw calls in all. */
-  private mergeByMaterial(parts: readonly Mesh[]): Mesh[] {
-    const byMat = new Map<Material, BufferGeometry[]>();
-    for (const m of parts) {
+  /** One mesh for all the still things, each painted its colour: one draw call. */
+  private mergeColoured(parts: readonly [Mesh, string][]): Mesh {
+    const c = new Color();
+    const geos = parts.map(([m, color]) => {
       m.updateMatrix();
       const g = m.geometry.clone().applyMatrix4(m.matrix);
-      const mat = m.material as Material;
-      byMat.set(mat, [...(byMat.get(mat) ?? []), g]);
-    }
-    const out: Mesh[] = [];
-    for (const [mat, geos] of byMat) {
-      const merged = mergeGeometries(geos, false);
-      for (const g of geos) g.dispose();
-      if (merged) out.push(new Mesh(this.own(merged), mat));
-    }
-    return out;
+      c.set(color);
+      const n = g.getAttribute("position").count;
+      const rgb = new Float32Array(n * 3);
+      for (let i = 0; i < n; i++) rgb.set([c.r, c.g, c.b], i * 3);
+      g.setAttribute("color", new Float32BufferAttribute(rgb, 3));
+      return g;
+    });
+    const merged = mergeGeometries(geos, false);
+    for (const g of geos) g.dispose();
+    if (!merged) throw new Error("offerings: could not merge the still parts");
+    return new Mesh(this.own(merged), this.own(new MeshLambertMaterial({ vertexColors: true })));
   }
 
   private own<T extends BufferGeometry | Material>(o: T): T {

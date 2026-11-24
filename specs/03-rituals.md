@@ -186,10 +186,10 @@ General rules for all rituals:
 
 ## Receive charanamrit (चरणामृत)
 
-- **Purpose:** receive a few drops of the blessed water after making an offering, as devotees do at the end of worship. It is symbolic: nothing is counted per visitor or shown (only anonymous totals, spec 09).
-- **Where:** within `JAL_NEAR_M` of either jal spot, from the small copper tirtha pot with its spoon that rests on a small stone stand beside the spot, `TIRTHA_POT` (2.75, 3.4).
+- **Purpose:** receive a few drops of water from the tirtha pot after making an offering, as devotees do at the end of worship. It is symbolic: nothing is counted per visitor or shown (only anonymous totals, spec 09).
+- **Where:** within `JAL_NEAR_M` of either jal spot, from the small copper tirtha pot with its spoon that rests on a small stone stand beside that spot: `TIRTHA_POTS`, (2.75, 3.4) on the north side and (-2.75, 3.4) on the south, so nobody crosses the Nandi axis for it (owner, 2026-11-24).
 - **When:** for `CHARANAMRIT_WINDOW_MS` (2 minutes) after the visitor's own offering (water, bel patra or flower), once per offering.
-- **Input:** the context button "Receive charanamrit", or key `E`. The visitor steps onto `CHARANAMRIT_SPOT` (2.3, 3.75) facing the pot first, if not already there.
+- **Input:** the context button "Receive charanamrit", or key `E`. The visitor steps onto the nearer of `CHARANAMRIT_SPOTS`, (2.3, 3.75) or (-2.3, 3.75), facing that side's pot first, if not already there.
 - **Network:** `gesture {g:"charanamrit"}` → `event {kind:"charanamrit", from}`.
 - **Server rule:**
   - The visitor must have completed an offering within `CHARANAMRIT_WINDOW_MS`, and not yet have received charanamrit for it.
@@ -226,7 +226,7 @@ General rules for all rituals:
 - **Purpose:** rest on the lawn and look at the temple, away from the hall.
 - **Where:** the seven lawn benches (`BENCHES`, spec 02): four by the gate path and three by the kund. Each bench seats two, so there are `BENCH_SEAT_COUNT` (14) bench seats. They share the seat numbers with the mats: mats are 0 … 39 and bench seats are 40 … 53 (`SEAT_COUNT` 54 in all), two per bench in `BENCHES` order, the −x seat first. A bench seat is 0.4 m either side of the bench's centre.
 - **Input:** the same "Sit" button as for a mat. Within `BENCH_SIT_NEAR_M` (4 m) of a bench seat, outside the mandapa, it asks for the nearest free bench seat. Tapping a bench asks for its nearest free seat. Seated, the screen reader hears `a11y.seated.bench`; with no free seat, `bench.taken` (spec 07).
-- **Network:** unchanged in shape: `sit {req, mat?}` → `sit.ok {req, mat}` or `sit.no {req}`, with `mat` 40 … 47 for a bench seat. `stand` frees it. The wider `mat` range is a breaking change, so `PROTOCOL_VERSION` goes up.
+- **Network:** unchanged in shape: `sit {req, mat?}` → `sit.ok {req, mat}` or `sit.no {req}`, with `mat` 40 … 53 for a bench seat. `stand` frees it. The wider `mat` range is a breaking change, so `PROTOCOL_VERSION` goes up.
   - Each seat has a **seat spot** on the lawn just in front of the bench (0.52 m in front of its centre line, clear of the bench), where the visitor walks to and is placed. The avatar is drawn sitting on the slab behind that spot; the spot is only where the visitor "is" for walking and the server.
 - **Server rule:** one visitor per seat. For a bench seat the visitor must be within `BENCH_SIT_NEAR_M` of that seat's spot (the mandapa rule still applies to mats). When `mat` is omitted, the server picks the nearest free mat inside the mandapa, or else the nearest free bench seat within reach, or answers `sit.no`. Seats are released like mats.
 - **Animation:** sitting upright on the bench, knees bent, both feet flat on the ground (soles down, never towards the sanctum), hands in the lap, facing the temple (yaw π). Japa may be counted while seated on a bench, as on a mat. The camera stays in the orbit view: the darshan view is not forced from the lawn.

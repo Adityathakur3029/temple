@@ -55,13 +55,21 @@ describe("jal spot queue (spec 03 § Offer water, bel patra or a flower)", () =>
     });
     const mem = { offeredAt: 10_000 };
     expect(
-      requestJal(sides, 0, { id: "a", req: 1, kind: "water" }, AT, mem, 10_000 + JAL_COOLDOWN_MS - 1),
+      requestJal(
+        sides,
+        0,
+        { id: "a", req: 1, kind: "water" },
+        AT,
+        mem,
+        10_000 + JAL_COOLDOWN_MS - 1,
+      ),
     ).toEqual({
       ok: false,
       why: "cooldown",
     });
     expect(
-      requestJal(sides, 0, { id: "a", req: 1, kind: "water" }, AT, mem, 10_000 + JAL_COOLDOWN_MS).ok,
+      requestJal(sides, 0, { id: "a", req: 1, kind: "water" }, AT, mem, 10_000 + JAL_COOLDOWN_MS)
+        .ok,
     ).toBe(true);
   });
 
@@ -112,7 +120,9 @@ describe("jal spot queue (spec 03 § Offer water, bel patra or a flower)", () =>
     const sides = emptyJalSides();
     const south = JAL_SPOTS[1] ?? JAL_SPOT;
     const AT_S = { x: south.x, z: south.z };
-    expect("turn" in requestJal(sides, 0, { id: "a", req: 1, kind: "water" }, AT, {}, 0)).toBe(true);
+    expect("turn" in requestJal(sides, 0, { id: "a", req: 1, kind: "water" }, AT, {}, 0)).toBe(
+      true,
+    );
     // Someone at the south spot gets it at once while the north one is in use.
     expect("turn" in requestJal(sides, 1, { id: "b", req: 1, kind: "bilva" }, AT_S, {}, 0)).toBe(
       true,
@@ -140,6 +150,31 @@ describe("jal spot queue (spec 03 § Offer water, bel patra or a flower)", () =>
     const kept = emptyJalSides();
     kept[1].queue.push({ id: "a", req: 1, kind: "water" });
     expect(loadJalSides(kept)).toEqual(kept);
+  });
+
+  it("does not trust stored entries or turns of the wrong shape", () => {
+    const bad = (side: unknown): unknown => [{ turn: null, queue: [] }, side];
+    const empty = emptyJalSides();
+    expect(loadJalSides(bad({ turn: null, queue: [{ id: 1, req: 1, kind: "water" }] }))).toEqual(
+      empty,
+    );
+    expect(
+      loadJalSides(bad({ turn: null, queue: [{ id: "a", req: 1.5, kind: "water" }] })),
+    ).toEqual(empty);
+    expect(loadJalSides(bad({ turn: null, queue: [{ id: "a", req: 1, kind: "milk" }] }))).toEqual(
+      empty,
+    );
+    expect(loadJalSides(bad({ turn: { id: "a", req: 1, kind: "water" }, queue: [] }))).toEqual(
+      empty,
+    );
+    expect(
+      loadJalSides(bad({ turn: { id: "a", req: 1, kind: "water", until: "soon" }, queue: [] })),
+    ).toEqual(empty);
+    const turn = { id: "a", req: 1, kind: "water" as const, until: 5 };
+    expect(loadJalSides(bad({ turn, queue: [] }))).toEqual([
+      { turn: null, queue: [] },
+      { turn, queue: [] },
+    ]);
   });
 
   it("names water 'jal' for others, and the leaf and flower as they are", () => {

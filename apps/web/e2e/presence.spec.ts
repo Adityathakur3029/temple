@@ -22,6 +22,8 @@ interface State {
   mat: number;
   sitBlend: number;
   walking: boolean;
+  blocked: string | null;
+  camera: { mode: string; x: number; y: number; z: number };
 }
 
 const net = (page: Page): Promise<Net> =>
@@ -258,8 +260,8 @@ test("whispers to Nandi beside his ear, and others see it (spec 03 § Whisper to
   const a = await open(page, "hall-14");
   const other = await visitor(browser);
   await open(other.page, "hall-14");
-  // Beside Nandi's platform, a little out from the ear spot at (1.3, 21.5).
-  await walkTo(page, 2, 21.6);
+  // Beside Nandi's platform, a little out from the ear spot at (1.0, 21.5).
+  await walkTo(page, 1.7, 21.6);
   const whisper = page.getByRole("button", { name: "Whisper to Nandi" });
   await expect(whisper).toBeVisible();
   await whisper.click();
@@ -272,7 +274,7 @@ test("whispers to Nandi beside his ear, and others see it (spec 03 § Whisper to
   await other.context.close();
 });
 
-test("offers at the jal spot in turn, and receives charanamrit (spec 12 scenario 5)", async ({
+test("offers in the sanctum in turn, and receives charanamrit (spec 12 scenario 5)", async ({
   page,
   browser,
 }) => {
@@ -291,7 +293,23 @@ test("offers at the jal spot in turn, and receives charanamrit (spec 12 scenario
   // B asks while A has the spot: B waits, one ahead.
   await other.page.getByRole("button", { name: "Offer a flower" }).click();
   await expect(other.page.getByText("1 ahead of you")).toBeVisible();
-  // A pours (8 s); B sees it, then gets the turn and lays the flower.
+  // A's avatar walks into the sanctum by itself, beside the Nandi axis, while the camera stays
+  // outside looking in; keys pressed meanwhile don't move it (spec 03).
+  await expect
+    .poll(
+      async () => {
+        const st = await state(page);
+        return st.z < 2.2 && Math.abs(st.x) > 0.4 && st.camera.z > 2.6 && st.blocked === null;
+      },
+      { timeout: 60_000 },
+    )
+    .toBe(true);
+  expect((await state(page)).camera.mode).toBe("darshan");
+  await page.keyboard.down("KeyS");
+  await page.waitForTimeout(500);
+  await page.keyboard.up("KeyS");
+  expect((await state(page)).z).toBeLessThan(2.6);
+  // A pours (8 s); B sees it, then gets the turn once A is out and lays the flower.
   await expect
     .poll(
       async () =>

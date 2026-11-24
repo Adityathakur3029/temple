@@ -27,7 +27,7 @@ The single job of the product: **give people a few calm minutes of devotion in c
 1. The page opens on a calm loading screen, "Opening the temple doors", and shows the temple within a few seconds.
 2. The visitor appears at the gate barefoot. A one-line hint says footwear is left at the gate and explains how to move.
 3. They walk up the path, optionally ringing bells along the way, pass the Ganesha shrine, and reach the courtyard with Nandi facing the sanctum.
-4. They can sit on a mat in the mandapa and take darshan, turn a japa mala, walk pradakshina, light a diya at the lamp stand or offer water at the threshold.
+4. They can sit on a mat in the mandapa and take darshan, turn a japa mala, walk pradakshina, light a diya at the lamp stand, or offer water, a bel patra or a flower on the linga (their figure walks into the sanctum by itself to offer, one visitor at a time).
 5. At 06:00 and 19:00 IST the aarti begins for everyone at once. Afterwards visitors can take aarti and receive prasad.
 6. They leave whenever they like. Nothing is saved except optional local preferences.
 
@@ -50,7 +50,7 @@ The single job of the product: **give people a few calm minutes of devotion in c
 | Bilva / bel patra | Trifoliate leaf offered to Shiva |
 | Darshan (दर्शन) | Seeing and being seen by the deity. Here it is a camera view that frames the sanctum. |
 | Deepa / diya (दीया) | Oil lamp |
-| Garbhagriha | Sanctum that houses the linga. Never entered by avatars. |
+| Garbhagriha | Sanctum that houses the linga. Never entered by avatars, except the one visitor making an offering, whose figure walks in and out by itself ([08](08-cultural-guidelines.md)). |
 | Hall (कक्ष) | One shared copy of the temple. Has up to 8 instances. |
 | Instance | A copy of a hall holding up to 50 visitors |
 | Japa (जप) | Repetition of a mantra, counted on a mala |

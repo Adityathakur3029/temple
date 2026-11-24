@@ -6,7 +6,9 @@ import {
   CLOSE_CODES,
   GESTURE_COOLDOWN_MS,
   INSTANCE_CAPACITY,
+  DOOR_SPOTS,
   JAL_SPOT,
+  SANCTUM_SPOTS,
   MATS,
   MAT_COUNT,
   SEATS,
@@ -301,28 +303,56 @@ describe("whisper to Nandi", () => {
   }, 20000);
 });
 
-describe("jal spot (spec 03 § Offer water, bel patra or a flower)", () => {
-  it("queues a second visitor, shows the offering, passes the turn, then allows charanamrit", async () => {
+describe("jal: into the sanctum, one at a time (spec 03 § Offer water, bel patra or a flower)", () => {
+  const DOOR_N = DOOR_SPOTS[0] ?? { x: 0.88, z: 3.0 };
+  const DOOR_S = DOOR_SPOTS[1] ?? { x: -0.88, z: 3.0 };
+  const IN_N = SANCTUM_SPOTS[0] ?? { x: 0.68, z: 0.55 };
+  const MID_N = { x: DOOR_N.x, z: IN_N.z + 0.6 };
+
+  /** In along the north lane, from the door spot to the sanctum spot. */
+  async function walkIn(c: TestClient): Promise<void> {
+    await walk(c, DOOR_N, MID_N);
+    await walk(c, MID_N, IN_N);
+  }
+
+  it("lets only the holder in, on their lane; passes the turn once they're out; then charanamrit", async () => {
     const { c: a, welcome: wa } = await TestClient.join({ hall: "hall-19" });
     const { c: b, welcome: wb } = await TestClient.join({ hall: "hall-19" });
-    // First positions may be anywhere walkable: A at the jal spot, B nearby in the mandapa.
-    a.send({ t: "pos", x: JAL_SPOT.x, z: JAL_SPOT.z, yaw: 0, pose: "stand" });
-    b.send({ t: "pos", x: 1.9, z: 5.6, yaw: 0, pose: "stand" });
+    // First positions may be anywhere walkable: A at the north door spot, B on the south side.
+    a.send({ t: "pos", x: DOOR_N.x, z: DOOR_N.z, yaw: 0, pose: "stand" });
+    b.send({ t: "pos", x: -1.9, z: 5.0, yaw: 0, pose: "stand" });
     await wait(150);
     a.send({ t: "jal.request", req: 1, kind: "water", side: "n" });
     expect((await a.next("jal.turn")).req).toBe(1);
-    b.send({ t: "jal.request", req: 1, kind: "flower", side: "n" });
+    // One queue for both sides: B, at the south spot, waits for A.
+    b.send({ t: "jal.request", req: 1, kind: "flower", side: "s" });
     expect(await b.next("jal.queue")).toEqual({ t: "jal.queue", pos: 0 });
-    // The offering pose is allowed for the turn holder only.
-    a.send({ t: "pos", x: JAL_SPOT.x, z: JAL_SPOT.z, yaw: 0, pose: "offer" });
-    b.send({ t: "pos", x: 1.9, z: 5.6, yaw: 0, pose: "offer" });
+    // B may not go in, nor hold the offering pose.
+    await walk(b, { x: -1.9, z: 5.0 }, DOOR_S);
+    b.send({ t: "pos", x: DOOR_S.x, z: 2.4, yaw: 0, pose: "walk" });
+    expect(await b.next("correct")).toEqual({ t: "correct", x: DOOR_S.x, z: DOOR_S.z });
+    b.send({ t: "pos", x: DOOR_S.x, z: DOOR_S.z, yaw: 0, pose: "offer" });
     expect(await b.next("correct")).toBeTruthy();
+    // An offering from outside the sanctum is ignored.
+    a.send({ t: "jal.done", req: 1 });
+    expect(await b.none("event", 300)).toBe(true);
+    // A walks in along the lane, unhindered, and offers there.
+    await walkIn(a);
+    a.send({ t: "pos", x: IN_N.x, z: IN_N.z, yaw: 0, pose: "offer" });
     expect(await a.none("correct", 300)).toBe(true);
+    // Off the lane inside (towards the linga) is refused.
+    a.send({ t: "pos", x: 0.3, z: 0.6, yaw: 0, pose: "stand" });
+    expect(await a.next("correct")).toEqual({ t: "correct", x: IN_N.x, z: IN_N.z });
     // Charanamrit before any offering is ignored.
     a.send({ t: "gesture", g: "charanamrit" });
     expect(await b.none("event", 300)).toBe(true);
+    await wait(1000);
     a.send({ t: "jal.done", req: 1 });
     expect(await b.next("event")).toEqual({ t: "event", from: wa.you.id, kind: "jal" });
+    // A is still inside: the turn waits for them to come out.
+    expect(await b.none("jal.turn", 300)).toBe(true);
+    await walk(a, IN_N, MID_N);
+    await walk(a, MID_N, DOOR_N);
     expect((await b.next("jal.turn")).req).toBe(1);
     // A second offering within the cooldown is refused (after the 1 s rate limit).
     await wait(1000);
@@ -334,7 +364,10 @@ describe("jal spot (spec 03 § Offer water, bel patra or a flower)", () => {
     await wait(GESTURE_COOLDOWN_MS);
     a.send({ t: "gesture", g: "charanamrit" }); // once per offering
     expect(await b.none("event", 300)).toBe(true);
-    // B leaves the turn; nobody is waiting, so the spot is free for anyone not cooling down.
+    // A, without the turn now, can't go back in.
+    a.send({ t: "pos", x: DOOR_N.x, z: 2.4, yaw: 0, pose: "walk" });
+    expect(await a.next("correct")).toEqual({ t: "correct", x: DOOR_N.x, z: DOOR_N.z });
+    // B leaves the turn; nobody is waiting, so it's free for anyone not cooling down.
     b.send({ t: "jal.cancel" });
     await wait(150);
     const { c: c3 } = await TestClient.join({ hall: "hall-19" });
@@ -344,52 +377,34 @@ describe("jal spot (spec 03 § Offer water, bel patra or a flower)", () => {
     expect((await c3.next("jal.turn")).req).toBe(5);
     expect(wb.you.id).not.toBe(wa.you.id);
     await Promise.all([a.close(), b.close(), c3.close()]);
-  }, 30000);
+  }, 40000);
 });
 
-describe("jal spots: one turn each side", () => {
-  it("lets two visitors offer at once from opposite sides", async () => {
-    const { c: a, welcome: wa } = await TestClient.join({ hall: "hall-15" });
-    const { c: b, welcome: wb } = await TestClient.join({ hall: "hall-15" });
-    a.send({ t: "pos", x: JAL_SPOT.x, z: JAL_SPOT.z, yaw: 0, pose: "stand" });
-    b.send({ t: "pos", x: -JAL_SPOT.x, z: JAL_SPOT.z, yaw: 0, pose: "stand" });
-    await wait(150);
-    a.send({ t: "jal.request", req: 1, kind: "water", side: "n" });
-    b.send({ t: "jal.request", req: 1, kind: "bilva", side: "s" });
-    expect((await a.next("jal.turn")).req).toBe(1);
-    expect((await b.next("jal.turn")).req).toBe(1);
-    // Both may hold the offering pose.
-    a.send({ t: "pos", x: JAL_SPOT.x, z: JAL_SPOT.z, yaw: 0, pose: "offer" });
-    b.send({ t: "pos", x: -JAL_SPOT.x, z: JAL_SPOT.z, yaw: 0, pose: "offer" });
-    expect(await a.none("correct", 300)).toBe(true);
-    expect(await b.none("correct", 300)).toBe(true);
-    a.send({ t: "jal.done", req: 1 });
-    expect(await b.next("event")).toEqual({ t: "event", from: wa.you.id, kind: "jal" });
-    b.send({ t: "jal.done", req: 1 });
-    expect(await a.next("event")).toEqual({ t: "event", from: wb.you.id, kind: "bilva" });
-    await Promise.all([a.close(), b.close()]);
-  }, 20000);
-});
+describe("jal: timeouts and resume", () => {
+  const DOOR_N = DOOR_SPOTS[0] ?? { x: 0.88, z: 3.0 };
+  const IN_N = SANCTUM_SPOTS[0] ?? { x: 0.68, z: 0.55 };
+  const MID_N = { x: DOOR_N.x, z: IN_N.z + 0.6 };
 
-describe("jal spot: timeouts and resume", () => {
-  it("passes a timed-out turn to the next visitor", async () => {
+  it("leads a holder out of the sanctum when the turn runs out, and passes it on", async () => {
     const { c: a } = await TestClient.join({ hall: "hall-16" });
     const { c: b } = await TestClient.join({ hall: "hall-16" });
-    a.send({ t: "pos", x: JAL_SPOT.x, z: JAL_SPOT.z, yaw: 0, pose: "stand" });
+    a.send({ t: "pos", x: DOOR_N.x, z: DOOR_N.z, yaw: 0, pose: "stand" });
     b.send({ t: "pos", x: 1.9, z: 5.6, yaw: 0, pose: "stand" });
     await wait(150);
     a.send({ t: "jal.request", req: 1, kind: "water", side: "n" });
     await a.next("jal.turn");
     b.send({ t: "jal.request", req: 4, kind: "bilva", side: "n" });
     await b.next("jal.queue");
+    await walk(a, DOOR_N, MID_N);
     // Age A's turn past its deadline, then let the alarm pass it on.
     const stub = roomStub("hall-16");
     await runInDurableObject(stub, (room: RoomDO) => {
-      const jal = (room as unknown as { jal: { turn: { until: number } | null }[] }).jal;
-      const north = jal[0];
-      if (north?.turn) north.turn.until = Date.now() - 1;
+      const jal = (room as unknown as { jal: { turn: { until: number } | null } }).jal;
+      if (jal.turn) jal.turn.until = Date.now() - 1;
     });
     await runDurableObjectAlarm(stub);
+    // A is placed at the door spot, outside, and B gets the turn.
+    expect(await a.next("correct")).toEqual({ t: "correct", x: DOOR_N.x, z: DOOR_N.z });
     expect((await b.next("jal.turn")).req).toBe(4);
     // A's late jal.done is ignored: nobody sees an offering.
     a.send({ t: "jal.done", req: 1 });
@@ -397,15 +412,75 @@ describe("jal spot: timeouts and resume", () => {
     await Promise.all([a.close(), b.close()]);
   }, 20000);
 
+  it("keeps a led-out holder at the door after the room hibernates", async () => {
+    const { c: a } = await TestClient.join({ hall: "hall-12" });
+    a.send({ t: "pos", x: DOOR_N.x, z: DOOR_N.z, yaw: 0, pose: "stand" });
+    await wait(150);
+    a.send({ t: "jal.request", req: 1, kind: "water", side: "n" });
+    await a.next("jal.turn");
+    await walk(a, DOOR_N, MID_N);
+    const stub = roomStub("hall-12");
+    await runInDurableObject(stub, (room: RoomDO) => {
+      const jal = (room as unknown as { jal: { turn: { until: number } | null } }).jal;
+      if (jal.turn) jal.turn.until = Date.now() - 1;
+    });
+    await runDurableObjectAlarm(stub);
+    expect(await a.next("correct")).toEqual({ t: "correct", x: DOOR_N.x, z: DOOR_N.z });
+    await evictDurableObject(stub); // memory goes; the attachment must hold the door spot
+    a.send({ t: "pos", x: DOOR_N.x, z: DOOR_N.z + 0.3, yaw: 0, pose: "walk" });
+    expect(await a.none("correct", 400)).toBe(true);
+    await a.close();
+  }, 20000);
+
+  it("passes on, after a restart, a turn whose holder's resume place ran out", async () => {
+    const { c: a } = await TestClient.join({ hall: "hall-18" });
+    const { c: b } = await TestClient.join({ hall: "hall-18" });
+    const { c: c3 } = await TestClient.join({ hall: "hall-18" });
+    a.send({ t: "pos", x: JAL_SPOT.x, z: JAL_SPOT.z, yaw: 0, pose: "stand" });
+    b.send({ t: "pos", x: 1.9, z: 5.6, yaw: 0, pose: "stand" });
+    c3.send({ t: "pos", x: 2.4, z: 5.6, yaw: 0, pose: "stand" });
+    await wait(150);
+    a.send({ t: "jal.request", req: 1, kind: "water", side: "n" });
+    await a.next("jal.turn");
+    b.send({ t: "jal.request", req: 2, kind: "water", side: "n" });
+    await b.next("jal.queue");
+    c3.send({ t: "jal.request", req: 3, kind: "water", side: "n" });
+    await c3.next("jal.queue");
+    // B's network goes; then A gives up, so the turn passes to B, who is away.
+    b.ws.close(4999, "network gone");
+    await b.closed;
+    await wait(100);
+    a.send({ t: "jal.cancel" });
+    await wait(150);
+    // B's resume place runs out while the room is asleep.
+    const stub = roomStub("hall-18");
+    await runInDurableObject(stub, async (room: RoomDO, state) => {
+      const resumes = (room as unknown as { resumes: Map<string, { until: number }> }).resumes;
+      for (const [token, rec] of resumes) {
+        rec.until = Date.now() - 1;
+        await state.storage.put(`resume:${token}`, rec);
+      }
+    });
+    await evictDurableObject(stub);
+    await runDurableObjectAlarm(stub);
+    // The queue isn't stuck: C gets the turn.
+    expect((await c3.next("jal.turn")).req).toBe(3);
+    await Promise.all([a.close(), c3.close()]);
+  }, 20000);
+
   it("keeps the cooldown and charanamrit across a resume", async () => {
     const { c: a, welcome } = await TestClient.join({ hall: "hall-17" });
     const { c: b } = await TestClient.join({ hall: "hall-17" });
-    a.send({ t: "pos", x: JAL_SPOT.x, z: JAL_SPOT.z, yaw: 0, pose: "stand" });
+    a.send({ t: "pos", x: DOOR_N.x, z: DOOR_N.z, yaw: 0, pose: "stand" });
     await wait(150);
     a.send({ t: "jal.request", req: 1, kind: "flower", side: "n" });
     await a.next("jal.turn");
+    await walk(a, DOOR_N, MID_N);
+    await walk(a, MID_N, IN_N);
     a.send({ t: "jal.done", req: 1 });
     expect((await b.next("event")).kind).toBe("flower");
+    await walk(a, IN_N, MID_N);
+    await walk(a, MID_N, DOOR_N);
     a.ws.close(4999, "network gone");
     await a.closed;
     await wait(100);
@@ -424,11 +499,11 @@ describe("jal spot: timeouts and resume", () => {
   }, 20000);
 });
 
-describe("jal spot: places kept and freed", () => {
+describe("jal: places kept and freed", () => {
   const SOUTH = { x: -JAL_SPOT.x, z: JAL_SPOT.z };
   const SOUTH_NEAR = { x: -1.9, z: 5.6 };
 
-  it("keeps a place in the south queue across a resume, then gives the turn", async () => {
+  it("keeps a place in the queue across a resume, then gives the turn", async () => {
     const { c: a } = await TestClient.join({ hall: "hall-01" });
     const { c: b, welcome: wb } = await TestClient.join({ hall: "hall-01" });
     a.send({ t: "pos", ...SOUTH, yaw: 0, pose: "stand" });
@@ -448,7 +523,7 @@ describe("jal spot: places kept and freed", () => {
     await Promise.all([a.close(), back.close()]);
   }, 20000);
 
-  it("rebuilds both sides from storage after a restart, and resets an old single-spot value", async () => {
+  it("rebuilds the queue from storage after a restart, and resets the older two-sided value", async () => {
     const { c: a, welcome: wa } = await TestClient.join({ hall: "hall-10" });
     a.send({ t: "pos", ...SOUTH, yaw: 0, pose: "stand" });
     await wait(150);
@@ -456,31 +531,31 @@ describe("jal spot: places kept and freed", () => {
     await a.next("jal.turn");
     const stub = roomStub("hall-10");
     await evictDurableObject(stub); // drops memory; the socket hibernates
-    const sides = await runInDurableObject(stub, (room: RoomDO) => {
-      return (room as unknown as { jal: { turn: { id: string } | null }[] }).jal.map(
-        (s) => s.turn?.id ?? null,
-      );
+    const turn = await runInDurableObject(stub, (room: RoomDO) => {
+      return (room as unknown as { jal: { turn: { id: string; side: number } | null } }).jal.turn;
     });
-    expect(sides).toEqual([null, wa.you.id]);
+    expect(turn).toMatchObject({ id: wa.you.id, side: 1 });
     await a.close();
 
-    // An older stored shape (one spot) starts empty, and is written back cleaned.
+    // The older stored shape (one turn and queue per side) starts empty, and is written back cleaned.
     await runInDurableObject(stub, async (_room: RoomDO, state) => {
-      await state.storage.put("queues", { jal: { turn: null, queue: [] } });
+      await state.storage.put("queues", {
+        jal: [
+          { turn: null, queue: [] },
+          { turn: null, queue: [] },
+        ],
+      });
     });
     await evictDurableObject(stub);
     const { c: fresh } = await TestClient.join({ hall: "hall-10" });
     const stored = await runInDurableObject(stub, (_room: RoomDO, state) =>
       state.storage.get<{ jal: unknown }>("queues"),
     );
-    expect(stored?.jal).toEqual([
-      { turn: null, queue: [] },
-      { turn: null, queue: [] },
-    ]);
+    expect(stored?.jal).toEqual({ turn: null, queue: [] });
     await fresh.close();
   }, 20000);
 
-  it("frees a south place when the resume window runs out", async () => {
+  it("frees a place when the resume window runs out", async () => {
     const { c: a } = await TestClient.join({ hall: "hall-08" });
     const { c: b, welcome: wb } = await TestClient.join({ hall: "hall-08" });
     const { c: c3 } = await TestClient.join({ hall: "hall-08" });
@@ -507,7 +582,8 @@ describe("jal spot: places kept and freed", () => {
       }
     });
     await runDurableObjectAlarm(stub);
-    // B's place is gone: C moves up to the front of the south queue.
+
+    // B's place is gone: C moves up to the front of the queue.
     expect(await c3.next("jal.queue")).toEqual({ t: "jal.queue", pos: 0 });
     const late = await TestClient.open({ hall: "hall-08", resume: wb.resume });
     expect((await late.closed).code).toBe(CLOSE_CODES.RESUME_INVALID);

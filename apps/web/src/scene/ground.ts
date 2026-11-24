@@ -35,6 +35,8 @@ export const HEIGHTS = {
   shikharaTop: 16.1,
   pillarTop: 4.2,
   roof: { y0: 4.2, y1: 5.9 },
+  /** Top of Nandi's platform: low, so his ears are at a visitor's head height (spec 02). */
+  nandiPlatform: 0.15,
 } as const;
 
 const inRect = (r: Rect, x: number, z: number): boolean =>
@@ -95,8 +97,8 @@ export const CAMERA_BLOCKERS: readonly Box[] = [
     const h = PILLAR_HALF_SIZE + 0.05;
     return box(p.x - h, p.x + h, 0, HEIGHTS.pillarTop + 0.2, p.z - h, p.z + h);
   }),
-  // Nandi to his horn tips: the platform (0.5 m) and the figure (1.3 m), with a little margin.
-  box(NANDI_PLATFORM.x0, NANDI_PLATFORM.x1, 0, 1.85, NANDI_PLATFORM.z0, NANDI_PLATFORM.z1),
+  // Nandi to his horn tips: the platform and the figure (1.3 m), with a little margin.
+  box(NANDI_PLATFORM.x0, NANDI_PLATFORM.x1, 0, HEIGHTS.nandiPlatform + 1.35, NANDI_PLATFORM.z0, NANDI_PLATFORM.z1),
   box(
     GANESHA_SHRINE.x0 - 0.15,
     GANESHA_SHRINE.x1 + 0.15,

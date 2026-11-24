@@ -17,8 +17,9 @@
  * (reach up and strike, 0.8 s), and washing the hands at a tap (lean a little, cup the hands under
  * the spout and rub them, then shake the water off gently, 4 s), and whispering to Nandi (lean a
  * little towards his ear with a hand cupped by the mouth, then join the palms and nod, 4 s), and
- * at the jal spot (spec 03): pouring water from a small copper lota (8 s), laying a bel patra or
- * a flower on the offering plate with a slight bow (4 s), and receiving charanamrit in cupped
+ * making an offering in the sanctum (spec 03): pouring water from a small copper lota onto the
+ * linga (8 s), laying a bel patra or a flower on the linga with a slight bow (4 s), and, back at
+ * the threshold, receiving charanamrit in cupped
  * hands, raising them to the lips and passing the right hand over the head (3.5 s). The lota,
  * leaf and flower are small props held between the hands. The rig has no running, jumping,
  * dancing or emote motion at all.
@@ -51,6 +52,8 @@ import {
   type Object3D,
 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { LINGA } from "@sannidhi/protocol";
+import { PLINTH } from "./ground";
 
 /** Muted wool shawl colours; the server assigns an index 0–7 (spec 04 `Visitor.shawl`). */
 export const SHAWL_COLOURS = [
@@ -85,11 +88,11 @@ export const WASH_S = 4;
 export const WHISPER_S = 4;
 /** The lean lasts this long; the joined palms and the nod take the rest. */
 const WHISPER_LEAN_S = 3.1;
-/** Pouring water from the lota at the jal spot (spec 03). */
+/** Pouring water from the lota onto the linga, in the sanctum (spec 03). */
 export const POUR_S = 8;
-/** Laying a bel patra or a flower on the offering plate (spec 03). */
+/** Laying a bel patra or a flower on the linga (spec 03). */
 export const LAY_S = 4;
-/** The leaf or flower leaves the hands this far into the gesture, onto the plate. */
+/** The leaf or flower leaves the hands this far into the gesture, onto the linga. */
 export const LAY_RELEASE_S = 2.3;
 /** Receiving charanamrit (spec 03). */
 export const CHARANAMRIT_S = 3.5;
@@ -240,6 +243,22 @@ function makeProps(): Props {
 
 const handL = new Vector3();
 const handR = new Vector3();
+const toTarget = new Vector3();
+const lip = new Vector3();
+const DOWN = new Vector3(0, -1, 0);
+/**
+ * Where water is poured and a leaf or flower laid: the top of the linga (the linga slot is 0.92 m
+ * tall from the sanctum floor). Used by any avatar offering within OFFER_NEAR_M of it.
+ */
+const OFFER_TARGET = new Vector3(LINGA.x, PLINTH + 0.015 + 0.9, LINGA.z);
+const OFFER_NEAR_M = 1.6;
+/** The leaf or flower is carried from the hands onto the linga over this last part of the hold. */
+const LAY_CARRY_S = 0.7;
+/** 0 below 0, 1 above 1, and an ease in between. */
+const smooth01 = (x: number): number => {
+  const c = Math.min(1, Math.max(0, x));
+  return c * c * (3 - 2 * c);
+};
 
 interface Body {
   scale: number;
@@ -840,7 +859,7 @@ export class Avatar {
         tilt = windowed(g.t, 1.3, length - 1.8, 0.9);
         namaste = windowed(g.t, length - 1.3, length, 0.35);
       } else if (g.kind === "bilva" || g.kind === "flower") {
-        // Held at the chest, laid on the plate with a slight bow, then palms joined.
+        // Held at the chest, laid on the linga with a slight bow, then palms joined.
         hold = envelope(g.t, LAY_RELEASE_S + 0.4, 0.4, 0.4);
         reach = windowed(g.t, 1.0, LAY_RELEASE_S + 0.5, 0.6);
         namaste = windowed(g.t, LAY_RELEASE_S + 0.4, length, 0.4);
@@ -998,7 +1017,7 @@ export class Avatar {
       flz = lerp(flz, -0.45, pour);
       frz = lerp(frz, 0.45, pour);
     }
-    // Laying a leaf or flower: held together at the chest, then lowered forward onto the plate.
+    // Laying a leaf or flower: held together at the chest, then reached forward onto the linga.
     if (hold > 0) {
       const ux = lerp(-0.8, -0.55, reach);
       const fx = lerp(-1.0, -0.25, reach);
@@ -1073,18 +1092,40 @@ export class Avatar {
     pr.stream.visible = showLota && tilt > 0.6;
     pr.leaf.visible = showItem && kind === "bilva";
     pr.flower.visible = showItem && kind === "flower";
+    // In the sanctum, the offering goes onto the linga: the target in the props' own space,
+    // which is in metres and turned with the avatar.
+    const offering = this.root.position.distanceTo(OFFER_TARGET) < OFFER_NEAR_M;
+    if (offering) {
+      toTarget.copy(OFFER_TARGET);
+      this.root.worldToLocal(toTarget).sub(handL).multiplyScalar(this.root.scale.x);
+    }
     if (showLota) {
       // Held by its belly, tipped forward (towards +z) as the water pours.
       pr.lota.position.set(0, -0.05, 0.05);
       pr.lota.rotation.set(1.25 * tilt, 0, 0);
-      // A thin stream from the lip down towards the floor in front.
-      const len = 0.55;
-      pr.stream.scale.set(1, len, 1);
-      pr.stream.position.set(0, -0.02 - len / 2, 0.17);
+      lip.set(0, -0.02, 0.17);
+      if (offering) {
+        // A thin stream from the lip onto the top of the linga.
+        toTarget.sub(lip);
+        const len = Math.max(0.05, toTarget.length());
+        pr.stream.scale.set(1, len, 1);
+        pr.stream.quaternion.setFromUnitVectors(DOWN, toTarget.normalize());
+        pr.stream.position.copy(lip).addScaledVector(toTarget, len / 2);
+      } else {
+        // A thin stream from the lip down towards the floor in front.
+        const len = 0.55;
+        pr.stream.scale.set(1, len, 1);
+        pr.stream.quaternion.identity();
+        pr.stream.position.set(0, -0.02 - len / 2, 0.17);
+      }
     }
     if (showItem) {
-      pr.leaf.position.set(0, 0.01, 0.04);
-      pr.flower.position.set(0, 0.01, 0.04);
+      // Held between the hands, then carried gently onto the linga as the hands reach out.
+      const k = offering ? smooth01((t - (LAY_RELEASE_S - LAY_CARRY_S)) / LAY_CARRY_S) : 0;
+      for (const item of [pr.leaf, pr.flower]) {
+        item.position.set(0, 0.01, 0.04);
+        if (k > 0) item.position.lerp(toTarget, k);
+      }
     }
   }
 

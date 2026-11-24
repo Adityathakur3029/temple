@@ -45,21 +45,15 @@ export type BellId = (typeof BELL_IDS)[number];
 export const TAP_IDS = ["tap-1", "tap-2", "tap-3", "tap-4", "tap-5"] as const;
 export type TapId = (typeof TAP_IDS)[number];
 
-export const GESTURES = [
-  "namaste",
-  "pranam",
-  "aarti",
-  "prasad",
-  "whisper",
-  "charanamrit",
-] as const;
+export const GESTURES = ["namaste", "pranam", "aarti", "prasad", "whisper", "charanamrit"] as const;
 export type Gesture = (typeof GESTURES)[number];
 
 export const JAL_KINDS = ["water", "bilva", "flower"] as const;
 export type JalKind = (typeof JAL_KINDS)[number];
 /**
- * The two jal spots, north ("n", +x) and south ("s"), in the order of JAL_SPOTS in world.ts. Each
- * has its own turn and queue, so two visitors may offer at once, one each side (spec 03).
+ * The two sides of the sanctum door, north ("n", +x) and south ("s"), in the order of JAL_SPOTS
+ * and the other per-side lists in world.ts. One queue serves both; the side picks the bench, the
+ * door spot and the sanctum lane a visitor's avatar uses (spec 03).
  */
 export const JAL_SIDES = ["n", "s"] as const;
 export type JalSide = (typeof JAL_SIDES)[number];

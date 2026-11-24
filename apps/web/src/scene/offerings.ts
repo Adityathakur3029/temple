@@ -1,13 +1,13 @@
 /**
- * The jal spots' things (spec 03 § Offer water, bel patra or a flower, § Receive charanamrit):
- * the brass offering plates each side of the door with the leaves and flowers laid on them, the
- * two offering benches with their baskets of flowers and bel patra and a lota of water, the small
- * copper tirtha pots with their spoons on their stone stands (one each side), and the water seen running out along the
- * somasutra channel after someone pours.
+ * The offering's things (spec 03 § Offer water, bel patra or a flower, § Receive charanamrit):
+ * the leaves and flowers laid on the linga, the two offering benches with their baskets of flowers
+ * and bel patra and a lota of water, the small copper tirtha pots with their spoons on their stone
+ * stands (one each side), and the water seen running out along the somasutra channel after
+ * someone pours.
  *
- * Each client draws the plate from the events it receives, so a newcomer sees it empty. At most
- * OFFERING_PLATE_MAX items; each one goes after OFFERING_FADE_S. A few draw calls in all: the
- * leaflets, petals and flower centres are instanced.
+ * Each client draws the offerings on the linga from the events it receives, so a newcomer sees
+ * none. At most OFFERING_MAX items; each one goes after OFFERING_FADE_S. A few draw calls in all:
+ * the leaflets, petals and flower centres are instanced.
  */
 import {
   BoxGeometry,
@@ -39,15 +39,14 @@ import {
   OFFERING_BENCH_HALF_DEPTH,
   OFFERING_BENCH_HALF_LENGTH,
   OFFERING_BENCH_TOP,
-  OFFERING_PLATES,
-  OFFERING_PLATE_RADIUS,
+  LINGA,
   SOMASUTRA,
   TIRTHA_POTS,
 } from "@sannidhi/protocol";
 import { PLINTH } from "./ground";
 
-/** Leaves and flowers shown on the plate at once. */
-export const OFFERING_PLATE_MAX = 12;
+/** Leaves and flowers shown on the linga at once. */
+export const OFFERING_MAX = 12;
 /** Each one goes after 10 minutes (spec 03). */
 export const OFFERING_FADE_S = 600;
 /** How long the water runs along the channel after a pour. */
@@ -57,17 +56,24 @@ const OUTFLOW_LENGTH = 5;
 
 /** The top of the small stone stand the tirtha pot rests on, on the mandapa floor. */
 const STAND_TOP = PLINTH + 0.32;
+/**
+ * Where offerings rest on the linga slot's model (assets-src/models/linga, origin at its bottom
+ * on the sanctum floor): the top of the shaft, and the pitha's basin between the shaft and the
+ * rim. The spout points north (+x), so nothing is laid in the groove.
+ */
+const LINGA_FLOOR = PLINTH + 0.015;
+const LINGA_TOP = { y: LINGA_FLOOR + 0.915, r: 0.05 } as const;
+const BASIN = { y: LINGA_FLOOR + 0.372, r0: 0.21, r1: 0.35 } as const;
 /** The channel's groove (greybox.ts): from the catch stone northwards, floor at 0.03 m. */
 const GROOVE = { x0: 3.45, y: 0.045, halfWidth: 0.11 } as const;
 
-export type PlateItem = "bilva" | "flower";
+export type LaidItem = "bilva" | "flower";
 
 interface Laid {
-  kind: PlateItem;
-  /** Which plate (0 north, 1 south). */
-  side: number;
-  /** Position on the plate, relative to its centre. */
+  kind: LaidItem;
+  /** Where it rests, in world space. */
   x: number;
+  y: number;
   z: number;
   turn: number;
   age: number;
@@ -85,7 +91,7 @@ export class Offerings {
   private readonly laid: Laid[] = [];
   private readonly pending: { at: number; run: () => void }[] = [];
   private time = 0;
-  private readonly slot = [0, 0];
+  private slot = 0;
   private readonly leaflets: InstancedMesh;
   private readonly petals: InstancedMesh;
   private readonly centres: InstancedMesh;
@@ -96,7 +102,7 @@ export class Offerings {
   private readonly owned: (BufferGeometry | Material)[] = [];
 
   constructor() {
-    // Everything that never moves (plates, benches with their baskets and lotas, the tirtha pots
+    // Everything that never moves (the benches with their baskets and lotas, the tirtha pots
     // on their stands) is merged into one mesh with vertex colours: one draw call (spec 10).
     const still: [Mesh, string][] = [];
     const put = (geo: BufferGeometry, color: string, x: number, y: number, z: number): Mesh => {
@@ -105,7 +111,6 @@ export class Offerings {
       still.push([m, color]);
       return m;
     };
-    const BRASS = "#b08a3a";
     const COPPER = "#b4643c";
     const STONE = "#6f685c";
     const BENCH_STONE = "#8a8174";
@@ -114,18 +119,6 @@ export class Offerings {
     // White flowers (jasmine-like), never champa (spec 08, check with advisor).
     const WHITE = "#f4f1e6";
     const BEL = "#4f7a32";
-
-    // The plates: a shallow brass dish on the mandapa floor each side of the door.
-    const plateGeo = this.own(
-      new CylinderGeometry(OFFERING_PLATE_RADIUS, OFFERING_PLATE_RADIUS * 0.85, 0.02, 20),
-    );
-    const rimGeo = this.own(
-      new CylinderGeometry(OFFERING_PLATE_RADIUS, OFFERING_PLATE_RADIUS, 0.012, 20, 1, true),
-    );
-    for (const p of OFFERING_PLATES) {
-      put(plateGeo, BRASS, p.x, PLINTH + 0.01, p.z);
-      put(rimGeo, BRASS, p.x, PLINTH + 0.026, p.z);
-    }
 
     // The offering benches: a low stone bench each side, with a basket of flowers, a basket of
     // bel patra and a copper lota of water on it.
@@ -209,7 +202,7 @@ export class Offerings {
       put(spoonGeo, COPPER, t.x, STAND_TOP + 0.12, t.z + 0.02).rotation.x = 0.35;
     }
 
-    // Leaves and flowers on the plate, instanced.
+    // Leaves and flowers on the linga, instanced.
     const leaflet = this.own(new CircleGeometry(0.045, 8));
     const petal = this.own(new CircleGeometry(0.02, 8));
     const centre = this.own(new CircleGeometry(0.013, 8));
@@ -217,17 +210,13 @@ export class Offerings {
     const whiteMat = this.own(new MeshLambertMaterial({ color: "#f4f1e6", side: DoubleSide }));
     // A pale bud at the centre, no yellow, so it reads as a jasmine-like white flower, not champa.
     const budMat = this.own(new MeshLambertMaterial({ color: "#ece4cc", side: DoubleSide }));
-    this.leaflets = new InstancedMesh(leaflet, leafMat, OFFERING_PLATE_MAX * 6);
-    this.petals = new InstancedMesh(petal, whiteMat, OFFERING_PLATE_MAX * 10);
-    this.centres = new InstancedMesh(centre, budMat, OFFERING_PLATE_MAX * 2);
+    this.leaflets = new InstancedMesh(leaflet, leafMat, OFFERING_MAX * 6);
+    this.petals = new InstancedMesh(petal, whiteMat, OFFERING_MAX * 10);
+    this.centres = new InstancedMesh(centre, budMat, OFFERING_MAX * 2);
     for (const im of [this.leaflets, this.petals, this.centres]) {
       im.count = 0;
-      // Everything on them lies on the plates: cull with a sphere round both.
-      const [n, so] = OFFERING_PLATES;
-      im.boundingSphere = new Sphere(
-        new Vector3(((n?.x ?? 0) + (so?.x ?? 0)) / 2, PLINTH, n?.z ?? 0),
-        Math.abs((n?.x ?? 0) - (so?.x ?? 0)) / 2 + OFFERING_PLATE_RADIUS + 0.1,
-      );
+      // Everything on them rests on the linga: cull with a sphere round it.
+      im.boundingSphere = new Sphere(new Vector3(LINGA.x, LINGA_FLOOR + 0.5, LINGA.z), 0.75);
     }
 
     // Water along the channel's groove, shown for a few seconds after a pour.
@@ -242,16 +231,32 @@ export class Offerings {
     this.group.add(this.mergeColoured(still), this.leaflets, this.petals, this.centres, this.flow);
   }
 
-  /** A leaf or flower laid on a plate (0 north, 1 south) `delayS` from now (when the hands reach it). */
-  lay(kind: PlateItem, delayS = 0, side = 0): void {
+  /** A leaf or flower laid on the linga `delayS` from now (when the hands reach it). */
+  lay(kind: LaidItem, delayS = 0): void {
     this.later(delayS, () => {
-      // Spread round the plate in a loose spiral, so recent offerings don't hide each other.
-      const i = this.slot[side] ?? 0;
-      this.slot[side] = i + 1;
-      const r = OFFERING_PLATE_RADIUS * (0.25 + 0.5 * ((i * 0.37) % 1));
-      const a = i * 2.4;
-      this.laid.push({ kind, side, x: Math.cos(a) * r, z: Math.sin(a) * r, turn: a * 1.7, age: 0 });
-      if (this.laid.length > OFFERING_PLATE_MAX * 2) this.laid.shift();
+      const i = this.slot++;
+      // Every fourth rests on top of the linga; the rest go round the basin, away from the spout
+      // (north, +x), in a loose spiral so recent offerings don't hide each other.
+      let x: number;
+      let y: number;
+      let z: number;
+      const turn = i * 4.1;
+      if (i % 4 === 0) {
+        const a = i * 2.4;
+        const r = LINGA_TOP.r * ((i * 0.37) % 1);
+        x = LINGA.x + Math.cos(a) * r;
+        y = LINGA_TOP.y;
+        z = LINGA.z + Math.sin(a) * r;
+      } else {
+        // Angles from +x: the spout is at 0, so keep within 0.8 … 2π − 0.8.
+        const a = 0.8 + ((i * 0.618) % 1) * (Math.PI * 2 - 1.6);
+        const r = BASIN.r0 + (BASIN.r1 - BASIN.r0) * ((i * 0.37) % 1);
+        x = LINGA.x + Math.cos(a) * r;
+        y = BASIN.y;
+        z = LINGA.z + Math.sin(a) * r;
+      }
+      this.laid.push({ kind, x, y, z, turn, age: 0 });
+      if (this.laid.length > OFFERING_MAX) this.laid.shift();
       this.rebuild();
     });
   }
@@ -335,11 +340,10 @@ export class Offerings {
     let nl = 0;
     let np = 0;
     let nc = 0;
-    const y = PLINTH + 0.024;
     for (const l of this.laid) {
-      const plate = OFFERING_PLATES[l.side] ?? OFFERING_PLATES[0];
-      const cx = (plate?.x ?? 0) + l.x;
-      const cz = (plate?.z ?? 0) + l.z;
+      const cx = l.x;
+      const cz = l.z;
+      const y = l.y;
       if (l.kind === "bilva") {
         // Three leaflets from one point, the middle one longest.
         for (const [angle, len] of [

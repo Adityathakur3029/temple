@@ -103,6 +103,7 @@ import {
 import { YardSlabBuilder } from "./yard-paving";
 import { Dhvaja } from "./dhvaja";
 import { buildWallPaintings, type FriezeSpot } from "./wall-paintings";
+import { SANCTUM_LAMP, SanctumInterior } from "./sanctum-interior";
 import { KundWater } from "./kund-water";
 import { buildBoardText } from "./today-board";
 
@@ -338,6 +339,8 @@ export interface Greybox {
   kundWater: KundWater;
   /** The flag on the shikhara, flying in a slow wind (scene/dhvaja.ts). */
   dhvaja: Dhvaja;
+  /** The carved, painted and lamp-lit inside of the sanctum (scene/sanctum-interior.ts). */
+  sanctum: SanctumInterior;
   /** Never drawn: the trough's bounds, for picking a tap. */
   troughPick: Mesh;
   /** The brass lamp on each path post's shelf, in pathPosts() order; their flames are in code. */
@@ -655,7 +658,7 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   // Bands above head height, so nothing juts into the walkway beside the shrine.
   b.box(-2.7, 2.7, 3.3, 3.48, -2.7, 2.7, C.stoneDark);
   b.box(-2.78, 2.78, wallTop - 0.1, wallTop + 0.2, -2.78, 2.78, C.stoneDark);
-  // Inside: darker lining, floor and ceiling (no light reaches in but the sanctum lamps).
+  // Inside: darker lining, floor and ceiling (scene/sanctum-interior.ts dresses them).
   b.box(-2.2, 2.2, PLINTH, PLINTH + 0.015, -2.2, 2.2, C.sanctumFloor);
   b.box(-2.2, 2.2, PLINTH, 4.3, -2.2, -2.19, C.interior);
   b.box(2.19, 2.2, PLINTH, 4.3, -2.2, 2.2, C.interior);
@@ -707,12 +710,8 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
     C.linga,
   );
   b.section(null);
-  // Two sanctum lamps.
-  for (const x of [-1.1, 1.1]) {
-    b.add(new CylinderGeometry(0.03, 0.06, 0.72, 8), placed(x, floor + 0.36, 0.9), C.brass);
-    b.add(new CylinderGeometry(0.09, 0.05, 0.05, 10), placed(x, floor + 0.74, 0.9), C.brass);
-    addLamp(x, floor + 0.81, 0.9, 0.05);
-  }
+  // The sanctum is lit by one hanging lamp (scene/sanctum-interior.ts); its glow is here.
+  glow.push(SANCTUM_LAMP.x, SANCTUM_LAMP.y + 0.03, SANCTUM_LAMP.z);
 
   // --- Somasutra: channel to the forest edge, optional bridge (the spout is with the shrine) -------
   b.box(2.95, 3.45, 0, 0.12, -0.32, 0.32, C.channel);
@@ -787,7 +786,7 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
     NANDI_PLATFORM.x0,
     NANDI_PLATFORM.x1,
     0,
-    0.5,
+    HEIGHTS.nandiPlatform,
     NANDI_PLATFORM.z0,
     NANDI_PLATFORM.z1,
     C.stone,
@@ -796,15 +795,16 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
     NANDI_PLATFORM.x0 - 0.1,
     NANDI_PLATFORM.x1 + 0.1,
     0,
-    0.12,
+    0.06,
     NANDI_PLATFORM.z0 - 0.1,
     NANDI_PLATFORM.z1 + 0.1,
     C.stoneDark,
   );
   b.section("nandi");
-  b.box(-0.36, 0.36, 0.5, 1.08, 21.55, 22.85, C.sacredStone);
-  b.box(-0.24, 0.24, 1.08, 1.2, 21.75, 22.05, C.sacredStone);
-  b.box(-0.2, 0.2, 0.9, 1.4, 21.25, 21.62, C.sacredStone);
+  const np = HEIGHTS.nandiPlatform;
+  b.box(-0.36, 0.36, np, np + 0.58, 21.55, 22.85, C.sacredStone);
+  b.box(-0.24, 0.24, np + 0.58, np + 0.7, 21.75, 22.05, C.sacredStone);
+  b.box(-0.2, 0.2, np + 0.4, np + 0.9, 21.25, 21.62, C.sacredStone);
   b.section(null);
 
   // --- Deepa stand and aarti plate stand ------------------------------------------------------
@@ -1197,6 +1197,9 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
   // Painted folk patterns on the sanctum's outer walls and on every other compound wall bay.
   const paintings = buildWallPaintings(friezes, opts.textureTier === "lite");
   for (const m of paintings) group.add(m);
+  // The inside of the sanctum stays whether the greybox shrine or its model is shown.
+  const sanctum = new SanctumInterior(opts.textureTier === "lite");
+  group.add(sanctum.group);
 
   // Drop rings only on Full: Lite and Low phones keep the slow waves (spec 10).
   const kundWater = new KundWater(C.water, 0.86, opts.textureTier !== "lite");
@@ -1308,6 +1311,7 @@ export function buildGreybox(opts: GreyboxOptions): Greybox {
     tapWater,
     kundWater,
     dhvaja,
+    sanctum,
     troughPick,
     postLamps,
     trees,

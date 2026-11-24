@@ -1,6 +1,6 @@
 {
-  "release": "1bdca905",
-  "inputs": "65de50c48f41ca9e",
+  "release": "2f71a424",
+  "inputs": "cf66962b7f91cf5a",
   "files": [
     {
       "src": "models/gate.glb",
@@ -20,7 +20,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/1bdca905/full/models/gate.glb"
+      "path": "/v/2f71a424/full/models/gate.glb"
     },
     {
       "src": "models/gate.glb",
@@ -40,7 +40,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/1bdca905/lite/models/gate.glb"
+      "path": "/v/2f71a424/lite/models/gate.glb"
     },
     {
       "src": "models/today-board.glb",
@@ -60,7 +60,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/1bdca905/full/models/today-board.glb"
+      "path": "/v/2f71a424/full/models/today-board.glb"
     },
     {
       "src": "models/today-board.glb",
@@ -80,7 +80,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/1bdca905/lite/models/today-board.glb"
+      "path": "/v/2f71a424/lite/models/today-board.glb"
     },
     {
       "src": "models/tree.glb",
@@ -100,7 +100,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/1bdca905/full/models/tree.glb"
+      "path": "/v/2f71a424/full/models/tree.glb"
     },
     {
       "src": "models/tree.glb",
@@ -120,7 +120,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/1bdca905/lite/models/tree.glb"
+      "path": "/v/2f71a424/lite/models/tree.glb"
     },
     {
       "src": "models/near-tree.glb",
@@ -140,7 +140,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/1bdca905/full/models/near-tree.glb"
+      "path": "/v/2f71a424/full/models/near-tree.glb"
     },
     {
       "src": "models/near-tree.glb",
@@ -160,7 +160,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/1bdca905/lite/models/near-tree.glb"
+      "path": "/v/2f71a424/lite/models/near-tree.glb"
     },
     {
       "src": "models/oak.glb",
@@ -180,7 +180,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/1bdca905/full/models/oak.glb"
+      "path": "/v/2f71a424/full/models/oak.glb"
     },
     {
       "src": "models/oak.glb",
@@ -200,14 +200,14 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/1bdca905/lite/models/oak.glb"
+      "path": "/v/2f71a424/lite/models/oak.glb"
     },
     {
       "src": "models/shrine.glb",
       "slot": "shrine",
       "tier": "full",
-      "sha256": "1b99316f5143a3a3ce36a0f3a2cda24cbd5997672b465607ccb5b0cacf3dc75f",
-      "bytes": 298544,
+      "sha256": "763c98488f6c288d5f867d239fb1f7dd10aed2e15e118d14d04b1f740102e506",
+      "bytes": 295228,
       "priority": "P1",
       "tags": [
         "shrine",
@@ -216,18 +216,18 @@
       ],
       "licence": "own",
       "credit": "Shrine modelled for Sannidhi by Claude (AI)",
-      "triangles": 19193,
+      "triangles": 18785,
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/1bdca905/full/models/shrine.glb"
+      "path": "/v/2f71a424/full/models/shrine.glb"
     },
     {
       "src": "models/shrine.glb",
       "slot": "shrine",
       "tier": "lite",
-      "sha256": "1b99316f5143a3a3ce36a0f3a2cda24cbd5997672b465607ccb5b0cacf3dc75f",
-      "bytes": 298544,
+      "sha256": "763c98488f6c288d5f867d239fb1f7dd10aed2e15e118d14d04b1f740102e506",
+      "bytes": 295228,
       "priority": "P1",
       "tags": [
         "shrine",
@@ -236,11 +236,11 @@
       ],
       "licence": "own",
       "credit": "Shrine modelled for Sannidhi by Claude (AI)",
-      "triangles": 19193,
+      "triangles": 18785,
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/1bdca905/lite/models/shrine.glb"
+      "path": "/v/2f71a424/lite/models/shrine.glb"
     },
     {
       "src": "models/linga.glb",
@@ -261,7 +261,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/1bdca905/full/models/linga.glb"
+      "path": "/v/2f71a424/full/models/linga.glb"
     },
     {
       "src": "models/linga.glb",
@@ -282,7 +282,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/1bdca905/lite/models/linga.glb"
+      "path": "/v/2f71a424/lite/models/linga.glb"
     },
     {
       "src": "models/nandi.glb",
@@ -303,7 +303,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/1bdca905/full/models/nandi.glb"
+      "path": "/v/2f71a424/full/models/nandi.glb"
     },
     {
       "src": "models/nandi.glb",
@@ -324,14 +324,14 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/1bdca905/lite/models/nandi.glb"
+      "path": "/v/2f71a424/lite/models/nandi.glb"
     },
     {
       "src": "models/mandapa.glb",
       "slot": "mandapa",
       "tier": "full",
-      "sha256": "6866d47594b78f9d57406060c62f45189a7a321485ddec5103e43d2b8e0c7e62",
-      "bytes": 143288,
+      "sha256": "0d1b6537ec9e940cd2ffc921974e2ba8706b83d95afb1c98804b376515119be0",
+      "bytes": 128384,
       "priority": "P1",
       "tags": [
         "mandapa",
@@ -340,18 +340,18 @@
       ],
       "licence": "own",
       "credit": "Mandapa modelled for Sannidhi by Claude (AI)",
-      "triangles": 11518,
+      "triangles": 10326,
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/1bdca905/full/models/mandapa.glb"
+      "path": "/v/2f71a424/full/models/mandapa.glb"
     },
     {
       "src": "models/mandapa.glb",
       "slot": "mandapa",
       "tier": "lite",
-      "sha256": "6866d47594b78f9d57406060c62f45189a7a321485ddec5103e43d2b8e0c7e62",
-      "bytes": 143288,
+      "sha256": "0d1b6537ec9e940cd2ffc921974e2ba8706b83d95afb1c98804b376515119be0",
+      "bytes": 128384,
       "priority": "P1",
       "tags": [
         "mandapa",
@@ -360,11 +360,11 @@
       ],
       "licence": "own",
       "credit": "Mandapa modelled for Sannidhi by Claude (AI)",
-      "triangles": 11518,
+      "triangles": 10326,
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/1bdca905/lite/models/mandapa.glb"
+      "path": "/v/2f71a424/lite/models/mandapa.glb"
     },
     {
       "src": "models/ganesha-shrine.glb",
@@ -384,7 +384,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/1bdca905/full/models/ganesha-shrine.glb"
+      "path": "/v/2f71a424/full/models/ganesha-shrine.glb"
     },
     {
       "src": "models/ganesha-shrine.glb",
@@ -404,7 +404,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/1bdca905/lite/models/ganesha-shrine.glb"
+      "path": "/v/2f71a424/lite/models/ganesha-shrine.glb"
     },
     {
       "src": "models/ganesha.glb",
@@ -429,7 +429,7 @@
         ]
       ],
       "gpuBytes": 1398101,
-      "path": "/v/1bdca905/full/models/ganesha.glb"
+      "path": "/v/2f71a424/full/models/ganesha.glb"
     },
     {
       "src": "models/ganesha.glb",
@@ -454,7 +454,7 @@
         ]
       ],
       "gpuBytes": 349525,
-      "path": "/v/1bdca905/lite/models/ganesha.glb"
+      "path": "/v/2f71a424/lite/models/ganesha.glb"
     },
     {
       "src": "models/kund.glb",
@@ -474,7 +474,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/1bdca905/full/models/kund.glb"
+      "path": "/v/2f71a424/full/models/kund.glb"
     },
     {
       "src": "models/kund.glb",
@@ -494,7 +494,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/1bdca905/lite/models/kund.glb"
+      "path": "/v/2f71a424/lite/models/kund.glb"
     },
     {
       "src": "models/deepa-stand.glb",
@@ -514,7 +514,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/1bdca905/full/models/deepa-stand.glb"
+      "path": "/v/2f71a424/full/models/deepa-stand.glb"
     },
     {
       "src": "models/deepa-stand.glb",
@@ -534,7 +534,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/1bdca905/lite/models/deepa-stand.glb"
+      "path": "/v/2f71a424/lite/models/deepa-stand.glb"
     },
     {
       "src": "models/bell.glb",
@@ -558,7 +558,7 @@
         ]
       ],
       "gpuBytes": 349525,
-      "path": "/v/1bdca905/full/models/bell.glb"
+      "path": "/v/2f71a424/full/models/bell.glb"
     },
     {
       "src": "models/bell.glb",
@@ -582,7 +582,7 @@
         ]
       ],
       "gpuBytes": 87381,
-      "path": "/v/1bdca905/lite/models/bell.glb"
+      "path": "/v/2f71a424/lite/models/bell.glb"
     },
     {
       "src": "models/post-lamp.glb",
@@ -602,7 +602,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/1bdca905/full/models/post-lamp.glb"
+      "path": "/v/2f71a424/full/models/post-lamp.glb"
     },
     {
       "src": "models/post-lamp.glb",
@@ -622,7 +622,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/1bdca905/lite/models/post-lamp.glb"
+      "path": "/v/2f71a424/lite/models/post-lamp.glb"
     },
     {
       "src": "models/avatar.glb",
@@ -642,7 +642,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/1bdca905/full/models/avatar.glb"
+      "path": "/v/2f71a424/full/models/avatar.glb"
     },
     {
       "src": "models/avatar.glb",
@@ -662,7 +662,7 @@
       "draws": 1,
       "textures": [],
       "gpuBytes": 0,
-      "path": "/v/1bdca905/lite/models/avatar.glb"
+      "path": "/v/2f71a424/lite/models/avatar.glb"
     }
   ],
   "sounds": [
@@ -679,7 +679,7 @@
       ],
       "licence": "own",
       "credit": "Bell sounds made for Sannidhi with ElevenLabs (AI)",
-      "path": "/v/1bdca905/audio/bell-1.m4a"
+      "path": "/v/2f71a424/audio/bell-1.m4a"
     },
     {
       "src": "audio/bell-2.m4a",
@@ -694,7 +694,7 @@
       ],
       "licence": "own",
       "credit": "Bell sounds made for Sannidhi with ElevenLabs (AI)",
-      "path": "/v/1bdca905/audio/bell-2.m4a"
+      "path": "/v/2f71a424/audio/bell-2.m4a"
     },
     {
       "src": "audio/background-day-1.m4a",
@@ -709,7 +709,7 @@
       ],
       "licence": "own",
       "credit": "Background and meditation sounds made for Sannidhi with ElevenLabs (AI)",
-      "path": "/v/1bdca905/audio/background-day-1.m4a"
+      "path": "/v/2f71a424/audio/background-day-1.m4a"
     },
     {
       "src": "audio/background-night-1.m4a",
@@ -724,7 +724,7 @@
       ],
       "licence": "own",
       "credit": "Background and meditation sounds made for Sannidhi with ElevenLabs (AI)",
-      "path": "/v/1bdca905/audio/background-night-1.m4a"
+      "path": "/v/2f71a424/audio/background-night-1.m4a"
     },
     {
       "src": "audio/meditation-1.m4a",
@@ -739,7 +739,7 @@
       ],
       "licence": "own",
       "credit": "Background and meditation sounds made for Sannidhi with ElevenLabs (AI)",
-      "path": "/v/1bdca905/audio/meditation-1.m4a"
+      "path": "/v/2f71a424/audio/meditation-1.m4a"
     },
     {
       "src": "audio/meditation-2.m4a",
@@ -754,7 +754,7 @@
       ],
       "licence": "own",
       "credit": "Background and meditation sounds made for Sannidhi with ElevenLabs (AI)",
-      "path": "/v/1bdca905/audio/meditation-2.m4a"
+      "path": "/v/2f71a424/audio/meditation-2.m4a"
     },
     {
       "src": "audio/meditation-3.m4a",
@@ -769,7 +769,7 @@
       ],
       "licence": "own",
       "credit": "Background and meditation sounds made for Sannidhi with ElevenLabs (AI)",
-      "path": "/v/1bdca905/audio/meditation-3.m4a"
+      "path": "/v/2f71a424/audio/meditation-3.m4a"
     },
     {
       "src": "audio/meditation-4.m4a",
@@ -784,7 +784,7 @@
       ],
       "licence": "own",
       "credit": "Background and meditation sounds made for Sannidhi with ElevenLabs (AI)",
-      "path": "/v/1bdca905/audio/meditation-4.m4a"
+      "path": "/v/2f71a424/audio/meditation-4.m4a"
     }
   ]
 }

@@ -19,9 +19,10 @@ walking rules don't change with the model, so the model follows them):
   reach 2.78 m. Everything stays inside the camera's sanctum box (2.9 m), up to 16.1 m.
 - Pancharatha plan: corner (karna), recessed (pratiratha) and central (bhadra) offsets on every
   side, carried up from the moulded base through the wall to the tower.
-- Door 1.5 m wide (SANCTUM_DOOR) in the east wall, from the floor at 0.45 m to 2.85 m
-  (HEIGHTS.doorTop), in a stepped stone frame with a plain dark wooden inner frame and a raised
-  threshold. No figure on the lintel or jambs.
+- Door 2.6 m wide (SANCTUM_DOOR), as wide as the two darshan carpets (owner, 2026-11-24), in the
+  east wall, from the floor at 0.45 m to 2.85 m (HEIGHTS.doorTop), in a stepped stone frame with a
+  plain dark wooden inner frame and a raised threshold. The east wall's central projection is
+  wider than the other sides' to hold it. No figure on the lintel or jambs.
 - Hollow, empty sanctum: inner walls at 2.2 m, a dark floor with its top at 0.465 m (where the
   linga slot stands) and a dark ceiling at 4.3 m. Nothing inside: the linga, its lamps and the
   sanctum light stay in their own slot and in code.
@@ -36,8 +37,8 @@ walking rules don't change with the model, so the model follows them):
   channel, and a catch stone below it with the channel's profile up to x 3.45 m, where the
   channel in code begins.
 - Marigold garlands: on the door frame, two loops across the lintel, under its cap, lowest at
-  2.93 m (above the opening), and a strand down each outer jamb to 1.85 m; and four strands flat
-  against the front wall beside the door. Nothing in the doorway or on the axis. The total stays under 22,500 triangles (the Lite target),
+  2.93 m (above the opening), and a strand down each outer jamb to 1.85 m; and two strands flat
+  against the front wall's corner faces. Nothing in the doorway or on the axis. The total stays under 22,500 triangles (the Lite target),
   so the Lite build keeps every flower.
 No carved figures or sacred symbols anywhere. One material with vertex colours: one draw call.
 """
@@ -203,7 +204,8 @@ PLINTH = 0.45
 FLOOR = PLINTH + 0.015  # sanctum floor top, where the linga slot stands
 G = 2.6  # GARBHAGRIHA half size
 INNER = 2.2  # inner wall faces
-DOOR = 0.75  # SANCTUM_DOOR.halfWidth
+DOOR = 1.3  # SANCTUM_DOOR.halfWidth
+F = DOOR - 0.75  # how much wider each side of the door frame is than the first 1.5 m door
 DOOR_TOP = PLINTH + 2.4
 WALL_TOP = 4.5
 SH0, SH1 = 4.7, 14.25  # shikhara from the cornice top to its shoulder
@@ -246,11 +248,17 @@ def ring_b(uv, y):
     return [(u, OZ + v, y) for u, v in uv]
 
 
+FRONT_EB = 1.48  # the east wall's central projection, wider than the other sides' to hold the door
+
+
 def door_ring(plan):
     """The wall ring, with two points at the door's edges on the east side. The last face (from
-    the last point back to the first) spans the doorway."""
-    base = ring_uv(plan)  # 9 points a side; (-eb, -Hb) is 22 and (eb, -Hb) is 23
-    Hb = plan[2]
+    the last point back to the first) spans the doorway. The east side's central projection is
+    FRONT_EB wide (offset with the rest), not the plan's eb."""
+    Hk, Hp, Hb, ek, eb = plan
+    front = (Hk, Hp, Hb, ek, eb - WALL_PLAN[4] + FRONT_EB)
+    base = [rot(q, k) for k in range(4) for q in side_pts(*(front if k == 2 else plan))]
+    # 9 points a side; (-eb, -Hb) is 22 and (eb, -Hb) is 23
     return [(DOOR, -Hb)] + base[23:] + base[:23] + [(-DOOR, -Hb)]
 
 
@@ -364,15 +372,16 @@ for s in (1, -1):
     def jamb(a, b, y0, y1, z1, color):
         x0, x1 = sorted((s * a, s * b))
         box_w(x0, x1, y0, y1, FZ, z1, color, cap_bottom=False, jitter=0.03)
-    jamb(DOOR, 1.14, PLINTH, 0.72, 2.74, "stoneDark")  # foot blocks
-    jamb(0.98, 1.10, 0.72, 3.04, 2.64, "stone")
-    jamb(0.87, 0.98, 0.72, 2.95, 2.68, "stoneDark")
-    jamb(DOOR - 0.01, 0.87, 0.72, DOOR_TOP - 0.01, 2.71, "woodDark")
-box_w(-1.10, 1.10, 3.04, 3.14, FZ, 2.64, "stone", cap_bottom=False)
-box_w(-0.98, 0.98, 2.95, 3.04, FZ, 2.68, "stoneDark")
-box_w(-0.87, 0.87, DOOR_TOP - 0.01, 2.95, FZ, 2.71, "woodDark")
-box_w(-1.22, 1.22, 3.14, 3.22, FZ, 2.76, "stoneDark")
-box_w(-1.16, 1.16, 3.22, 3.27, FZ, 2.70, "stone", cap_bottom=False)
+    # The foot blocks stop at z 2.66, behind the brass offering plates beside the door.
+    jamb(DOOR, 1.14 + F, PLINTH, 0.72, 2.66, "stoneDark")  # foot blocks
+    jamb(0.98 + F, 1.10 + F, 0.72, 3.04, 2.64, "stone")
+    jamb(0.87 + F, 0.98 + F, 0.72, 2.95, 2.68, "stoneDark")
+    jamb(DOOR - 0.01, 0.87 + F, 0.72, DOOR_TOP - 0.01, 2.71, "woodDark")
+box_w(-1.10 - F, 1.10 + F, 3.04, 3.14, FZ, 2.64, "stone", cap_bottom=False)
+box_w(-0.98 - F, 0.98 + F, 2.95, 3.04, FZ, 2.68, "stoneDark")
+box_w(-0.87 - F, 0.87 + F, DOOR_TOP - 0.01, 2.95, FZ, 2.71, "woodDark")
+box_w(-1.22 - F, 1.22 + F, 3.14, 3.22, FZ, 2.76, "stoneDark")
+box_w(-1.16 - F, 1.16 + F, 3.22, 3.27, FZ, 2.70, "stone", cap_bottom=False)
 
 # --- Shikhara: rekha curve in courses, seven storeys marked by ribbed corner stones ---------------
 
@@ -541,7 +550,7 @@ GARLAND_V0 = len(bm.verts)
 BEAD_R = 0.048
 G_HOOK = 3.08  # under the cap (3.14 m)
 G_SAG = 0.15
-G_HOOKS = [-1.04, 0.0, 1.04]  # over the outer jambs and the middle of the lintel
+G_HOOKS = [-1.04 - F, 0.0, 1.04 + F]  # over the outer jambs and the middle of the lintel
 G_FRONT = 2.71 + BEAD_R + 0.01  # in front of the wooden inner frame, the frame's most forward face
 G_JAMB = 2.64 + BEAD_R + 0.012  # the strands, against the outer jambs
 G_END = 1.85  # where the strands end
@@ -587,12 +596,12 @@ for x in (G_HOOKS[0], G_HOOKS[-1]):
            Vector(B(x, G_END, G_JAMB))]
     g_count += beads_along(pts, 0.068, ["marigold", "marigold", "marigoldYellow"], band=3)
 
-# Strands on the front wall, from under the band at 3.30 m: one in the middle of each recessed face
-# (wall at z 2.35) and one on each corner face (wall at z 2.48). They hang against the wall, behind
+# Strands on the front wall, from under the band at 3.30 m: one on each corner face (wall at z 2.48).
+# The recessed faces beside the wide door are too narrow for one. They hang against the wall, behind
 # the door plane, so they never stand on the mandapa floor or in anyone's way.
 W_R, W_HOOK, W_END = 0.046, 3.26, 1.6
 for s in (1, -1):
-    for x, wall in ((1.56, G - 0.13 + JW), (2.25, G + JW)):
+    for x, wall in ((2.25, G + JW),):
         z = wall + W_R + 0.012
         pts = [Vector(B(s * x, W_HOOK, z)), Vector(B(s * x, W_END, z))]
         g_count += beads_along(pts, 0.072, ["marigold", "marigoldYellow", "marigold", "marigoldDeep"],

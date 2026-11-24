@@ -40,6 +40,8 @@ interface Look {
   sanctum: number;
   mandapa: number;
   gate: number;
+  /** 0–1: how much daylight comes in at the sanctum door (scene/sanctum-interior.ts). */
+  daylight: number;
 }
 
 export const LOOKS: Readonly<Record<DayPhase, Look>> = {
@@ -58,6 +60,7 @@ export const LOOKS: Readonly<Record<DayPhase, Look>> = {
     sanctum: 1,
     mandapa: 1,
     gate: 1,
+    daylight: 0,
   },
   dawn: {
     top: "#6c7fae",
@@ -74,6 +77,7 @@ export const LOOKS: Readonly<Record<DayPhase, Look>> = {
     sanctum: 0.85,
     mandapa: 0.35,
     gate: 0.3,
+    daylight: 0.45,
   },
   day: {
     top: "#5b8ec6",
@@ -90,6 +94,7 @@ export const LOOKS: Readonly<Record<DayPhase, Look>> = {
     sanctum: 0.75,
     mandapa: 0,
     gate: 0,
+    daylight: 1,
   },
   dusk: {
     top: "#3c4a79",
@@ -106,6 +111,7 @@ export const LOOKS: Readonly<Record<DayPhase, Look>> = {
     sanctum: 0.9,
     mandapa: 0.7,
     gate: 0.7,
+    daylight: 0.3,
   },
 };
 
@@ -124,6 +130,7 @@ export interface SkyState {
   sanctum: number;
   mandapa: number;
   gate: number;
+  daylight: number;
 }
 
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
@@ -153,6 +160,7 @@ export function blendLook(blend: PhaseBlend): SkyState {
     sanctum: lerp(a.sanctum, b.sanctum, t),
     mandapa: lerp(a.mandapa, b.mandapa, t),
     gate: lerp(a.gate, b.gate, t),
+    daylight: lerp(a.daylight, b.daylight, t),
   };
 }
 

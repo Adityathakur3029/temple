@@ -2,16 +2,21 @@ import { describe, expect, it } from "vitest";
 import {
   CHARANAMRIT_WINDOW_MS,
   JAL_COOLDOWN_MS,
+  JAL_EXIT_MS,
   JAL_SPOT,
   JAL_SPOTS,
   JAL_TURN_TIMEOUT_MS,
+  SANCTUM_LANES,
+  SANCTUM_SPOTS,
 } from "@sannidhi/protocol";
 import {
   advance,
   canFinish,
-  emptyJalSides,
-  loadJalSides,
-  sideOf,
+  emptyJal,
+  inJal,
+  laneOf,
+  loadJal,
+  markOffered,
   mayReceiveCharanamrit,
   offeringEvent,
   removeVisitor,
@@ -19,92 +24,132 @@ import {
 } from "../src/rules/jal";
 
 const AT = { x: JAL_SPOT.x, z: JAL_SPOT.z };
+const SOUTH = JAL_SPOTS[1] ?? JAL_SPOT;
+const AT_S = { x: SOUTH.x, z: SOUTH.z };
 const FAR = { x: JAL_SPOT.x, z: JAL_SPOT.z + 6 };
+const IN_N = SANCTUM_SPOTS[0] ?? { x: 0.68, z: 0.55 };
+const IN_S = SANCTUM_SPOTS[1] ?? { x: -0.68, z: 0.55 };
 
-describe("jal spot queue (spec 03 § Offer water, bel patra or a flower)", () => {
-  it("gives the free spot at once, queues the next, and refuses a second request", () => {
-    const sides = emptyJalSides();
-    const a = requestJal(sides, 0, { id: "a", req: 1, kind: "water" }, AT, {}, 1000);
+describe("jal queue (spec 03 § Offer water, bel patra or a flower)", () => {
+  it("gives the free turn at once, queues the next, and refuses a second request", () => {
+    const s = emptyJal();
+    const a = requestJal(s, { id: "a", req: 1, kind: "water", side: 0 }, AT, {}, 1000);
     expect(a).toEqual({
       ok: true,
-      turn: { id: "a", req: 1, kind: "water", until: 1000 + JAL_TURN_TIMEOUT_MS },
+      turn: { id: "a", req: 1, kind: "water", side: 0, until: 1000 + JAL_TURN_TIMEOUT_MS },
     });
-    expect(requestJal(sides, 0, { id: "b", req: 1, kind: "flower" }, AT, {}, 1000)).toEqual({
+    expect(requestJal(s, { id: "b", req: 1, kind: "flower", side: 0 }, AT, {}, 1000)).toEqual({
       ok: true,
       queued: 0,
     });
-    expect(requestJal(sides, 0, { id: "c", req: 1, kind: "bilva" }, AT, {}, 1000)).toEqual({
+    expect(requestJal(s, { id: "c", req: 1, kind: "bilva", side: 0 }, AT, {}, 1000)).toEqual({
       ok: true,
       queued: 1,
     });
-    expect(requestJal(sides, 0, { id: "b", req: 2, kind: "water" }, AT, {}, 1000)).toEqual({
+    expect(requestJal(s, { id: "b", req: 2, kind: "water", side: 0 }, AT, {}, 1000)).toEqual({
       ok: false,
       why: "busy",
     });
-    expect(requestJal(sides, 0, { id: "a", req: 2, kind: "water" }, AT, {}, 1000)).toEqual({
+    expect(requestJal(s, { id: "a", req: 2, kind: "water", side: 0 }, AT, {}, 1000)).toEqual({
       ok: false,
       why: "busy",
     });
   });
 
+  it("keeps one queue for both sides: someone at the south spot waits for the north turn", () => {
+    const s = emptyJal();
+    expect("turn" in requestJal(s, { id: "a", req: 1, kind: "water", side: 0 }, AT, {}, 0)).toBe(
+      true,
+    );
+    expect(requestJal(s, { id: "b", req: 1, kind: "bilva", side: 1 }, AT_S, {}, 0)).toEqual({
+      ok: true,
+      queued: 0,
+    });
+    // Already waiting: refused from the other side too.
+    expect(requestJal(s, { id: "b", req: 2, kind: "water", side: 0 }, AT, {}, 0)).toEqual({
+      ok: false,
+      why: "busy",
+    });
+    // Each side is asked for from near its own spot (the two are 3.8 m apart).
+    expect(requestJal(s, { id: "c", req: 1, kind: "water", side: 1 }, FAR, {}, 0)).toEqual({
+      ok: false,
+      why: "not-near",
+    });
+    expect(requestJal(s, { id: "c", req: 1, kind: "water", side: 2 }, AT, {}, 0)).toEqual({
+      ok: false,
+      why: "not-near",
+    });
+    expect(inJal(s, "a")).toBe(true);
+    expect(inJal(s, "b")).toBe(true);
+    expect(inJal(s, "c")).toBe(false);
+  });
+
   it("refuses from too far away, and within the cooldown", () => {
-    const sides = emptyJalSides();
-    expect(requestJal(sides, 0, { id: "a", req: 1, kind: "water" }, FAR, {}, 0)).toEqual({
+    const s = emptyJal();
+    expect(requestJal(s, { id: "a", req: 1, kind: "water", side: 0 }, FAR, {}, 0)).toEqual({
       ok: false,
       why: "not-near",
     });
     const mem = { offeredAt: 10_000 };
-    expect(
-      requestJal(
-        sides,
-        0,
-        { id: "a", req: 1, kind: "water" },
-        AT,
-        mem,
-        10_000 + JAL_COOLDOWN_MS - 1,
-      ),
-    ).toEqual({
+    const e = { id: "a", req: 1, kind: "water" as const, side: 0 };
+    expect(requestJal(s, e, AT, mem, 10_000 + JAL_COOLDOWN_MS - 1)).toEqual({
       ok: false,
       why: "cooldown",
     });
-    expect(
-      requestJal(sides, 0, { id: "a", req: 1, kind: "water" }, AT, mem, 10_000 + JAL_COOLDOWN_MS)
-        .ok,
-    ).toBe(true);
+    expect(requestJal(s, e, AT, mem, 10_000 + JAL_COOLDOWN_MS).ok).toBe(true);
   });
 
-  it("finishes only for the holder, with the same req, at the spot and in time", () => {
-    const sides = emptyJalSides();
-    const s = sides[0];
-    requestJal(sides, 0, { id: "a", req: 7, kind: "water" }, AT, {}, 0);
-    expect(canFinish(s, 0, "a", 7, AT, 100)).toBe(true);
-    expect(canFinish(s, 0, "b", 7, AT, 100)).toBe(false);
-    expect(canFinish(s, 0, "a", 8, AT, 100)).toBe(false);
-    expect(canFinish(s, 0, "a", 7, { x: AT.x, z: AT.z + 1.5 }, 100)).toBe(false);
-    expect(canFinish(s, 0, "a", 7, AT, JAL_TURN_TIMEOUT_MS + 1)).toBe(false);
+  it("opens only the holder's side's lane, and only while they hold the turn", () => {
+    const s = emptyJal();
+    requestJal(s, { id: "a", req: 1, kind: "water", side: 1 }, AT_S, {}, 0);
+    requestJal(s, { id: "b", req: 1, kind: "water", side: 0 }, AT, {}, 0);
+    expect(laneOf(s, "a")).toEqual(SANCTUM_LANES[1]);
+    expect(laneOf(s, "b")).toBeNull();
+    expect(laneOf(s, "c")).toBeNull();
+    removeVisitor(s, "a");
+    expect(laneOf(s, "a")).toBeNull();
+  });
+
+  it("offers only for the holder, with the same req, at their sanctum spot, in time, once", () => {
+    const s = emptyJal();
+    requestJal(s, { id: "a", req: 7, kind: "water", side: 0 }, AT, {}, 0);
+    expect(canFinish(s, "a", 7, IN_N, 100)).toBe(true);
+    expect(canFinish(s, "b", 7, IN_N, 100)).toBe(false);
+    expect(canFinish(s, "a", 8, IN_N, 100)).toBe(false);
+    // At the threshold, or at the other side's spot, is not inside on their lane.
+    expect(canFinish(s, "a", 7, AT, 100)).toBe(false);
+    expect(canFinish(s, "a", 7, IN_S, 100)).toBe(false);
+    expect(canFinish(s, "a", 7, IN_N, JAL_TURN_TIMEOUT_MS + 1)).toBe(false);
+    markOffered(s, 200);
+    expect(s.turn).toMatchObject({ id: "a", offered: true, until: 200 + JAL_EXIT_MS });
+    expect(canFinish(s, "a", 7, IN_N, 300)).toBe(false);
   });
 
   it("passes the turn in order, skipping visitors who are gone", () => {
-    const sides = emptyJalSides();
-    const s = sides[0];
-    requestJal(sides, 0, { id: "a", req: 1, kind: "water" }, AT, {}, 0);
-    requestJal(sides, 0, { id: "b", req: 1, kind: "water" }, AT, {}, 0);
-    requestJal(sides, 0, { id: "c", req: 1, kind: "bilva" }, AT, {}, 0);
+    const s = emptyJal();
+    requestJal(s, { id: "a", req: 1, kind: "water", side: 0 }, AT, {}, 0);
+    requestJal(s, { id: "b", req: 1, kind: "water", side: 0 }, AT, {}, 0);
+    requestJal(s, { id: "c", req: 1, kind: "bilva", side: 1 }, AT_S, {}, 0);
     const next = advance(s, (id) => id !== "b", 500);
-    expect(next).toEqual({ id: "c", req: 1, kind: "bilva", until: 500 + JAL_TURN_TIMEOUT_MS });
+    expect(next).toEqual({
+      id: "c",
+      req: 1,
+      kind: "bilva",
+      side: 1,
+      until: 500 + JAL_TURN_TIMEOUT_MS,
+    });
     expect(s.queue).toEqual([]);
     expect(advance(s, () => true, 600)).toBeNull();
     expect(s.turn).toBeNull();
   });
 
   it("removes a visitor from the queue or the turn", () => {
-    const sides = emptyJalSides();
-    const s = sides[0];
-    requestJal(sides, 0, { id: "a", req: 1, kind: "water" }, AT, {}, 0);
-    requestJal(sides, 0, { id: "b", req: 1, kind: "water" }, AT, {}, 0);
-    expect(removeVisitor(s, "b")).toBe(false);
+    const s = emptyJal();
+    requestJal(s, { id: "a", req: 1, kind: "water", side: 0 }, AT, {}, 0);
+    requestJal(s, { id: "b", req: 1, kind: "water", side: 0 }, AT, {}, 0);
+    expect(removeVisitor(s, "b")).toBeNull();
     expect(s.queue).toEqual([]);
-    expect(removeVisitor(s, "a")).toBe(true);
+    expect(removeVisitor(s, "a")).toMatchObject({ id: "a", side: 0 });
     expect(s.turn).toBeNull();
   });
 
@@ -116,65 +161,40 @@ describe("jal spot queue (spec 03 § Offer water, bel patra or a flower)", () =>
     expect(mayReceiveCharanamrit({ offeredAt: 0 }, FAR, 10)).toBe(false);
   });
 
-  it("gives each side its own turn, one side per visitor", () => {
-    const sides = emptyJalSides();
-    const south = JAL_SPOTS[1] ?? JAL_SPOT;
-    const AT_S = { x: south.x, z: south.z };
-    expect("turn" in requestJal(sides, 0, { id: "a", req: 1, kind: "water" }, AT, {}, 0)).toBe(
-      true,
-    );
-    // Someone at the south spot gets it at once while the north one is in use.
-    expect("turn" in requestJal(sides, 1, { id: "b", req: 1, kind: "bilva" }, AT_S, {}, 0)).toBe(
-      true,
-    );
-    expect(sideOf(sides, "a")).toBe(0);
-    expect(sideOf(sides, "b")).toBe(1);
-    expect(sideOf(sides, "c")).toBe(-1);
-    // Already waiting or offering on one side: refused on the other.
-    expect(requestJal(sides, 1, { id: "a", req: 2, kind: "water" }, AT_S, {}, 0)).toEqual({
-      ok: false,
-      why: "busy",
-    });
-    // The south spot is asked for from the south side only (the two are 3.8 m apart).
-    expect(requestJal(sides, 1, { id: "c", req: 1, kind: "water" }, FAR, {}, 0)).toEqual({
-      ok: false,
-      why: "not-near",
-    });
-    expect(canFinish(sides[1], 1, "b", 1, AT_S, 10)).toBe(true);
-    expect(canFinish(sides[1], 1, "b", 1, AT, 10)).toBe(false);
-  });
-
-  it("starts empty from stored queues of another shape", () => {
-    expect(loadJalSides({ turn: null, queue: [] })).toEqual(emptyJalSides());
-    expect(loadJalSides(undefined)).toEqual(emptyJalSides());
-    const kept = emptyJalSides();
-    kept[1].queue.push({ id: "a", req: 1, kind: "water" });
-    expect(loadJalSides(kept)).toEqual(kept);
+  it("starts empty from stored queues of another shape (the older two-sided one too)", () => {
+    expect(loadJal(undefined)).toEqual(emptyJal());
+    expect(
+      loadJal([
+        { turn: null, queue: [] },
+        { turn: null, queue: [] },
+      ]),
+    ).toEqual(emptyJal());
+    const kept = emptyJal();
+    kept.queue.push({ id: "a", req: 1, kind: "water", side: 1 });
+    kept.turn = { id: "b", req: 2, kind: "flower", side: 0, until: 5, offered: true };
+    expect(loadJal(JSON.parse(JSON.stringify(kept)))).toEqual(kept);
   });
 
   it("does not trust stored entries or turns of the wrong shape", () => {
-    const bad = (side: unknown): unknown => [{ turn: null, queue: [] }, side];
-    const empty = emptyJalSides();
-    expect(loadJalSides(bad({ turn: null, queue: [{ id: 1, req: 1, kind: "water" }] }))).toEqual(
+    const empty = emptyJal();
+    const q = (entry: unknown): unknown => ({ turn: null, queue: [entry] });
+    expect(loadJal(q({ id: 1, req: 1, kind: "water", side: 0 }))).toEqual(empty);
+    expect(loadJal(q({ id: "a", req: 1.5, kind: "water", side: 0 }))).toEqual(empty);
+    expect(loadJal(q({ id: "a", req: 1, kind: "milk", side: 0 }))).toEqual(empty);
+    expect(loadJal(q({ id: "a", req: 1, kind: "water" }))).toEqual(empty);
+    expect(loadJal(q({ id: "a", req: 1, kind: "water", side: 3 }))).toEqual(empty);
+    expect(loadJal({ turn: { id: "a", req: 1, kind: "water", side: 0 }, queue: [] })).toEqual(
       empty,
     );
     expect(
-      loadJalSides(bad({ turn: null, queue: [{ id: "a", req: 1.5, kind: "water" }] })),
+      loadJal({ turn: { id: "a", req: 1, kind: "water", side: 0, until: "soon" }, queue: [] }),
     ).toEqual(empty);
-    expect(loadJalSides(bad({ turn: null, queue: [{ id: "a", req: 1, kind: "milk" }] }))).toEqual(
-      empty,
-    );
-    expect(loadJalSides(bad({ turn: { id: "a", req: 1, kind: "water" }, queue: [] }))).toEqual(
-      empty,
-    );
     expect(
-      loadJalSides(bad({ turn: { id: "a", req: 1, kind: "water", until: "soon" }, queue: [] })),
+      loadJal({
+        turn: { id: "a", req: 1, kind: "water", side: 0, until: 5, offered: "yes" },
+        queue: [],
+      }),
     ).toEqual(empty);
-    const turn = { id: "a", req: 1, kind: "water" as const, until: 5 };
-    expect(loadJalSides(bad({ turn, queue: [] }))).toEqual([
-      { turn: null, queue: [] },
-      { turn, queue: [] },
-    ]);
   });
 
   it("names water 'jal' for others, and the leaf and flower as they are", () => {

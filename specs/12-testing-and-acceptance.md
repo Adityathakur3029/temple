@@ -25,7 +25,7 @@ How we know Sannidhi works: the test layers, what each covers, the CI gates, and
 2. **Two visitors:** context A and context B join the same hall. A walks and B sees it within 300 ms (local). A does namaste and B sees the animation event.
 3. **Sacred zones:** scripted taps and keyboard input try to walk into the garbhagriha and across the Nandi axis. The avatar never ends up there.
 4. **Diya queue:** five contexts request a diya at once. Four get spots, one queues, the lamps appear for everyone, and a new context sees the existing lamps.
-5. **Jal:** two contexts. The second is queued, and the path to the threshold avoids the Nandi axis.
+5. **Jal:** two contexts. The second is queued until the first has walked into the sanctum, offered and come back out; the walk never touches the Nandi axis, and keys pressed during it do nothing.
 6. **Mala:** 108 advances turn the mala, the 109th starts mala 2, and rapid key repeat is coalesced.
 7. **Parikrama:**
    - Auto-walk completes one round in half mode.

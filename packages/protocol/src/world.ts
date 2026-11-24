@@ -105,11 +105,14 @@ export function distance(a: Point, b: Point): number {
 
 export const LINGA: Point = { x: 0, z: 0 };
 
-/** Sanctum footprint, walls included. Never walkable; the camera can't enter it either. */
+/** Sanctum footprint, walls included. Never walkable, except on the jal turn holder's sanctum lane (SANCTUM_LANES); the camera never enters it. */
 export const GARBHAGRIHA = rect(-2.6, 2.6, -2.6, 2.6);
 
-/** The sanctum door, in the east wall (z = 2.6), centred on the axis. */
-export const SANCTUM_DOOR = { z: 2.6, halfWidth: 0.75 } as const;
+/**
+ * The sanctum door, in the east wall (z = 2.6), centred on the axis: as wide as the two darshan
+ * carpets, edge to edge (DARSHAN_CARPET.x1; owner, 2026-11-24).
+ */
+export const SANCTUM_DOOR = { z: 2.6, halfWidth: 1.3 } as const;
 
 /**
  * The open pillared hall, on a raised plinth reached by steps on its east side. Its west end meets
@@ -119,15 +122,16 @@ export const SANCTUM_DOOR = { z: 2.6, halfWidth: 0.75 } as const;
 export const MANDAPA = rect(-7, 7, 2.6, 19);
 
 /**
- * 14 pillars: five down each side (the first at the west corners, by the sanctum wall), and two
- * at each end of the aisle.
+ * 12 pillars: five down each side (the first at the west corners, by the sanctum wall), and two
+ * at the east end of the aisle. The pair that stood in front of the sanctum door was taken out so
+ * the view to the door stays open (owner, 2026-11-24).
  */
 export const MANDAPA_PILLARS: readonly Point[] = [
   ...[3.2, 5.6, 10, 14.4, 18.6].flatMap((z) => [
     { x: 6.5, z },
     { x: -6.5, z },
   ]),
-  ...[5.6, 18.6].flatMap((z) => [
+  ...[18.6].flatMap((z) => [
     { x: 2.9, z },
     { x: -2.9, z },
   ]),
@@ -136,7 +140,8 @@ export const PILLAR_HALF_SIZE = 0.25;
 
 /** Nandi sits on a platform on the axis, facing the sanctum (−z). */
 export const NANDI: Spot = { x: 0, z: 22, yaw: Math.PI };
-export const NANDI_PLATFORM = rect(-1, 1, 21, 23);
+/** Narrow (1.4 m; his figure is 1.06 m wide), so a visitor can stand close to his ear. */
+export const NANDI_PLATFORM = rect(-0.7, 0.7, 21, 23);
 /** Nandi's head, at the sanctum end of his platform. */
 export const NANDI_HEAD: Point = { x: 0, z: 21.3 };
 /**
@@ -145,7 +150,7 @@ export const NANDI_HEAD: Point = { x: 0, z: 21.3 };
  * are offered by default (check with advisor, spec 08).
  */
 export const NANDI_EAR_SPOTS: readonly Spot[] = [1, -1].map((side) => {
-  const at = { x: side * 1.3, z: 21.5 };
+  const at = { x: side * (NANDI_PLATFORM.x1 + 0.3), z: 21.5 };
   return { ...at, yaw: yawTowards(at, NANDI_HEAD) };
 });
 /**
@@ -363,10 +368,10 @@ export const DIYA_SPOT_POSITIONS: readonly Spot[] = [
 });
 
 /**
- * The two jal-offering spots on the mandapa floor at the threshold, one each side of the door and
- * off the axis (north first, then its mirror), in the order of JAL_SIDES. A visitor offers from
- * the nearer one; each side has its own turn, so two may offer at once (spec 03 § Offer water,
- * bel patra or a flower).
+ * The two jal spots on the mandapa floor at the threshold, one each side of the door and off the
+ * axis (north first, then its mirror), in the order of JAL_SIDES. A visitor asks for a turn from
+ * the nearer one, and the avatar comes back to it after offering inside the sanctum. One queue
+ * serves both (spec 03 § Offer water, bel patra or a flower).
  */
 export const JAL_SPOTS: readonly Spot[] = [1, -1].map((side) => {
   const p = { x: side * 1.9, z: 3.4 };
@@ -375,52 +380,60 @@ export const JAL_SPOTS: readonly Spot[] = [1, -1].map((side) => {
 /** The north jal spot (the first of JAL_SPOTS). */
 export const JAL_SPOT: Spot = JAL_SPOTS[0] as Spot;
 /**
- * The brass plates on the mandapa floor beside the door, one each side, off the Nandi axis,
- * where bel patra and flowers are laid. Nobody steps on them.
+ * Where the walk into the sanctum begins and ends, one per side (north first): on that side's
+ * darshan carpet just outside the door, facing in (spec 03).
  */
-export const OFFERING_PLATES: readonly Point[] = [
-  { x: 1.6, z: 2.85 },
-  { x: -1.6, z: 2.85 },
+export const DOOR_SPOTS: readonly Spot[] = [1, -1].map((side) => ({
+  x: side * 0.88,
+  z: 3.0,
+  yaw: Math.PI,
+}));
+/**
+ * The two sanctum lanes (north first): strips inside the garbhagriha in line with each darshan
+ * carpet, clear of the Nandi axis (x −0.4 … 0.4) and of the pitha (x, z −0.45 … 0.45). Only the
+ * visitor holding the jal turn may be on one, their side's (spec 03, spec 05 § Movement rule).
+ */
+export const SANCTUM_LANES: readonly Rect[] = [
+  rect(0.5, 1.25, 0.45, 2.6),
+  rect(-1.25, -0.5, 0.45, 2.6),
 ];
-export const OFFERING_PLATE: Point = OFFERING_PLATES[0] as Point;
-export const OFFERING_PLATE_RADIUS = 0.18;
+/**
+ * Where the offering is made inside, one per side (north first), facing the linga: in front of
+ * the pitha and to one side, never across the jaladhari spout, which points north along z = 0.
+ */
+export const SANCTUM_SPOTS: readonly Spot[] = [1, -1].map((side) => {
+  const p = { x: side * 0.68, z: 0.55 };
+  return { ...p, yaw: yawTowards(p, LINGA) };
+});
 /**
  * The two small copper tirtha pots with their spoons, each on a small stone stand beside its jal
  * spot (north first, then its mirror), where charanamrit is received (spec 03 § Receive
  * charanamrit). One each side, so nobody crosses the Nandi axis for it (owner, 2026-11-24).
  */
 export const TIRTHA_POTS: readonly Point[] = [
-  { x: 2.75, z: 3.4 },
-  { x: -2.75, z: 3.4 },
+  { x: 3.45, z: 3.0 },
+  { x: -3.45, z: 3.0 },
 ];
 /** The north tirtha pot (the first of TIRTHA_POTS). */
 export const TIRTHA_POT: Point = TIRTHA_POTS[0] as Point;
 /** The tirtha pot's stand, kept clear like the plate (the stand itself is 0.13 m in radius). */
 export const TIRTHA_STAND_RADIUS = 0.15;
-/**
- * Where a visitor stands to lay a bel patra or a flower, one per side: close enough to that
- * side's plate for the hands to reach it, and within reach of that side's jal spot (spec 03).
- */
-export const LAY_SPOTS: readonly Point[] = [
-  { x: 1.82, z: 3.25 },
-  { x: -1.82, z: 3.25 },
-];
-export const LAY_SPOT: Point = LAY_SPOTS[0] as Point;
 /** Where a visitor stands to receive charanamrit, one per side, each facing its tirtha pot. */
 export const CHARANAMRIT_SPOTS: readonly Spot[] = [1, -1].map((side, i) => {
-  const p = { x: side * 2.3, z: 3.75 };
+  const p = { x: side * 3.45, z: 3.6 };
   return { ...p, yaw: yawTowards(p, TIRTHA_POTS[i] as Point) };
 });
 /** The north charanamrit spot (the first of CHARANAMRIT_SPOTS). */
 export const CHARANAMRIT_SPOT: Spot = CHARANAMRIT_SPOTS[0] as Spot;
 /**
- * The two low stone offering benches against the sanctum's front wall, one each side of the door
- * beyond the jal spots (owner, 2026-11-24). Each holds a basket of flowers, a basket of bel patra
+ * The two low stone offering benches against the sanctum's front wall, one each side of the door,
+ * close beside the jal spots (owner, 2026-11-24; moved in nearer the door the same
+ * day), with the tirtha pots just beyond them. Each holds a basket of flowers, a basket of bel patra
  * and a copper lota of water; a visitor takes from the bench on their side before offering.
  */
 export const OFFERING_BENCHES: readonly Point[] = [
-  { x: 3.55, z: 2.86 },
-  { x: -3.55, z: 2.86 },
+  { x: 2.7, z: 2.86 },
+  { x: -2.7, z: 2.86 },
 ];
 /** Half an offering bench's length (along x) and depth (along z). */
 export const OFFERING_BENCH_HALF_LENGTH = 0.45;
@@ -553,7 +566,6 @@ export type ObstacleId =
   | "bell-post"
   | "tree"
   | "bench"
-  | "offering-plate"
   | "offering-bench"
   | "tirtha-stand";
 
@@ -605,10 +617,6 @@ export const OBSTACLES: readonly Obstacle[] = [
   })),
   // The trunks of the trees that stand on the lawn (the client grows the same trees).
   ...TREE_TRUNKS.map((t): Obstacle => ({ id: "tree", shape: circle(t.x, t.z, t.r) })),
-  ...OFFERING_PLATES.map((p): Obstacle => ({
-    id: "offering-plate",
-    shape: circle(p.x, p.z, OFFERING_PLATE_RADIUS),
-  })),
   ...OFFERING_BENCHES.map((b): Obstacle => ({
     id: "offering-bench",
     shape: rect(
@@ -669,14 +677,20 @@ export function sacredZones(mode: PradakshinaMode = PRADAKSHINA_MODE): readonly 
 
 export type Blocker = ZoneId | ObstacleId | "outside";
 
-/** Why a visitor can't stand at (x, z), or null if they can. Sacred zones are reported first. */
+/**
+ * Why a visitor can't stand at (x, z), or null if they can. Sacred zones are reported first.
+ * `lane` is the sanctum lane of a visitor holding the jal turn (SANCTUM_LANES): on it, the
+ * garbhagriha doesn't block them (spec 05 § Movement rule).
+ */
 export function blockedAt(
   x: number,
   z: number,
   mode: PradakshinaMode = PRADAKSHINA_MODE,
+  lane: Rect | null = null,
 ): Blocker | null {
   // Plain loops: the client calls this many times per frame, so no closures are allocated.
   for (const zone of ZONES[mode]) {
+    if (zone.id === "garbhagriha" && lane && inShape(lane, x, z)) continue;
     if (inAny(zone.shapes, x, z)) return zone.id;
   }
   if (!inAny(WALKABLE, x, z)) return "outside";
@@ -691,13 +705,19 @@ function inAny(shapes: readonly Shape[], x: number, z: number): boolean {
   return false;
 }
 
-/** True if a visitor's position (the centre of their feet) may be at (x, z). */
+/** True if a visitor's position (the centre of their feet) may be at (x, z); see blockedAt for `lane`. */
 export function isWalkable(
   x: number,
   z: number,
   mode: PradakshinaMode = PRADAKSHINA_MODE,
+  lane: Rect | null = null,
 ): boolean {
-  return blockedAt(x, z, mode) === null;
+  return blockedAt(x, z, mode, lane) === null;
+}
+
+/** True if (x, z) is inside the garbhagriha (its walls included). */
+export function inGarbhagriha(x: number, z: number): boolean {
+  return inShape(GARBHAGRIHA, x, z);
 }
 
 /**
@@ -754,33 +774,56 @@ function segmentsCross(
   return false;
 }
 
+/**
+ * Liang–Barsky clipping of the segment a → b against a rectangle: the part of the segment inside
+ * it, as [t0, t1] along a → b, or null if they don't meet.
+ */
+function clipToRect(s: Rect, a: Point, b: Point): [number, number] | null {
+  let t0 = 0;
+  let t1 = 1;
+  const dx = b.x - a.x;
+  const dz = b.z - a.z;
+  for (const [p, q] of [
+    [-dx, a.x - s.x0],
+    [dx, s.x1 - a.x],
+    [-dz, a.z - s.z0],
+    [dz, s.z1 - a.z],
+  ] as const) {
+    if (p === 0) {
+      if (q < 0) return null;
+      continue;
+    }
+    const r = q / p;
+    if (p < 0) t0 = Math.max(t0, r);
+    else t1 = Math.min(t1, r);
+    if (t0 > t1) return null;
+  }
+  return [t0, t1];
+}
+
+/**
+ * True if the part of the segment a → b inside the garbhagriha lies wholly on `lane` (or there is
+ * no such part). Both are convex, so checking the ends of that part is enough.
+ */
+function insideOnLane(lane: Rect, a: Point, b: Point): boolean {
+  const t = clipToRect(GARBHAGRIHA, a, b);
+  if (!t) return true;
+  // A hair of slack for the rounding of the clip points.
+  const e = 1e-9;
+  for (const k of t) {
+    const x = a.x + (b.x - a.x) * k;
+    const z = a.z + (b.z - a.z) * k;
+    if (x < lane.x0 - e || x > lane.x1 + e || z < lane.z0 - e || z > lane.z1 + e) return false;
+  }
+  return true;
+}
+
 /** Exact test: does the closed segment a → b touch shape s? */
 function segmentHitsShape(s: Shape, a: Point, b: Point): boolean {
   if (inShape(s, a.x, a.z) || inShape(s, b.x, b.z)) return true;
   switch (s.kind) {
-    case "rect": {
-      // Liang–Barsky clipping of the segment against the rectangle.
-      let t0 = 0;
-      let t1 = 1;
-      const dx = b.x - a.x;
-      const dz = b.z - a.z;
-      for (const [p, q] of [
-        [-dx, a.x - s.x0],
-        [dx, s.x1 - a.x],
-        [-dz, a.z - s.z0],
-        [dz, s.z1 - a.z],
-      ] as const) {
-        if (p === 0) {
-          if (q < 0) return false;
-          continue;
-        }
-        const r = q / p;
-        if (p < 0) t0 = Math.max(t0, r);
-        else t1 = Math.min(t1, r);
-        if (t0 > t1) return false;
-      }
-      return true;
-    }
+    case "rect":
+      return clipToRect(s, a, b) !== null;
     case "circle":
       return pointSegment(s.x, s.z, a.x, a.z, b.x, b.z) <= s.r;
     case "capsule":
@@ -802,15 +845,21 @@ const STEP_SAMPLE_M = 0.05;
 /**
  * What blocks the straight step from `a` to `b`, or null if a visitor may take it. Sacred zones
  * and obstacles are tested exactly, so no step can hop over one; the walkable area (a union of
- * shapes) is sampled every 5 cm. The server's movement rule (spec 05).
+ * shapes) is sampled every 5 cm. The server's movement rule (spec 05). With `lane` (the jal turn
+ * holder's sanctum lane), the part of the step inside the garbhagriha may lie on that lane.
  */
 export function segmentBlocked(
   a: Point,
   b: Point,
   mode: PradakshinaMode = PRADAKSHINA_MODE,
+  lane: Rect | null = null,
 ): Blocker | null {
   if (![a.x, a.z, b.x, b.z].every(Number.isFinite)) return "outside";
   for (const zone of ZONES[mode]) {
+    if (zone.id === "garbhagriha" && lane) {
+      if (!insideOnLane(lane, a, b)) return zone.id;
+      continue;
+    }
     if (zone.shapes.some((s) => segmentHitsShape(s, a, b))) return zone.id;
   }
   for (const o of OBSTACLES) {

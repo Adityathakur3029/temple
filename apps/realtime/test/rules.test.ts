@@ -12,6 +12,7 @@ import {
   isNameKey,
   parseResumeToken,
   type PosMessage,
+  SANCTUM_LANES,
 } from "@sannidhi/protocol";
 import { BellWindows, inBellReach } from "../src/rules/bells";
 import { inTapReach } from "../src/rules/taps";
@@ -52,6 +53,22 @@ describe("movement rule: no step ends on or crosses a sacred zone", () => {
   it.each(cases)("$zone", ({ from, to }) => {
     const v = checkMove(from, pos(to.x, to.z), 1000);
     expect(v.ok).toBe(false);
+  });
+
+  it("opens the garbhagriha only on the jal turn holder's own lane (spec 05 § Movement rule)", () => {
+    const [north, south] = SANCTUM_LANES;
+    const step = { x: 0.88, z: 2.5 };
+    // Through the door on the north carpet's line: shut without the lane, or with the other one.
+    expect(checkMove(at(0.88, 3), pos(step.x, step.z), 1000).ok).toBe(false);
+    expect(checkMove(at(0.88, 3), pos(step.x, step.z), 1000, true, south ?? null).ok).toBe(false);
+    expect(checkMove(at(0.88, 3), pos(step.x, step.z), 1000, true, north ?? null).ok).toBe(true);
+    // Off the lane inside, and onto the Nandi axis, stay shut.
+    expect(checkMove(at(0.88, 1.2), pos(0.3, 1.0), 1000, true, north ?? null).ok).toBe(false);
+    expect(checkMove(at(0.88, 3), pos(0.3, 3), 1000, true, north ?? null).ok).toBe(false);
+    // A resumed holder's first position may be on their lane.
+    expect(
+      checkMove(at(0, 56.5, { firstPos: true }), pos(0.68, 0.55), 1, true, north ?? null).ok,
+    ).toBe(true);
   });
 
   it("accepts an ordinary step and rounds it to 1 cm", () => {

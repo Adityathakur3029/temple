@@ -45,7 +45,7 @@ const CELL = {
 } as const;
 type Cell = keyof typeof CELL;
 
-const PAINT = {
+export const PAINT = {
   plaster: "#e9dcc0",
   plasterShade: "#d9c7a3",
   geru: "#a63a22",
@@ -192,7 +192,7 @@ class Quads {
 }
 
 /** A w × h design painted at `k` times its size (the painters always draw at full size). */
-function canvasOf(
+export function canvasOf(
   w: number,
   h: number,
   paint: (ctx: Ctx) => void,
@@ -563,7 +563,7 @@ function marigoldPanel(ctx: Ctx, w: number, h: number): void {
 
 // --- Small brushes -------------------------------------------------------------------------------
 
-function dot(ctx: Ctx, x: number, y: number, r: number): void {
+export function dot(ctx: Ctx, x: number, y: number, r: number): void {
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.fill();
@@ -576,7 +576,7 @@ function petalShape(ctx: Ctx, len: number, wid: number): void {
   ctx.quadraticCurveTo(-wid, -len * 0.5, 0, 0);
 }
 
-function petals(
+export function petals(
   ctx: Ctx,
   cx: number,
   cy: number,
@@ -602,7 +602,7 @@ function petals(
   }
 }
 
-function leaf(
+export function leaf(
   ctx: Ctx,
   x: number,
   y: number,
@@ -627,14 +627,14 @@ function leaf(
 }
 
 /** A bel sprig: three leaves from one point. */
-function belLeaf(ctx: Ctx, x: number, y: number, s: number): void {
+export function belLeaf(ctx: Ctx, x: number, y: number, s: number): void {
   for (const a of [-Math.PI / 2, -Math.PI / 2 - 1.1, -Math.PI / 2 + 1.1]) {
     leaf(ctx, x, y, a === -Math.PI / 2 ? s * 1.25 : s, s * 0.42, a, PAINT.leaf);
   }
 }
 
 /** A marigold: a ring of orange dots round a yellow heart. */
-function flower(ctx: Ctx, x: number, y: number, r: number): void {
+export function flower(ctx: Ctx, x: number, y: number, r: number): void {
   ctx.fillStyle = PAINT.marigold;
   for (let i = 0; i < 10; i++) {
     const a = (i / 10) * Math.PI * 2;
@@ -645,7 +645,7 @@ function flower(ctx: Ctx, x: number, y: number, r: number): void {
 }
 
 /** Fading and small flakes, so the paint looks old and loved rather than new. */
-function age(ctx: Ctx, w: number, h: number, rnd: () => number): void {
+export function age(ctx: Ctx, w: number, h: number, rnd: () => number): void {
   ctx.fillStyle = PAINT.plaster;
   ctx.globalAlpha = 0.14;
   ctx.fillRect(0, 0, w, h);
@@ -657,7 +657,7 @@ function age(ctx: Ctx, w: number, h: number, rnd: () => number): void {
   ctx.globalAlpha = 1;
 }
 
-function seeded(seed: number): () => number {
+export function seeded(seed: number): () => number {
   let s = seed >>> 0;
   return () => {
     s = (s * 1664525 + 1013904223) >>> 0;

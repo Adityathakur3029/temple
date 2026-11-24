@@ -16,7 +16,7 @@ Triangle counts are per instance. Texture sizes are given as Full / Lite.
 | Nandi (the figure; its platform stays in the stone kit for now) | ≤ 8k | 1K / 512 | As the linga. Tag `sacred` |
 | Ganesha murti | ≤ 6k | 1K / 512 | As the linga. Tag `sacred` |
 | Ganesha shrine (small open shrine and pedestal) | ≤ 4k | 1K / 512 | Shares the shrine trim sheets |
-| Mandapa (pillars, beams, roof, plinth) | ≤ 30k | Shares the shrine trim sheets | 14 pillars |
+| Mandapa (pillars, beams, roof, plinth) | ≤ 30k | Shares the shrine trim sheets | 12 pillars |
 | Mats ×40 | ≤ 100 each | Shared 256² | Instanced |
 | Bells ×11 + chains | ≤ 800 each | Shared brass 512² | Swing animation in code |
 | Post lamps ×8 (small brass standing lamps on the path posts) | ≤ 800 each | Shared brass 512² | Flames, shelves and posts in code |
@@ -74,8 +74,8 @@ Coordinates are metres with +y up and the linga at the origin. +z points from th
 | `near-tree` | A more detailed deodar or pine with cut-out foliage, for the trees nearest the paths | 5.2 m wide, the greybox tree's spread, so no branch reaches over a path | Base centre; the 24 trees closest to the walkable area, placed in code, closest first (12 in Lite mode and on Low phones) | 1,600 / 2 | P1 |
 | `shrine` | Garbhagriha and shikhara with amalaka and kalasha, and the somasutra spout. Hollow and empty sanctum (no linga, murti or Nandi inside, no carved deity figures), door to +z, floor at 0.45 m | 16.1 m tall | Bottom centre at (0, 0, 1.26) | 45k / 3 | P1 |
 | `linga` | Linga on its yoni pitha, in plain dark stone: aniconic, no face, eyes or painted marks, a few bilva leaves or flowers at most. No dharapatra (it would change the fitted height; it comes later as its own piece). Its front (+z) is the spout | 0.92 m tall | Bottom centre on the sanctum floor (0, 0.465, 0), spout turned north (+x) | 6k / 2 | P1, `sacred` |
-| `nandi` | Nandi: a traditional seated bull with natural proportions, calm, no cartoon style, no rider; the figure only | 1.6 m long (z) | Bottom centre on the platform (0, 0.5, 22.05), turned to face the sanctum (−z) | 8k / 2 | P1, `sacred` |
-| `mandapa` | Open hall: plinth at 0.45 m, steps to +z, 14 pillars, beams, stepped roof; no carved deity figures, no sacred symbols on floors or steps | 15.2 m wide | Bottom centre at (0, 0, 12.1) | 30k / 3 | P1 |
+| `nandi` | Nandi: a traditional seated bull with natural proportions, calm, no cartoon style, no rider; the figure only | 1.6 m long (z) | Bottom centre on the platform (0, 0.15, 22.05), turned to face the sanctum (−z) | 8k / 2 | P1, `sacred` |
+| `mandapa` | Open hall: plinth at 0.45 m, steps to +z, 12 pillars, beams, stepped roof; no carved deity figures, no sacred symbols on floors or steps | 15.2 m wide | Bottom centre at (0, 0, 12.1) | 30k / 3 | P1 |
 | `ganesha-shrine` | Small open-fronted shrine, pedestal top at 0.75 m, empty (no murti), opening to +z | 3.9 m tall | Bottom centre at (−5.3, 0, 42.4), opening turned to +x | 4k / 2 | P1 |
 | `ganesha` | A small traditional seated Ganesha murti, facing +z; not cartoon, "cute", toy-like or modern stylised | 0.71 m tall | Bottom centre on the pedestal (−5.375, 0.75, 42.4), turned to face +x | 6k / 2 | P1, `sacred` |
 | `kund` | Square stepped tank: rim at ground level, three 0.6 m steps each 0.25 m lower; no sacred symbols | 10 m wide | Top centre at (16, 0.04, 32) | 8k / 2 | P1 |

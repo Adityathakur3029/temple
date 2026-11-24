@@ -5,7 +5,7 @@
  */
 
 /** Integer. Bump on any breaking message change (spec 04 § Versioning). */
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 export const HALL_COUNT = 20;
 export const INSTANCES_PER_HALL = 8;
@@ -72,10 +72,13 @@ export const DIYA_TURN_TIMEOUT_MS = 30000;
 
 /** Per visitor. */
 export const JAL_COOLDOWN_MS = 120000;
-export const JAL_TURN_TIMEOUT_MS = 30000;
+/** From the turn to `jal.done`: the walk to the bench, in through the sanctum door, and the offering. */
+export const JAL_TURN_TIMEOUT_MS = 45000;
+/** After `jal.done`, the time to walk out of the garbhagriha before the server places the avatar at its door spot. */
+export const JAL_EXIT_MS = 15000;
 /** The client offers water, bel patra and a flower inside this distance of the jal spot; the server allows +1 m. */
 export const JAL_NEAR_M = 3;
-/** `jal.done` is accepted only this close to the jal spot. */
+/** `jal.done` is accepted only this close to the sanctum spot of the turn's side. */
 export const JAL_SPOT_REACH_M = 1;
 /** Charanamrit may be received this long after the visitor's own offering, once per offering. */
 export const CHARANAMRIT_WINDOW_MS = 120000;

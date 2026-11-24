@@ -89,7 +89,7 @@ Positions are rounded to 0.01 m and yaw to 0.01 rad by the sender. Coordinates a
 
 The order of `POSES` is part of the wire format, because `poseIndex` in `StateTuple` indexes it. Only append to it. Reordering or removing a pose is a breaking change.
 
-The same holds for two lists in `world.ts`: `mat` (in `StateTuple`, `sit` and `sit.ok`) indexes `SEATS` (the 40 `MATS`, then the 14 `BENCH_SEATS`, 0 … `SEAT_COUNT` − 1; version 2), and `spot` (in `diya.turn`) indexes `DIYA_SPOT_POSITIONS`. `JAL_SIDES` (`"n"`, `"s"`) is in the same order as `JAL_SPOTS`, `LAY_SPOTS`, `OFFERING_PLATES`, `TIRTHA_POTS` and `CHARANAMRIT_SPOTS` (north, x > 0, first), and the server stores the jal queues in that order. Their order is fixed in [spec 02 § Greybox details](02-temple-world.md#greybox-details); changing it is a breaking change.
+The same holds for two lists in `world.ts`: `mat` (in `StateTuple`, `sit` and `sit.ok`) indexes `SEATS` (the 40 `MATS`, then the 14 `BENCH_SEATS`, 0 … `SEAT_COUNT` − 1; version 2), and `spot` (in `diya.turn`) indexes `DIYA_SPOT_POSITIONS`. `JAL_SIDES` (`"n"`, `"s"`) is in the same order as `JAL_SPOTS`, `OFFERING_BENCHES`, `PICK_SPOTS`, `DOOR_SPOTS`, `SANCTUM_LANES`, `SANCTUM_SPOTS`, `TIRTHA_POTS` and `CHARANAMRIT_SPOTS` (north, x > 0, first); the server keeps one jal queue and stores each entry's side as its index in that order. Their order is fixed in [spec 02 § Greybox details](02-temple-world.md#greybox-details); changing it is a breaking change.
 
 ## Client → server messages
 
@@ -104,9 +104,9 @@ The same holds for two lists in `world.ts`: `mat` (in `StateTuple`, `sit` and `s
 | `diya.request` | `req` | Ask for a spot at the deepa stand | 1 per 1 s |
 | `diya.light` | `req` | Light the diya after arriving at the spot | 1 per 1 s |
 | `diya.cancel` | — | Leave the diya queue or spot | 1 per 1 s |
-| `jal.request` | `req, kind: "water" \| "bilva" \| "flower", side: "n" \| "s"` | Ask for one of the two threshold spots: north (`JAL_SPOTS[0]`) or south. Each side has its own turn and queue; a visitor waits or offers at one side at a time | 1 per 1 s |
-| `jal.done` | `req` | Finished pouring/offering | 1 per 1 s |
-| `jal.cancel` | — | Leave the jal queue or spot | 1 per 1 s |
+| `jal.request` | `req, kind: "water" \| "bilva" \| "flower", side: "n" \| "s"` | Ask for a turn to offer in the sanctum, from the nearer threshold spot: north (`JAL_SPOTS[0]`) or south. One queue serves both sides; the side picks the bench and the sanctum lane the avatar uses (version 3) | 1 per 1 s |
+| `jal.done` | `req` | Finished pouring/offering, at the sanctum spot of the turn's side. The turn passes on once the visitor is back out of the garbhagriha | 1 per 1 s |
+| `jal.cancel` | — | Leave the jal queue or give up the turn (a holder still inside is placed at their door spot) | 1 per 1 s |
 | `japa.mala` | — | Completed one mala of 108 | 1 per `JAPA_MALA_MIN_MS` |
 | `time` | `c` (client ms) | Clock-sync sample | 1 per 2 s (bucket burst 5) |
 | `leave` | — | Leaving on purpose; frees mat and queues immediately | once |
@@ -129,7 +129,7 @@ Rate limits are token buckets per visitor and message type (`RATE_LIMITS` in `pa
 | `diya.lit` | `lamp: Lamp, by?: VisitorId` | A lamp was lit (`by` included so the lighter's avatar can play the end of the animation) |
 | `diya.out` | `slot` | A lamp burned out |
 | `diya.no` | `req, why: "has-lamp"\|"stand-full"\|"busy"\|"not-near", nextFreeAt?` | Request refused |
-| `jal.queue` / `jal.turn` / `jal.no` | `pos` / `req, until` / `req, why: "cooldown" \| "busy" \| "not-near"` | Same pattern as the diya |
+| `jal.queue` / `jal.turn` / `jal.no` | `pos` / `req, until` / `req, why: "cooldown" \| "busy" \| "not-near"` | Same pattern as the diya. `jal.turn`'s `until` is the deadline for the offering; after `jal.done` it isn't sent again (not on a resume either), since the visitor is only walking out |
 | `pradakshina.done` | `n` | You completed round `n` this visit |
 | `counters` | `today: TodayCounters` | Every `COUNTERS_PUSH_MS` (on join, `welcome.snapshot.today` carries them) |
 | `time` | `c, s` | Reply to a clock-sync sample (`s` = server ms) |
@@ -143,7 +143,7 @@ interface Snapshot {
   visitors: Visitor[];
   states: StateTuple[];
   lamps: Lamp[];
-  queues: { diya: number; jal: number };      // lengths only; jal is the total waiting across both jal sides (turns not counted)
+  queues: { diya: number; jal: number };      // lengths only; jal is the number waiting in the one jal queue (the turn not counted)
   today: TodayCounters;
 }
 ```
@@ -214,7 +214,7 @@ Design and document it here before implementing. Don't base it on any other prod
 
 | Name | Value | Notes |
 |---|---|---|
-| `PROTOCOL_VERSION` | 2 | 2: `mat` also numbers the bench seats (40 … 53), and `jal.request` requires `side` (`"n"` or `"s"`). Not released to production; staging clients from before `side` must reload |
+| `PROTOCOL_VERSION` | 3 | 2: `mat` also numbers the bench seats (40 … 53), and `jal.request` requires `side` (`"n"` or `"s"`). 3: one jal queue for both sides, and `jal.done` is accepted only at the sanctum spot inside the garbhagriha (owner, 2026-11-24). Not released to production; older staging clients must reload |
 | `HALL_COUNT` | 20 | `HALL_IDS` = `hall-01` … `hall-20` |
 | `INSTANCES_PER_HALL` | 8 | |
 | `INSTANCE_CAPACITY` | 50 | Set for low-end phones; see spec 10 |
@@ -245,9 +245,10 @@ Design and document it here before implementing. Don't base it on any other prod
 | `DIYA_BURN_MS` | 600000 | 10 min |
 | `DIYA_TURN_TIMEOUT_MS` | 30000 | Time to reach the spot and light |
 | `JAL_COOLDOWN_MS` | 120000 | Per visitor |
-| `JAL_TURN_TIMEOUT_MS` | 30000 | |
+| `JAL_TURN_TIMEOUT_MS` | 45000 | From the turn to `jal.done`: the walk to the bench, in through the door, and the offering |
+| `JAL_EXIT_MS` | 15000 | After `jal.done`, the time to walk out of the garbhagriha before the server places the avatar at its door spot |
 | `JAL_NEAR_M` | 3 | The client offers water, bel patra and a flower within this distance of the jal spot (spec 03); the server allows +1 m for `jal.request` and charanamrit |
-| `JAL_SPOT_REACH_M` | 1 | `jal.done` is accepted only this close to the jal spot of the side whose turn it is |
+| `JAL_SPOT_REACH_M` | 1 | `jal.done` is accepted only this close to the sanctum spot of the side whose turn it is |
 | `CHARANAMRIT_WINDOW_MS` | 120000 | Charanamrit may be received this long after the visitor's own offering, once per offering |
 | `MAT_COUNT` | 40 | Two blocks of 20 |
 | `BENCH_SEAT_COUNT` | 14 | Two on each of the seven lawn benches |

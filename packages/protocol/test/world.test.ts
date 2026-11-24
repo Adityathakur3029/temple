@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  JAL_SPOT_REACH_M,
   CHARANAMRIT_SPOT,
-  LAY_SPOT,
   JAL_NEAR_M,
-  OFFERING_PLATE,
-  OFFERING_PLATE_RADIUS,
   TIRTHA_POT,
   NANDI_EAR_SPOTS,
   NANDI_HEAD,
@@ -77,9 +73,11 @@ import {
   type Spot,
   JAL_SIDES,
   JAL_SPOTS,
-  LAY_SPOTS,
-  OFFERING_PLATES,
+  DOOR_SPOTS,
+  SANCTUM_LANES,
+  SANCTUM_SPOTS,
   OFFERING_BENCHES,
+  inGarbhagriha,
   PICK_SPOTS,
   TIRTHA_POTS,
   CHARANAMRIT_SPOTS,
@@ -244,9 +242,16 @@ describe("world.ts matches spec 02", () => {
     expect(ranges(row(greybox, "Kund steps"))).toEqual(rectBounds(KUND_WATER));
     expect(coords(row(greybox, "Spawn"))[0]).toEqual({ x: SPAWN.x, z: SPAWN.z });
     expect(coords(row(greybox, "Jal spot"))[0]).toEqual({ x: JAL_SPOT.x, z: JAL_SPOT.z });
-    expect(coords(row(greybox, "Offering plate"))[0]).toEqual(OFFERING_PLATE);
+    expect(coords(row(greybox, "Door spot"))[0]).toEqual({
+      x: DOOR_SPOTS[0]?.x,
+      z: DOOR_SPOTS[0]?.z,
+    });
+    expect(coords(row(greybox, "Sanctum spot"))[0]).toEqual({
+      x: SANCTUM_SPOTS[0]?.x,
+      z: SANCTUM_SPOTS[0]?.z,
+    });
+    expect(ranges(row(greybox, "Sanctum lane"))).toEqual(rectBounds(SANCTUM_LANES[0] as Rect));
     expect(coords(row(greybox, "Tirtha pot"))[0]).toEqual(TIRTHA_POT);
-    expect(coords(row(greybox, "Lay spot"))[0]).toEqual(LAY_SPOT);
     expect(coords(row(greybox, "Charanamrit spot"))[0]).toEqual({
       x: CHARANAMRIT_SPOT.x,
       z: CHARANAMRIT_SPOT.z,
@@ -449,16 +454,68 @@ describe("ritual spots", () => {
     }
   });
 
-  it("puts the offering plate beside the door, clear of the axis, the carpet and the jal spot", () => {
-    expect(inShape(MANDAPA, OFFERING_PLATE.x, OFFERING_PLATE.z)).toBe(true);
-    expect(OFFERING_PLATE.x - OFFERING_PLATE_RADIUS).toBeGreaterThan(DARSHAN_CARPET.x1 + 0.1);
-    expect(isWalkable(OFFERING_PLATE.x, OFFERING_PLATE.z)).toBe(false);
-    expect(clearFor(JAL_SPOT)).toBe(true);
-    expect(distance(OFFERING_PLATE, JAL_SPOT)).toBeLessThan(1);
-    // Laid from close by, within reach of the spot the server checks.
-    expect(clearFor(LAY_SPOT)).toBe(true);
-    expect(distance(LAY_SPOT, OFFERING_PLATE)).toBeLessThan(0.5);
-    expect(distance(LAY_SPOT, JAL_SPOT)).toBeLessThan(JAL_SPOT_REACH_M);
+  it("puts each sanctum lane inside the garbhagriha, through the door, off the axis and the pitha", () => {
+    for (const lane of SANCTUM_LANES) {
+      // Inside the sanctum, and reaching its east face, where the door is.
+      expect(lane.x0).toBeGreaterThanOrEqual(GARBHAGRIHA.x0);
+      expect(lane.x1).toBeLessThanOrEqual(GARBHAGRIHA.x1);
+      expect(lane.z1).toBe(GARBHAGRIHA.z1);
+      expect(Math.max(Math.abs(lane.x0), Math.abs(lane.x1))).toBeLessThanOrEqual(
+        SANCTUM_DOOR.halfWidth,
+      );
+      // Clear of the Nandi axis and the pitha (0.46 m across from the centre).
+      expect(Math.min(Math.abs(lane.x0), Math.abs(lane.x1))).toBeGreaterThan(NANDI_AXIS.x1);
+      expect(lane.z0).toBeGreaterThan(0.4);
+      // On a darshan carpet's line.
+      expect(Math.min(Math.abs(lane.x0), Math.abs(lane.x1))).toBeGreaterThanOrEqual(
+        DARSHAN_CARPET.x0,
+      );
+      expect(Math.max(Math.abs(lane.x0), Math.abs(lane.x1))).toBeLessThanOrEqual(DARSHAN_CARPET.x1);
+    }
+  });
+
+  it("puts each sanctum spot on its lane, facing the linga, clear of the jaladhari spout", () => {
+    for (let i = 0; i < JAL_SIDES.length; i++) {
+      const spot = SANCTUM_SPOTS[i] as Spot;
+      const lane = SANCTUM_LANES[i] as Rect;
+      expect(inShape(lane, spot.x, spot.z)).toBe(true);
+      expect(inGarbhagriha(spot.x, spot.z)).toBe(true);
+      expect(isWalkable(spot.x, spot.z)).toBe(false);
+      expect(isWalkable(spot.x, spot.z, undefined, lane)).toBe(true);
+      expect(spot.yaw).toBeCloseTo(yawTowards(spot, LINGA));
+      // The spout runs north along z = 0: stand well in front of it, never across it.
+      expect(spot.z).toBeGreaterThan(0.5);
+      expect(distance(spot, LINGA)).toBeLessThan(1.2);
+    }
+  });
+
+  it("lets only the lane's holder walk door spot → sanctum spot, and nobody across the axis", () => {
+    for (let i = 0; i < JAL_SIDES.length; i++) {
+      const door = DOOR_SPOTS[i] as Spot;
+      const spot = SANCTUM_SPOTS[i] as Spot;
+      const lane = SANCTUM_LANES[i] as Rect;
+      const other = SANCTUM_LANES[1 - i] as Rect;
+      const mid = { x: door.x, z: spot.z + 0.6 };
+      expect(clearFor(door)).toBe(true);
+      expect(inGarbhagriha(door.x, door.z)).toBe(false);
+      // Without the lane, the door is shut to everyone.
+      expect(segmentBlocked(door, mid)).toBe("garbhagriha");
+      expect(segmentBlocked(door, mid, undefined, other)).toBe("garbhagriha");
+      // With it: in and out along the lane.
+      expect(segmentBlocked(door, mid, undefined, lane)).toBeNull();
+      expect(segmentBlocked(mid, spot, undefined, lane)).toBeNull();
+      expect(segmentBlocked(spot, door, undefined, lane)).toBeNull();
+      // Not off the lane inside: to the linga, the back of the sanctum, or the other side.
+      expect(segmentBlocked(spot, { x: 0.2 * Math.sign(spot.x), z: 0.2 }, undefined, lane)).toBe(
+        "garbhagriha",
+      );
+      expect(segmentBlocked(mid, { x: mid.x, z: -1 }, undefined, lane)).toBe("garbhagriha");
+      expect(segmentBlocked(spot, SANCTUM_SPOTS[1 - i] as Spot, undefined, lane)).not.toBeNull();
+      // A step from outside the door's line into the lane cuts through the wall.
+      expect(segmentBlocked(JAL_SPOTS[i] as Spot, spot, undefined, lane)).toBe("garbhagriha");
+      // And the lane never opens the Nandi axis.
+      expect(segmentBlocked(door, { x: 0, z: 3 }, undefined, lane)).toBe("nandi-axis");
+    }
   });
 
   it("puts the tirtha pot on the side ledge and its spot clear, near the jal spot", () => {
@@ -471,8 +528,8 @@ describe("ritual spots", () => {
   it("keeps every per-side list in JAL_SIDES order, north (x > 0) first, and mirrored", () => {
     const lists = {
       JAL_SPOTS,
-      LAY_SPOTS,
-      OFFERING_PLATES,
+      DOOR_SPOTS,
+      SANCTUM_SPOTS,
       OFFERING_BENCHES,
       PICK_SPOTS,
       TIRTHA_POTS,
@@ -490,34 +547,28 @@ describe("ritual spots", () => {
   it("gives each side its own clear spots, in the mandapa and off the axis", () => {
     for (let i = 0; i < JAL_SIDES.length; i++) {
       const jal = JAL_SPOTS[i] as Spot;
-      for (const p of [
-        jal,
-        LAY_SPOTS[i] as Point,
-        PICK_SPOTS[i] as Point,
-        CHARANAMRIT_SPOTS[i] as Point,
-      ]) {
+      for (const p of [jal, PICK_SPOTS[i] as Point, CHARANAMRIT_SPOTS[i] as Point]) {
         expect(clearFor(p), JSON.stringify(p)).toBe(true);
         expect(inShape(MANDAPA, p.x, p.z)).toBe(true);
         expect(Math.abs(p.x)).toBeGreaterThan(NANDI_AXIS.x1 + 0.25);
       }
-      expect(distance(LAY_SPOTS[i] as Point, jal)).toBeLessThan(JAL_SPOT_REACH_M);
       expect(distance(CHARANAMRIT_SPOTS[i] as Point, jal)).toBeLessThan(JAL_NEAR_M);
       expect(isWalkable((TIRTHA_POTS[i] as Point).x, (TIRTHA_POTS[i] as Point).z)).toBe(false);
       expect(nearestJalSide(jal)).toBe(i);
     }
   });
 
-  it("lets a visitor walk pick spot → lay spot → jal spot on each side, without the stand in the way", () => {
+  it("lets a visitor walk pick spot → door spot → jal spot on each side, without the stand in the way", () => {
     for (let i = 0; i < JAL_SIDES.length; i++) {
       const pick = PICK_SPOTS[i] as Point;
-      const lay = LAY_SPOTS[i] as Point;
+      const door = DOOR_SPOTS[i] as Point;
       const jal = JAL_SPOTS[i] as Point;
       const charanamrit = CHARANAMRIT_SPOTS[i] as Point;
       // The client walks round obstacles; what matters is that a route exists via a waypoint.
       const via = { x: (pick.x + jal.x) / 2, z: pick.z + 0.3 };
       expect(segmentBlocked(pick, via), `side ${i} pick → via`).toBeNull();
-      expect(segmentBlocked(via, jal), `side ${i} via → jal`).toBeNull();
-      expect(segmentBlocked(jal, lay), `side ${i} jal → lay`).toBeNull();
+      expect(segmentBlocked(via, door), `side ${i} via → door`).toBeNull();
+      expect(segmentBlocked(door, jal), `side ${i} door → jal`).toBeNull();
       expect(segmentBlocked(jal, charanamrit), `side ${i} jal → charanamrit`).toBeNull();
     }
   });

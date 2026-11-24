@@ -70,8 +70,10 @@ import {
   JAL_NEAR_M,
   JAL_SIDES,
   JAL_SPOTS,
-  LAY_SPOTS,
-  OFFERING_PLATES,
+  SANCTUM_LANES,
+  SANCTUM_SPOTS,
+  DOOR_SPOTS,
+  inGarbhagriha,
   PICK_SPOTS,
   jalDistance,
   nearestJalSide,
@@ -117,8 +119,9 @@ import { TapWater, nearTrough, nearestTap, tapInReach } from "./taps";
 import { CameraRig, clampOrbit, type CameraPose } from "./camera";
 import { Crowd } from "./crowd";
 import { Offerings } from "./offerings";
-import { PLINTH, groundY } from "./ground";
+import { groundY } from "./ground";
 import { buildGreybox, MAX_TREES } from "./greybox";
+import { SANCTUM_LAMP } from "./sanctum-interior";
 import { Input } from "./input";
 import { FIRST_VIEW_WAIT_MS, SceneModels, soundUrls } from "./models";
 import { NavGrid } from "./nav";
@@ -152,7 +155,13 @@ const NAME_TAG_MS = 3000;
 
 /** Point lights at full strength; at most 4, and 2 on the Low tier (spec 02, spec 10). */
 const LIGHTS = {
-  sanctum: { color: "#ffb45a", intensity: 18, distance: 9, at: [0, PLINTH + 1.6, 1.5] },
+  // At the flames of the sanctum's hanging lamp, flickering with them.
+  sanctum: {
+    color: "#ffb45a",
+    intensity: 20,
+    distance: 9,
+    at: [SANCTUM_LAMP.x, SANCTUM_LAMP.y + 0.03, SANCTUM_LAMP.z],
+  },
   mandapa: { color: "#ffc27a", intensity: 22, distance: 20, at: [0, 3.8, 12] },
   gate: { color: "#ffc27a", intensity: 14, distance: 14, at: [GATE.x, 2.8, GATE.z - 1.4] },
 } as const;
@@ -290,7 +299,7 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
   scene.add(greybox.group);
   const swings = new BellSwings(greybox.bells, greybox.bellHang);
   const tapWater = new TapWater(greybox.tapWater);
-  // The jal spot's plate, tirtha pot and the water in the channel (spec 03).
+  // The offerings on the linga, the benches, the tirtha pots and the water in the channel (spec 03).
   const offerings = new Offerings();
   scene.add(offerings.group);
   const models = new SceneModels({
@@ -418,17 +427,17 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
         } else if (e.kind === "whisper") {
           crowd.play(e.from, "whisper", performance.now(), interpDelay());
         } else if (e.kind === "jal") {
-          // Another visitor pours: the water runs out along the channel as the pour reaches it.
-          const at = JAL_SPOTS[remoteJalSide(e.from)] ?? JAL_SPOTS[0];
+          // Another visitor pours in the sanctum: the water runs out along the channel as the
+          // pour reaches the linga.
+          const at = SANCTUM_SPOTS[remoteJalSide(e.from)] ?? SANCTUM_SPOTS[0];
           crowd.play(e.from, "pour", performance.now(), interpDelay(), () => {
             offerings.pour(POUR_OUTFLOW_S);
             if (at) effects.play("pour", { at: { x: at.x, y: 1, z: at.z }, remote: true });
           });
         } else if (e.kind === "bilva" || e.kind === "flower") {
           const kind = e.kind;
-          const side = remoteJalSide(e.from);
           crowd.play(e.from, kind, performance.now(), interpDelay(), () =>
-            offerings.lay(kind, LAY_RELEASE_S, side),
+            offerings.lay(kind, LAY_RELEASE_S),
           );
         } else if (e.kind === "charanamrit") {
           crowd.play(e.from, "charanamrit", performance.now(), interpDelay());
@@ -441,6 +450,8 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
         // The server keeps the last place it accepted; go back there.
         stand();
         walker.place({ x, z, yaw: walker.yaw });
+        // During the offering walk, carry on from there (spec 03).
+        jalCorrected();
       },
       counters: () => presenceChanged(),
       jal: (m) => onJal(m),
@@ -475,14 +486,19 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     context: () => doContext(),
     offer: (kind) => offer(kind),
     leaveQueue: () => cancelJal(),
-    darshan: () => toggleDarshan(),
-    gesture: (g) => doGesture(g),
+    darshan: () => {
+      if (!jalLocked()) toggleDarshan();
+    },
+    gesture: (g) => {
+      if (!jalLocked()) doGesture(g);
+    },
     sheet: () => updateLoop(),
     hallsOpened: () => {
       hud.setRooms(session.rooms);
       void session.refreshRooms().then((r) => hud.setRooms(r ?? session.rooms));
     },
     chooseHall: (hall) => {
+      if (jalLocked()) return;
       stand();
       session.switchHall(hall);
     },
@@ -530,15 +546,19 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
 
   const input = new Input(canvas, {
     look: (dx, dy) => {
+      // The camera holds the darshan view while the avatar offers (spec 03).
+      if (jalLocked()) return;
       lastLookAt = performance.now();
       if (rig.lookBy(dx * LOOK_RAD_PER_PX, dy * LOOK_RAD_PER_PX, mat >= 0, reducedMotion()))
         hud.setDarshan(false);
     },
     zoom: (f) => {
+      if (jalLocked()) return;
       if (rig.zoomBy(f, mat >= 0, reducedMotion())) hud.setDarshan(false);
     },
     tap: (x, y) => tap(x, y),
     action: (a) => {
+      if (jalLocked() && a !== "sound") return;
       if (a === "context") doContext();
       else if (a === "darshan") toggleDarshan();
       else if (a === "namaste" || a === "pranam") hud.tryGesture(a);
@@ -680,6 +700,7 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
   }
 
   function contextAction(): ContextAction | null {
+    if (jalLocked()) return null;
     if (mat >= 0) return "stand";
     if (rig.mode === "shringa") return "shringa-back";
     if (bellInReach(walker)) return "bell";
@@ -727,19 +748,24 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     }
   }
 
-  // --- The jal spot (spec 03 § Offer water, bel patra or a flower, § Receive charanamrit) --------
+  // --- The offering (spec 03 § Offer water, bel patra or a flower, § Receive charanamrit) -------
 
-  /** Where the visitor's offering stands: asking, queued, walking to the spot, or offering. */
+  /**
+   * Where the visitor's offering stands: asking, queued, then (once the turn comes, out of the
+   * visitor's control) to the bench, to the door, in along the lane, offering, and back out.
+   */
   type JalStep =
     | { step: "idle" }
     | { step: "asking"; kind: JalKind; req: number }
     | { step: "queued"; kind: JalKind; req: number }
     | { step: "going"; kind: JalKind; req: number | null }
     | { step: "picking"; kind: JalKind; req: number | null; endsAt: number }
-    | { step: "placing"; kind: JalKind; req: number | null }
+    | { step: "toDoor"; kind: JalKind; req: number | null }
+    | { step: "entering"; kind: JalKind; req: number | null }
     | { step: "turning"; kind: JalKind; req: number | null }
-    | { step: "offering"; kind: JalKind; req: number | null; endsAt: number };
-  /** Which side's bench, spot and plate this offering uses (0 north, 1 south). */
+    | { step: "offering"; kind: JalKind; req: number | null; endsAt: number }
+    | { step: "leaving"; kind: JalKind; req: number | null; offered: boolean };
+  /** Which side's bench, lane and door this offering uses (0 north, 1 south). */
   let jalSide = 0;
   let jal: JalStep = { step: "idle" };
   /** Server ms by which this visitor's turn must be done (from `jal.turn`); null offline. */
@@ -754,15 +780,14 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
   /** A short notice ("Your turn", the cooldown) goes after this; null when none is timed. */
   let queueNoticeUntil: number | null = null;
 
-  /** Waiting for the spot or walking to it: moving away or Esc gives it up. */
+  /** Asking or waiting in the queue: moving away or Esc gives the place up. */
   function jalWaiting(): boolean {
-    return (
-      jal.step === "asking" ||
-      jal.step === "queued" ||
-      jal.step === "going" ||
-      jal.step === "picking" ||
-      jal.step === "placing"
-    );
+    return jal.step === "asking" || jal.step === "queued";
+  }
+
+  /** From the turn until the avatar is back at the jal spot, the walk is not the visitor's (spec 03). */
+  function jalLocked(): boolean {
+    return jal.step !== "idle" && !jalWaiting();
   }
 
   function briefNotice(kind: "turn" | "cooldown"): void {
@@ -778,14 +803,13 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     }
     // The server takes one request a second; a quicker one would be dropped as a strike.
     if (performance.now() - jalAskedAt < JAL_ASK_GAP_MS) return;
-    // Each side of the door has its own turn: ask for the nearer one.
+    // One queue for the sanctum; the nearer side picks the bench and the lane.
     jalSide = nearestJalSide(walker);
-    // Alone (offline), the spot is free: walk there and offer.
+    // Alone (offline), the sanctum is free: go in and offer.
     const req = session.online ? session.jalRequest(kind, JAL_SIDES[jalSide] ?? "n") : null;
     jalUntil = null;
     if (req === null) {
-      jal = { step: "going", kind, req: null };
-      goToJalSpot();
+      startJalWalk(kind, null);
       return;
     }
     jalAskedAt = performance.now();
@@ -796,7 +820,7 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     if (m.t === "jal.queue") {
       if (jal.step === "asking" || jal.step === "queued") {
         jal = { step: "queued", kind: jal.kind, req: jal.req };
-        // The visitor at the spot is ahead too.
+        // The visitor in the sanctum is ahead too.
         hud.setQueue({ kind: "ahead", n: m.pos + 1 });
         queueNoticeUntil = null;
       } else if (jal.step === "idle") {
@@ -807,10 +831,9 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     }
     if (m.t === "jal.turn") {
       if ((jal.step === "asking" || jal.step === "queued") && jal.req === m.req) {
-        jal = { step: "going", kind: jal.kind, req: jal.req };
         jalUntil = m.until;
         briefNotice("turn");
-        goToJalSpot();
+        startJalWalk(jal.kind, jal.req);
       } else if (jal.step === "idle") {
         session.jalCancel();
       }
@@ -830,11 +853,27 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     return head ? nearestJalSide({ x: head.x, z: head.z }) : 0;
   }
 
+  /** A nav path to (x, z) without leaving the darshan view (unlike walkTo), or false. */
+  function jalPath(to: Point, onArrive: () => void): boolean {
+    if (distance(walker, to) <= 0.3) {
+      onArrive();
+      return true;
+    }
+    const path = getNav().findPath(walker, to);
+    if (!path) return false;
+    walker.follow(path, onArrive);
+    return true;
+  }
+
   /**
-   * Walk to the offering bench on the nearer side, take the lota, a bel patra or a flower from it
-   * (a short pause facing the bench), then go on to that side's jal spot or lay spot.
+   * The turn has come (or the visitor is alone): from here the walk is not in the visitor's
+   * control. The camera watches from the mandapa through the door, and never goes in (spec 03).
    */
-  function goToJalSpot(): void {
+  function startJalWalk(kind: JalKind, req: number | null): void {
+    stand();
+    jal = { step: "going", kind, req };
+    rig.setMode("darshan", reducedMotion());
+    hud.setDarshan(true);
     const pick = PICK_SPOTS[jalSide] ?? PICK_SPOTS[0];
     if (!pick) return;
     const atBench = (): void => {
@@ -848,49 +887,97 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
         endsAt: performance.now() + JAL_PICK_S * 1000,
       };
     };
-    if (distance(walker, pick) <= 0.3) atBench();
-    else if (!walkTo(pick.x, pick.z, atBench)) cancelJal();
+    if (!jalPath(pick, atBench)) endJalWalk();
   }
 
-  /** From the bench to the spot where the offering is made. */
-  function goFromBench(): void {
+  /** From the bench to the door spot on the darshan carpet. */
+  function goToDoor(): void {
     if (jal.step !== "picking") return;
-    jal = { step: "placing", kind: jal.kind, req: jal.req };
-    const water = jal.kind === "water";
-    const spot = (water ? JAL_SPOTS : LAY_SPOTS)[jalSide] ?? JAL_SPOTS[0];
-    const plate = OFFERING_PLATES[jalSide] ?? OFFERING_PLATES[0];
-    const target = JAL_SPOTS[jalSide] ?? JAL_SPOTS[0];
-    if (!spot || !plate || !target) return;
-    const arrive = (): void => {
-      if (jal.step !== "placing") return;
-      walker.stop();
-      // Water is poured towards the linga; a leaf or flower is laid on the plate, from close by.
-      walker.face(jal.kind === "water" ? target.yaw : yawTowards(walker, plate));
-      jal = { step: "turning", kind: jal.kind, req: jal.req };
-    };
-    if (distance(walker, spot) <= 0.3) arrive();
-    else if (!walkTo(spot.x, spot.z, arrive)) cancelJal();
+    jal = { step: "toDoor", kind: jal.kind, req: jal.req };
+    const door = DOOR_SPOTS[jalSide] ?? DOOR_SPOTS[0];
+    if (!door) return;
+    if (!jalPath(door, () => enterSanctum())) endJalWalk();
   }
 
-  /** Called each frame: start the offering once turned, finish it when the gesture ends. */
+  /** In along the lane to the sanctum spot, facing the linga. */
+  function enterSanctum(): void {
+    if (jal.step !== "toDoor") return;
+    const spot = SANCTUM_SPOTS[jalSide] ?? SANCTUM_SPOTS[0];
+    const door = DOOR_SPOTS[jalSide] ?? DOOR_SPOTS[0];
+    if (!spot || !door) return;
+    jal = { step: "entering", kind: jal.kind, req: jal.req };
+    walker.lane = SANCTUM_LANES[jalSide] ?? null;
+    walker.follow([{ x: door.x, z: spot.z + 0.6 }, spot], () => {
+      if (jal.step !== "entering") return;
+      walker.stop();
+      walker.face(spot.yaw);
+      jal = { step: "turning", kind: jal.kind, req: jal.req };
+    });
+  }
+
+  /** Back out along the lane to the door spot, then on to the jal spot; `offered` if it was made. */
+  function leaveSanctum(offered: boolean): void {
+    if (jal.step === "idle") return;
+    const door = DOOR_SPOTS[jalSide] ?? DOOR_SPOTS[0];
+    const spot = SANCTUM_SPOTS[jalSide] ?? SANCTUM_SPOTS[0];
+    if (!door || !spot) return;
+    jal = { step: "leaving", kind: jal.kind, req: jal.req, offered };
+    walker.lane = SANCTUM_LANES[jalSide] ?? null;
+    const out = (): void => {
+      walker.lane = null;
+      const back = JAL_SPOTS[jalSide] ?? JAL_SPOTS[0];
+      if (!back || !jalPath(back, () => endJalWalk())) endJalWalk();
+    };
+    if (inGarbhagriha(walker.x, walker.z)) {
+      // A few calm steps back still facing the linga, then turn and walk out (spec 03).
+      const back = { x: door.x, z: Math.min(spot.z + 1.05, door.z - 0.6) };
+      walker.follow([back], () => walker.follow([door], out), spot.yaw);
+    } else {
+      out();
+    }
+  }
+
+  /** The walk is over: control comes back, and the orbit camera with it. */
+  function endJalWalk(): void {
+    const req = jal.step === "idle" ? null : jal.req;
+    walker.lane = null;
+    jal = { step: "idle" };
+    jalUntil = null;
+    // Frees the sanctum for the next visitor at once if the turn is somehow still held (given
+    // up before the offering, or a `jal.done` lost while offline). After a real offering the
+    // server has already passed the turn on, and this is ignored.
+    if (req !== null) session.jalCancel();
+    rig.setMode("orbit", reducedMotion());
+    hud.setDarshan(false);
+  }
+
+  /**
+   * The server placed the visitor somewhere else during the walk (it led them out, or refused a
+   * step): finish from there. Inside the sanctum, walk out along the lane; outside, it's over.
+   */
+  function jalCorrected(): void {
+    if (!jalLocked()) return;
+    const offered = jal.step === "leaving" && jal.offered;
+    if (inGarbhagriha(walker.x, walker.z)) leaveSanctum(offered);
+    else endJalWalk();
+  }
+
+  /** Called each frame: the steps that wait on time or on turning, and the turn running out. */
   function updateJal(now: number): void {
     // No answer to a request (it was lost): let the buttons come back.
     if (jal.step === "asking" && now - jalAskedAt > JAL_ASK_TIMEOUT_MS) {
       jal = { step: "idle" };
     }
-    // The turn ran out on the server before the offering began: give it up quietly.
+    // The turn ran out on the server before the offering began: quietly walk back out.
     const late = jalUntil !== null && session.serverNow() > jalUntil;
-    if (
-      late &&
-      (jal.step === "going" ||
-        jal.step === "picking" ||
-        jal.step === "placing" ||
-        jal.step === "turning")
-    ) {
-      jal = { step: "idle" };
-      jalUntil = null;
+    if (late && (jal.step === "going" || jal.step === "picking" || jal.step === "toDoor")) {
+      walker.stop();
+      endJalWalk();
+    } else if (late && (jal.step === "entering" || jal.step === "turning")) {
+      walker.stop();
+      leaveSanctum(false);
     }
-    if (jal.step === "picking" && now >= jal.endsAt && !walker.turning) goFromBench();
+    if (jal.step === "picking" && now >= jal.endsAt && !walker.turning) goToDoor();
     if (jal.step === "turning" && !walker.turning) {
       const anim = jal.kind === "water" ? "pour" : jal.kind;
       avatar.play(anim);
@@ -898,7 +985,7 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
         offerings.pour(POUR_OUTFLOW_S);
         effects.play("pour");
       } else {
-        offerings.lay(jal.kind, LAY_RELEASE_S, jalSide);
+        offerings.lay(jal.kind, LAY_RELEASE_S);
       }
       jal = {
         step: "offering",
@@ -913,11 +1000,10 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
         offeredAt = now;
         charanamritTaken = false;
       }
-      jalUntil = null;
       hud.announce(
         jal.kind === "water" ? "a11y.jal" : jal.kind === "bilva" ? "a11y.bilva" : "a11y.flower",
       );
-      jal = { step: "idle" };
+      leaveSanctum(!late);
     }
     if (queueNoticeUntil !== null && now >= queueNoticeUntil) {
       queueNoticeUntil = null;
@@ -936,10 +1022,10 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     }
   }
 
-  /** Leave the queue or the turn (moving away, Esc, "Leave queue"). */
+  /** Leave the queue (moving away, Esc, "Leave queue"). Once the turn has come, it can't be left. */
   function cancelJal(): void {
-    if (jal.step === "idle" || jal.step === "turning" || jal.step === "offering") return;
-    if (jal.req !== null) session.jalCancel();
+    if (!jalWaiting()) return;
+    if (jal.step !== "idle" && jal.req !== null) session.jalCancel();
     jal = { step: "idle" };
     queueNoticeUntil = null;
     hud.setQueue(null);
@@ -1109,7 +1195,7 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
   function currentPose(): Pose {
     if (mat >= 0 && avatar.sitBlend > 0.98 && !matPending) return "sit";
     if (avatar.playing === "pranam") return "pranam";
-    // Offering at the jal spot, during this visitor's turn (spec 05: `offer` only then).
+    // Offering in the sanctum, during this visitor's turn (spec 05: `offer` only then).
     if (jal.step === "offering" && jal.req !== null) return "offer";
     return walker.speed > 0.05 ? "walk" : "stand";
   }
@@ -1120,7 +1206,9 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
   const raycaster = new Raycaster();
   const ndc = new Vector2();
   function tap(clientX: number, clientY: number): void {
-    // Walking elsewhere gives up a place at the jal spot.
+    // During the offering walk the avatar isn't the visitor's to move (spec 03).
+    if (jalLocked()) return;
+    // Walking elsewhere gives up a place in the jal queue.
     if (jalWaiting()) cancelJal();
     const r = canvas.getBoundingClientRect();
     // A person first: their name shows for a moment.
@@ -1305,7 +1393,7 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
   function simulate(dt: number, now: number): void {
     const ax = input.axes();
     let move: MoveInput | null = null;
-    if (ax.forward !== 0 || ax.right !== 0) {
+    if ((ax.forward !== 0 || ax.right !== 0) && !jalLocked()) {
       stand();
       if (jalWaiting()) cancelJal();
       if (rig.mode !== "orbit") {
@@ -1393,6 +1481,8 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
     tapWater.update(dt);
     greybox.kundWater.update(dt, reducedMotion());
     greybox.dhvaja.update(dt, reducedMotion());
+    greybox.sanctum.update(dt, reducedMotion());
+    lights.sanctum.intensity = sanctumLight * greybox.sanctum.flicker;
     offerings.update(dt);
     updateJal(now);
     updateGateHint();
@@ -1449,11 +1539,15 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
 
   /** The last phase blend applied; the sky is only rewritten when it changes. */
   let lastBlend = "";
+  /** The sanctum light's strength for the time of day, before the lamp's flicker. */
+  let sanctumLight = 0;
   function applySky(look: ReturnType<typeof blendLook>): void {
     sky.apply(look);
     greybox.lampMaterial.color.setScalar(0.35 + 0.65 * look.lamps);
     greybox.glowMaterial.opacity = 0.9 * look.lamps;
-    lights.sanctum.intensity = LIGHTS.sanctum.intensity * look.sanctum;
+    sanctumLight = LIGHTS.sanctum.intensity * look.sanctum;
+    greybox.sanctum.setDaylight(look.daylight);
+    lights.sanctum.intensity = sanctumLight * greybox.sanctum.flicker;
     lights.mandapa.intensity = LIGHTS.mandapa.intensity * look.mandapa;
     lights.gate.intensity = LIGHTS.gate.intensity * look.gate;
   }
@@ -1586,7 +1680,8 @@ export async function startTemple(host: HTMLElement): Promise<TempleHandle> {
         walking: walker.walkingPath,
         gesture: avatar.playing,
         /** What the visitor's position is blocked by; always null unless something is wrong. */
-        blocked: blockedAt(walker.x, walker.z),
+        // During the offering walk, the sanctum lane is open to this visitor (spec 03).
+        blocked: blockedAt(walker.x, walker.z, undefined, walker.lane),
         inMandapa: inMandapa(walker.x, walker.z),
         camera: {
           mode: rig.mode,

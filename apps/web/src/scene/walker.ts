@@ -3,7 +3,7 @@
  * Two inputs: a path from tap-to-walk, or a direction from the keyboard. Every step is checked
  * against world.ts, so no input sequence can put the visitor on a sacred or blocked zone.
  */
-import { WALK_SPEED_MPS, isWalkable, type Point, type Spot } from "@sannidhi/protocol";
+import { WALK_SPEED_MPS, isWalkable, type Point, type Rect, type Spot } from "@sannidhi/protocol";
 import { BODY_RADIUS, isClear } from "./nav";
 
 /** Largest simulation step; longer frames are split so collision stays exact. */
@@ -35,8 +35,15 @@ export class Walker {
   private path: Point[] = [];
   private onArrive: (() => void) | null = null;
   private faceYaw: number | null = null;
+  /** While following a path, keep facing this way (stepping back), or null to face the way walked. */
+  private pathYaw: number | null = null;
   /** While true, a tap-to-walk path waits (for example until the avatar has stood up). */
   hold = false;
+  /**
+   * The sanctum lane this walker may follow a path along, during its own jal turn (spec 03); null
+   * otherwise. Only scripted paths go there: keyboard steps never do.
+   */
+  lane: Rect | null = null;
 
   constructor(spot: Spot) {
     this.x = spot.x;
@@ -53,17 +60,26 @@ export class Walker {
     return this.faceYaw !== null;
   }
 
-  /** Follow waypoints (from NavGrid.findPath). `onArrive` runs only if the walk completes. */
-  follow(points: readonly Point[], onArrive: (() => void) | null = null): void {
+  /**
+   * Follow waypoints (from NavGrid.findPath). `onArrive` runs only if the walk completes. With
+   * `facing`, the walker keeps that yaw the whole way, so it can step back facing the linga.
+   */
+  follow(
+    points: readonly Point[],
+    onArrive: (() => void) | null = null,
+    facing: number | null = null,
+  ): void {
     this.path = points.slice();
     this.onArrive = onArrive;
     this.faceYaw = null;
+    this.pathYaw = facing;
     if (this.path.length === 0) this.arrive();
   }
 
   stop(): void {
     this.path = [];
     this.onArrive = null;
+    this.pathYaw = null;
   }
 
   /** Turn in place to face a direction (for example a mat's yaw when sitting). */
@@ -113,13 +129,14 @@ export class Walker {
       const nx = dist <= stepLen ? target.x : this.x + (dx / dist) * stepLen;
       const nz = dist <= stepLen ? target.z : this.z + (dz / dist) * stepLen;
       // Paths come from the clearance grid; the centre check is what the server applies too.
-      if (!isWalkable(nx, nz)) {
+      if (!isWalkable(nx, nz, undefined, this.lane)) {
         this.stop();
         return;
       }
       this.x = nx;
       this.z = nz;
-      if (dist > 1e-4) heading = Math.atan2(dx, dz);
+      if (this.pathYaw !== null) heading = this.pathYaw;
+      else if (dist > 1e-4) heading = Math.atan2(dx, dz);
       if (dist <= stepLen) {
         this.path.shift();
         if (this.path.length === 0) this.arrive();
@@ -157,6 +174,7 @@ export class Walker {
   private arrive(): void {
     const done = this.onArrive;
     this.onArrive = null;
+    this.pathYaw = null;
     done?.();
   }
 }

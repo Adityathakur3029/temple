@@ -6,7 +6,7 @@
  */
 import { LINGA, MANDAPA, SANCTUM_DOOR, type Point } from "@sannidhi/protocol";
 import type { CameraMode } from "../platform/view";
-import { type Box, CAMERA_BLOCKERS, PLINTH, groundY } from "./ground";
+import { type Box, CAMERA_BLOCKERS, HEIGHTS, PLINTH, groundY } from "./ground";
 
 export interface Vec3 {
   x: number;
@@ -188,11 +188,11 @@ function darshanEyeInto(p: Point, seated: boolean, out: Vec3): Vec3 {
 /**
  * Darshan between Nandi's horns (spec 03 § Shringa darshan): the eye just behind his head, on the
  * axis, low enough that the line to the linga passes between his horns, so they frame the sanctum
- * door. Tuned to the Nandi model in use (the `nandi` slot: horn tips 1.8 m above the ground at
+ * door. Tuned to the Nandi model in use (the `nandi` slot: horn tips 1.3 m above his platform at
  * z ≈ 21.3); the camera box round Nandi (ground.ts) ends at z 23, so the eye stays behind it.
  */
 export const SHRINGA_VIEW: { readonly eye: Vec3; readonly fov: number } = {
-  eye: { x: 0, y: 1.86, z: 23.3 },
+  eye: { x: 0, y: HEIGHTS.nandiPlatform + 1.36, z: 23.3 },
   fov: 24,
 };
 /** In the shringa view the visitor can look around this far, either way. */

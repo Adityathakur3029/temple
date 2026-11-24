@@ -34,7 +34,7 @@ Both Durable Object classes use the **SQLite storage backend** (`new_sqlite_clas
 |---|---|---|
 | Connected visitors (profile, last valid position, pose, mat, strikes, lite flag, last offering at the jal spot: when, and whether charanamrit was received) | WebSocket attachment (`serializeAttachment`, ≤ 2 KB each) | Yes, rebuilt from `ctx.getWebSockets()` on wake |
 | Mats taken | Derived from attachments + resume records | Yes |
-| Diya and jal queues, current turns | Storage key `queues` (small JSON, written on change) | Yes |
+| Diya and jal queues, current turns | Storage key `queues` (small JSON, written on change). The jal turn and each queue entry carry `side` (0 north, 1 south); the turn also `until` and, after `jal.done`, `offered` | Yes |
 | Lit lamps | Storage `lamp:<slot>` with `expiresAt` | Yes |
 | Resume records | Storage `resume:<token>` → `{visitor, place, until, offer?}`, written on disconnect. `place` is the position, facing, pose and mat; `offer` is the last offering at the jal spot, so its cooldown and charanamrit survive a resume. Queue places live in `queues`, keyed by visitor id | Yes; also survives a DO restart |
 | Pradakshina checkpoint progress | Attachment | Yes |
@@ -77,12 +77,12 @@ The delta `rev` starts at the wall clock when the object starts, so a new incarn
 - `dt` is the time since the last accepted position (server clock).
 - Accept the new position if all of these hold:
   - the distance is ≤ `SPEED_LIMIT_MPS × dt + 0.5 m`, with `dt` capped at `MOVE_MAX_DT_MS`, so a visitor who stood still for a while can't jump far in one step;
-  - the whole step, the straight segment from the last accepted position to the new one, stays inside the walkable area and outside every sacred and blocked zone (`segmentBlocked` in `world.ts`). Checking only the end point would let one long step hop over a thin zone such as the somasutra or the Nandi axis;
+  - the whole step, the straight segment from the last accepted position to the new one, stays inside the walkable area and outside every sacred and blocked zone (`segmentBlocked` in `world.ts`). The one exception: for the visitor holding the jal turn, the part of the step inside the garbhagriha may lie on their side's sanctum lane (`SANCTUM_LANES`, spec 03), and nowhere else inside. Checking only the end point would let one long step hop over a thin zone such as the somasutra or the Nandi axis;
   - the pose is a valid transition:
     - `sit` only within 0.3 m of the mat the visitor holds. The server then places them on it exactly, facing the sanctum.
     - `offer` only during a diya or jal turn (M3).
     - A seated visitor stays on the mat until they stand. `sit` or `japa` away from it is refused, and any standing pose gets up and frees the mat, as `stand` does.
-- The first `pos` after a welcome may be anywhere walkable, with no speed check. This way a reload with view restore (spec 10) keeps the visitor's place, and so does a visitor who walked on alone while their network was away. It still can't be on a sacred or blocked zone.
+- The first `pos` after a welcome may be anywhere walkable (for the jal turn holder, their lane too), with no speed check. This way a reload with view restore (spec 10) keeps the visitor's place, and so does a visitor who walked on alone while their network was away. It still can't be on a sacred or blocked zone.
 - Otherwise reply `correct {x, z}` with the last valid position and keep that.
 - Update the pradakshina checkpoint state from accepted positions (spec 03).
 
@@ -103,6 +103,7 @@ These follow the rules in [03 Rituals](03-rituals.md), with constants from [04](
 
 - `welcome.resume` is `<hall>.<instance>.<128-bit random, base64url>`.
 - The record `resume:<token>` is written at join with `until: null`, and again when the visitor's mat changes. So a place outlives a reset that drops sockets without a close event (a deploy): on start-up, a record whose socket is gone gets `until = now + RESUME_WINDOW_MS`.
+- When a jal turn ends with its holder still inside the garbhagriha, the RoomDO places them at their door spot and rewrites their attachment and record (or their resume record, if they are away). A resumed or restored place inside the garbhagriha is kept only for the turn holder, on their lane; anyone else is placed at the nearer door spot.
 - On disconnect (not `leave`) the RoomDO sets `until = now + RESUME_WINDOW_MS`. The visitor's mat and queue places are held until then. When the record expires, its place at the jal spot is freed. After a `leave` or a strike close the record is deleted and the place at the jal spot freed at once. A new visitor never gets an id still listed at the jal spot.
 - On reconnect with a token, the record is read and deleted, and the visitor gets the same id and name.
 - A token whose socket is still open here (the visitor moved from Wi-Fi to mobile data before this object saw the old socket close) takes that socket over: the old one closes with 1000 and the new one keeps the visitor, place, mat, strikes and last offering. A takeover is never refused for the per-IP cap, because it adds no socket.

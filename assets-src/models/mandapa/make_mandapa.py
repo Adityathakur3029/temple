@@ -19,7 +19,7 @@ walking rules don't change with the model, so the model follows them):
   Nandi axis (x -0.4 ... 0.4). Plain stone: no symbol on the floor or the steps (spec 08).
 - Two steps down the east side, z 19 ... 19.67, full width, tops at 0.30 and 0.15 m, which match
   the walking slope in ground.ts.
-- 14 pillars at MANDAPA_PILLARS (x +/-6.5 at z 3.2, 5.6, 10, 14.4, 18.6; x +/-2.9 at z 5.6 and 18.6),
+- 12 pillars at MANDAPA_PILLARS (x +/-6.5 at z 3.2, 5.6, 10, 14.4, 18.6; x +/-2.9 at z 18.6),
   0.44 m across (the obstacle is 0.5 m), capitals ending at 4.2 m (HEIGHTS.pillarTop). The outer
   pillars stay within 0.25 m of their centre at 3.42 m, where the code fixes the lamp brackets.
 - Beams under a flat ceiling at 4.42 m; the eave reaches x +/-7.6 and z 2.2 ... 19.8 (15.2 m wide,
@@ -172,7 +172,7 @@ MX, MZ0, MZ1 = 7.0, 2.6, 19.0  # MANDAPA
 AISLE = 0.4  # NANDI_AXIS half width
 CEIL_AISLE = 1.2  # ceiling panel edge over the aisle; unchanged
 PILLARS = [(x, z) for z in (3.2, 5.6, 10, 14.4, 18.6) for x in (6.5, -6.5)] + \
-          [(x, z) for z in (5.6, 18.6) for x in (2.9, -2.9)]
+          [(x, z) for z in (18.6,) for x in (2.9, -2.9)]
 PILLAR_TOP = 4.2
 CEIL = 4.42
 EAVE_X, EAVE_Z0, EAVE_Z1 = 7.6, 2.2, 19.8  # the west eave runs into the sanctum wall

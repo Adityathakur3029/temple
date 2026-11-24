@@ -16,6 +16,7 @@ import {
   roundYaw,
   segmentBlocked,
   type Blocker,
+  type Rect,
   type PosMessage,
 } from "@sannidhi/protocol";
 
@@ -58,8 +59,17 @@ export function isSeated(p: Pick<Place, "x" | "z" | "pose" | "mat">): boolean {
   return isSeatedAt(p.pose, p.mat, p.x, p.z);
 }
 
-/** `mayOffer`: the visitor holds the jal turn, so the `offer` pose is allowed (spec 05). */
-export function checkMove(cur: Place, msg: PosMessage, now: number, mayOffer = false): MoveVerdict {
+/**
+ * `mayOffer`: the visitor holds the jal turn, so the `offer` pose is allowed (spec 05). `lane`:
+ * their side's sanctum lane while they hold it, the only place inside the garbhagriha they may be.
+ */
+export function checkMove(
+  cur: Place,
+  msg: PosMessage,
+  now: number,
+  mayOffer = false,
+  lane: Rect | null = null,
+): MoveVerdict {
   const pose = POSES.indexOf(msg.pose);
   const next = { x: roundCm(msg.x), z: roundCm(msg.z) };
   const mat = cur.mat >= 0 ? SEATS[cur.mat] : undefined;
@@ -76,13 +86,13 @@ export function checkMove(cur: Place, msg: PosMessage, now: number, mayOffer = f
   }
 
   if (cur.firstPos) {
-    if (!isWalkable(next.x, next.z)) return { ok: false, why: "outside" };
+    if (!isWalkable(next.x, next.z, undefined, lane)) return { ok: false, why: "outside" };
   } else {
     // Capped, so a visitor who stood still a while can't jump far in one step (spec 05).
     const dt = Math.min(MOVE_MAX_DT_MS, Math.max(0, now - cur.posAt)) / 1000;
     if (distance(cur, next) > SPEED_LIMIT_MPS * dt + MOVE_SLACK_M)
       return { ok: false, why: "too-far" };
-    const blocked = segmentBlocked(cur, next);
+    const blocked = segmentBlocked(cur, next, undefined, lane);
     if (blocked) return { ok: false, why: blocked };
   }
 

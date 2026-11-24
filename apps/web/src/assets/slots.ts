@@ -6,7 +6,7 @@
  * Plain data with no three.js import, so the Node asset tools can share it.
  */
 import { DEEPA_STAND, GANESHA, GATE, TODAY_BOARD } from "@sannidhi/protocol";
-import { PLINTH } from "../scene/ground";
+import { HEIGHTS, PLINTH } from "../scene/ground";
 
 export const SLOT_IDS = [
   "gate",
@@ -174,11 +174,11 @@ export const SLOTS: Readonly<Record<SlotId, SlotSpec>> = {
     texture: { full: 1024, lite: 512 },
     fit: { axis: "z", size: 1.6 },
     origin: "bottom",
-    place: { x: 0, y: 0.5, z: 22.05, yaw: HALF_TURN },
+    place: { x: 0, y: HEIGHTS.nandiPlatform, z: 22.05, yaw: HALF_TURN },
   },
   mandapa: {
     label:
-      "Open pillared hall: plinth, steps to +z, 14 pillars, beams and stepped roof; no carved deity figures, no sacred symbols on floors or steps",
+      "Open pillared hall: plinth, steps to +z, 12 pillars, beams and stepped roof; no carved deity figures, no sacred symbols on floors or steps",
     kind: "single",
     priority: "P1",
     sacred: false,
